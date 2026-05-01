@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+echosense-env/
+vosk-model-tl-ph-generic-0.6/
+vosk-model-small-en-us-0.15/
+vosk-filipino.zip
+vosk-english.zip
+yamnet.tflite
+yamnet_class_map.csv
+*.zip
+.env
+
+seeed-voicecard/

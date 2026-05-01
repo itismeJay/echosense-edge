@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(timeout 15 python3 main.py)",
+      "Bash(pip install *)",
+      "Bash(timeout 20 python3 main.py)",
+      "Bash(wget -q \"https://raw.githubusercontent.com/tensorflow/models/master/research/audioset/yamnet/yamnet_class_map.csv\" -O yamnet_class_map.csv)",
+      "Bash(timeout 12 python3 *)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(arecord -l)",
+      "Bash(aplay -l)",
+      "Bash(lsusb *)",
+      "Bash(sudo sh *)",
+      "Bash(sudo dkms *)",
+      "Bash(sudo ./install.sh)",
+      "Bash(dmesg)",
+      "Bash(i2cdetect -y 1)",
+      "Read(//dev/**)",
+      "Bash(i2cdetect -y 0)",
+      "Bash(i2cdetect -y 4)",
+      "Bash(i2cdetect -y 13)",
+      "Bash(i2cdetect -y 14)",
+      "Bash(lsmod)"
+    ]
+  }
+}
