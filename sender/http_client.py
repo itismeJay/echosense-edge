@@ -3,7 +3,12 @@ import time
 from config import API_URL, LOCATION
 
 def send_alert(severity: str, confidence: float, duration: float, retries: int = 3):
-    payload = {"severity": severity, "confidence": round(confidence, 4), "duration": round(duration, 2), "location": LOCATION}
+    payload = {
+        "severity": str(severity),
+        "confidence": float(round(float(confidence), 4)),
+        "duration": float(round(float(duration), 2)),
+        "location": LOCATION
+    }
     for attempt in range(retries):
         try:
             print(f"[SENDER] Sending alert... (attempt {attempt + 1})")

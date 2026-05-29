@@ -13,17 +13,14 @@ def main():
     print("  Davao del Norte State College")
     print("=" * 50)
 
-    # Check backend connection
     print("\n[INIT] Checking backend connection...")
     check_backend_connection()
 
-    # Load YAMNet
     print("[INIT] Loading YAMNet model...")
     interpreter = load_yamnet()
     class_names = load_class_names()
     print("[INIT] YAMNet loaded successfully!")
 
-    # Get audio device
     print("[INIT] Detecting audio device...")
     device_index = get_audio_device()
     if device_index is None:
@@ -31,22 +28,18 @@ def main():
     else:
         print(f"[INIT] Using device index: {device_index}")
 
-    # Initialize aggression detector
     detector = AggressionDetector()
 
     print("\n[INIT] EchoSense is now listening...")
     print("[INIT] Press Ctrl+C to stop\n")
 
-    # Main loop
     while True:
         try:
-            # Capture audio
             audio_np, audio_bytes = capture_audio(
                 duration=1.0,
                 device_index=device_index
             )
 
-            # Run YAMNet
             yamnet_class, yamnet_score, _ = run_yamnet(
                 interpreter,
                 audio_np,
@@ -55,7 +48,6 @@ def main():
 
             print(f"[YAMNET] {yamnet_class}: {yamnet_score:.2f}")
 
-            # Run Vosk
             vosk_result = process_audio_chunk(audio_bytes)
             has_profanity = vosk_result["has_profanity"]
             detected_words = vosk_result["detected_words"]
@@ -63,15 +55,14 @@ def main():
             if has_profanity:
                 print(f"[VOSK] Profanity detected: {detected_words}")
 
-            # Run aggression detection
             result = detector.process(
                 yamnet_class,
                 yamnet_score,
                 has_profanity,
-                detected_words
+                detected_words,
+                audio_np
             )
 
-            # Send alert if needed
             if result["should_alert"]:
                 send_alert(
                     severity=result["severity"],
