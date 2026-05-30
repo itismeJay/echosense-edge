@@ -5,15 +5,22 @@ from config import SAMPLE_RATE, CHUNK_SIZE, CHANNELS
 def get_audio_device():
     p = pyaudio.PyAudio()
     device_index = None
-    
+
     print("Available audio devices:")
     for i in range(p.get_device_count()):
         info = p.get_device_info_by_index(i)
+        name = info['name'].lower()
         print(f"  [{i}] {info['name']}")
-        if 'respeaker' in info['name'].lower() or 'seeed' in info['name'].lower():
+        if 'respeaker' in name or 'seeed' in name:
             device_index = i
             print(f"  → ReSpeaker found at index {i}")
-    
+        elif device_index is None and ('emeet' in name or 'm0' in name):
+            device_index = i
+            print(f"  → EMEET mic found at index {i}")
+        elif device_index is None and 'usb' in name and info.get('maxInputChannels', 0) > 0:
+            device_index = i
+            print(f"  → USB mic found at index {i}")
+
     p.terminate()
     return device_index
 

@@ -4,6 +4,16 @@ PROFANITY_BOOST = 0.15
 CASUAL_SPEECH_MAX = 0.60
 AGGRESSIVE_SPEECH_MIN = 0.75
 
+# Prosodic tone-analysis thresholds (acoustic, used by model/tone_analyzer.py).
+# NOTE: tone_analyzer.analyze_tone() currently hard-codes these same numbers
+# inline; these constants are the canonical reference for tuning. If you change
+# a value here, mirror it in analyze_tone() (and vice-versa).
+TONE_RMS_THRESHOLD = 800          # minimum loudness for aggressive tone
+TONE_VARIANCE_THRESHOLD = 5000    # minimum energy variance
+TONE_ZCR_THRESHOLD = 0.1          # minimum zero crossing rate
+TONE_CONFIDENCE_BOOST_HIGH = 0.10 # boost when all tone indicators are high
+TONE_CONFIDENCE_BOOST_MED = 0.05  # boost when some tone indicators are high
+
 def get_severity(confidence: float) -> str:
     if confidence >= 0.85:
         return "high"

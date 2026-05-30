@@ -63,6 +63,18 @@ def main():
                 audio_np
             )
 
+            if has_profanity:
+                word = ", ".join(detected_words) if detected_words else "?"
+                aggressive = result.get("tone_aggressive", False)
+                if result["should_alert"]:
+                    alert_str = "YES"
+                elif aggressive:
+                    alert_str = "NO (building duration)"
+                else:
+                    alert_str = "NO (casual tone)"
+                print(f"[ECHOSENSE] Word detected: {word} | "
+                      f"Tone: {'AGGRESSIVE' if aggressive else 'CASUAL'} | Alert: {alert_str}")
+
             if result["should_alert"]:
                 send_alert(
                     severity=result["severity"],

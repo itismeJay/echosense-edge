@@ -1,7 +1,8 @@
 import time
 import numpy as np
-from detection.thresholds import YAMNET_THRESHOLD, DURATION_THRESHOLD, get_final_severity, get_final_confidence, is_aggressive_tone
+from detection.thresholds import YAMNET_THRESHOLD, DURATION_THRESHOLD, get_final_severity, get_final_confidence, get_severity
 from model.yamnet_infer import is_aggressive_sound
+from model.tone_analyzer import analyze_tone, get_tone_confidence_boost
 
 # Volume threshold — RMS above this = loud/aggressive
 LOUD_RMS_THRESHOLD = 800
@@ -15,29 +16,42 @@ class AggressionDetector:
     def process(self, yamnet_class, yamnet_score, has_profanity, detected_words, audio_np=None):
         current_time = time.time()
 
-        # Calculate volume (RMS)
-        rms = 0
+        # Prosodic tone analysis — checks HOW something was said (acoustic),
+        # not just WHAT was said. Pure sound analysis, no words needed.
         if audio_np is not None:
-            rms = int(np.sqrt(np.mean(audio_np.astype(np.float32)**2)))
+            tone = analyze_tone(audio_np)
+        else:
+            tone = {"rms": 0.0, "energy_variance": 0.0, "zero_crossing_rate": 0.0,
+                    "peak_to_average": 0.0, "is_aggressive_tone": False}
 
+        rms = int(tone["rms"])
+        aggressive_tone = tone["is_aggressive_tone"]
         is_loud = rms >= LOUD_RMS_THRESHOLD
+
+        # CASE 4 — surface the prosodic features every iteration.
+        print(f"[TONE ANALYSIS] RMS={tone['rms']:.0f} Variance={tone['energy_variance']:.0f} "
+              f"ZCR={tone['zero_crossing_rate']:.3f} Aggressive={aggressive_tone}")
+
+        # YAMNet aggressive-class path — unchanged.
         is_aggressive = is_aggressive_sound(yamnet_class, yamnet_score, YAMNET_THRESHOLD)
 
-        # High confidence Speech + LOUD = aggressive
-        if yamnet_class == "Speech" and yamnet_score >= 0.90 and is_loud:
-            is_aggressive = True
-        elif yamnet_class == "Speech" and yamnet_score >= 0.90 and not is_loud:
-            is_aggressive = False  # deep voice but not loud = ignore
+        # CASE 2 — High-confidence Speech now also requires an aggressive
+        # acoustic tone (loud AND tense/uneven), not just loudness.
+        if yamnet_class == "Speech" and yamnet_score >= 0.90:
+            if is_loud and aggressive_tone:
+                is_aggressive = True
+            else:
+                is_aggressive = False  # confident speech but calm/quiet = ignore
 
-        aggressive_tone = is_aggressive_tone(yamnet_score, has_profanity)
-
-        if has_profanity and aggressive_tone and is_loud:
-            is_aggressive = True
-            yamnet_score = max(yamnet_score, 0.75)
-            print(f"[TONE] Aggressive tone with profanity! RMS={rms}")
-        elif has_profanity and (not aggressive_tone or not is_loud):
-            print(f"[TONE] Casual speech — ignored (RMS={rms})")
-            is_aggressive = False
+        # CASE 1 — Profanity gating via acoustic tone (the core fix).
+        # "gago" while joking/quietly = casual tone = NO alert.
+        # "GAGO!" shouted angrily = aggressive tone = alert.
+        if has_profanity:
+            if aggressive_tone:
+                is_aggressive = True
+                yamnet_score = max(yamnet_score, 0.75)
+            else:
+                is_aggressive = False
 
         if is_aggressive:
             if self.aggressive_start_time is None:
@@ -46,14 +60,22 @@ class AggressionDetector:
             duration = current_time - self.aggressive_start_time
             if duration >= DURATION_THRESHOLD:
                 if current_time - self.last_alert_time >= self.alert_cooldown:
-                    severity = get_final_severity(yamnet_score, has_profanity)
-                    confidence = get_final_confidence(yamnet_score, has_profanity)
+                    # CASE 3 — stack the acoustic tone boost on top of the
+                    # profanity boost, then re-derive severity from it.
+                    tone_boost = get_tone_confidence_boost(tone)
+                    confidence = min(1.0, get_final_confidence(yamnet_score, has_profanity) + tone_boost)
+                    severity = get_severity(confidence)
                     self.last_alert_time = current_time
                     self.aggressive_start_time = None
-                    print(f"[ALERT] Aggression detected! Severity: {severity} Confidence: {confidence:.2f} RMS={rms}")
-                    return {"should_alert": True, "severity": severity, "confidence": confidence, "duration": round(duration, 2), "yamnet_class": yamnet_class, "detected_words": detected_words, "has_profanity": has_profanity}
+                    print(f"[ALERT] Aggression detected! Severity: {severity} "
+                          f"Confidence: {confidence:.2f} RMS={rms} ToneBoost=+{tone_boost:.2f}")
+                    return {"should_alert": True, "severity": severity, "confidence": confidence,
+                            "duration": round(duration, 2), "yamnet_class": yamnet_class,
+                            "detected_words": detected_words, "has_profanity": has_profanity,
+                            "tone_aggressive": aggressive_tone}
         else:
             if self.aggressive_start_time is not None:
                 print(f"[DETECTION] Sound stopped (RMS={rms})")
             self.aggressive_start_time = None
-        return {"should_alert": False}
+        return {"should_alert": False, "has_profanity": has_profanity,
+                "detected_words": detected_words, "tone_aggressive": aggressive_tone}

@@ -1,0 +1,5 @@
+pyaudio
+numpy
+vosk
+requests
+ai-edge-litert

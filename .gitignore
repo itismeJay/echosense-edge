@@ -9,6 +9,7 @@ vosk-english.zip
 yamnet.tflite
 yamnet_class_map.csv
 *.zip
+*.zip.*
 .env
 
 seeed-voicecard/
