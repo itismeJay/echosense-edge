@@ -2,12 +2,26 @@ import requests
 import time
 from config import API_URL, LOCATION
 
-def send_alert(severity: str, confidence: float, duration: float, retries: int = 3):
+def send_alert(severity, confidence, duration,
+               transcribed_text="", detected_words=None,
+               yamnet_class="Unknown", yamnet_score=0.0,
+               emotion="unknown", tone_data=None,
+               waveform_snapshot=None, retries=3):
     payload = {
         "severity": str(severity),
         "confidence": float(round(float(confidence), 4)),
         "duration": float(round(float(duration), 2)),
-        "location": LOCATION
+        "location": LOCATION,
+        "transcribed_text": transcribed_text,
+        "detected_words": detected_words or [],
+        "yamnet_class": yamnet_class,
+        "yamnet_score": float(round(float(yamnet_score), 4)),
+        "emotion": emotion,
+        "rms": round(float(tone_data.get("rms", 0)), 2) if tone_data else 0,
+        "energy_variance": round(float(tone_data.get("energy_variance", 0)), 2) if tone_data else 0,
+        "zero_crossing_rate": round(float(tone_data.get("zero_crossing_rate", 0)), 4) if tone_data else 0,
+        "peak_to_average": round(float(tone_data.get("peak_to_average", 0)), 2) if tone_data else 0,
+        "waveform_snapshot": waveform_snapshot or []
     }
     for attempt in range(retries):
         try:

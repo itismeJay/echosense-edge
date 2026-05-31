@@ -4,7 +4,8 @@ ENGLISH_BLACKLIST = [
     "ugly", "freak", "moron", "jerk",
     "tang ina", "tangina", "worthless", "nobody likes you",
     "go away", "you smell", "get lost", "weirdo",
-    "crybaby", "nobody wants you", "you're nothing", "get out"
+    "crybaby", "nobody wants you", "you're nothing", "get out",
+    "you are nothing"
 ]
 
 FILIPINO_BLACKLIST = [
@@ -24,7 +25,7 @@ BISAYA_BLACKLIST = [
     "iyot", "pisti", "atay", "buyag",
     "animal", "ngano", "bastos",
     "pangit", "tonto", "ungo", "piste",
-    "buanga", "maot", "walay pulos", "katawa", "luoy"
+    "buanga", "maot", "walay pulos", "katawa", "luoy", "lisod"
 ]
 
 ALL_BLACKLIST = ENGLISH_BLACKLIST + FILIPINO_BLACKLIST + BISAYA_BLACKLIST

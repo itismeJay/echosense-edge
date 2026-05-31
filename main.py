@@ -51,6 +51,7 @@ def main():
             vosk_result = process_audio_chunk(audio_bytes)
             has_profanity = vosk_result["has_profanity"]
             detected_words = vosk_result["detected_words"]
+            transcribed_text = vosk_result.get("transcribed_text", "")
 
             if has_profanity:
                 print(f"[VOSK] Profanity detected: {detected_words}")
@@ -60,7 +61,8 @@ def main():
                 yamnet_score,
                 has_profanity,
                 detected_words,
-                audio_np
+                audio_np,
+                transcribed_text
             )
 
             if has_profanity:
@@ -79,7 +81,14 @@ def main():
                 send_alert(
                     severity=result["severity"],
                     confidence=result["confidence"],
-                    duration=result["duration"]
+                    duration=result["duration"],
+                    transcribed_text=result.get("transcribed_text", ""),
+                    detected_words=result.get("detected_words", []),
+                    yamnet_class=result.get("yamnet_class", "Unknown"),
+                    yamnet_score=result.get("yamnet_score", 0.0),
+                    emotion=result.get("emotion", "unknown"),
+                    tone_data=result.get("tone_data", {}),
+                    waveform_snapshot=result.get("waveform_snapshot", [])
                 )
 
         except KeyboardInterrupt:

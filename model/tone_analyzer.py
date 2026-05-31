@@ -85,3 +85,33 @@ def get_tone_confidence_boost(tone_result):
         return 0.05
     else:
         return 0.0
+
+
+def classify_emotion(tone_result):
+    """
+    Maps prosodic tone features to a coarse emotion label for richer alert
+    evidence. Checks most-severe first so the strongest match wins.
+
+    angry      — loud, very uneven, very tense
+    aggressive — loud, uneven, tense
+    distressed — moderate volume, uneven, tense (e.g. crying/pleading)
+    upset      — quiet-to-moderate but uneven
+    neutral    — audible but calm
+    silent     — effectively no signal
+    """
+    rms = tone_result["rms"]
+    variance = tone_result["energy_variance"]
+    zcr = tone_result["zero_crossing_rate"]
+
+    if rms > 2000 and variance > 8000 and zcr > 0.15:
+        return "angry"
+    elif rms > 800 and variance > 5000 and zcr > 0.1:
+        return "aggressive"
+    elif rms > 400 and variance > 6000 and zcr > 0.12:
+        return "distressed"
+    elif rms > 200 and variance > 4000:
+        return "upset"
+    elif rms > 100:
+        return "neutral"
+    else:
+        return "silent"

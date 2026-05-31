@@ -49,5 +49,12 @@ def capture_audio(duration: float = 1.0, device_index=None):
     
     audio_bytes = b''.join(frames)
     audio_np = np.frombuffer(audio_bytes, dtype=np.int16)
-    
+
     return audio_np, audio_bytes
+
+def get_waveform_snapshot(audio_np, num_points=40):
+    if len(audio_np) == 0:
+        return [0] * num_points
+    indices = np.linspace(0, len(audio_np)-1, num_points, dtype=int)
+    snapshot = [int(abs(audio_np[i])) for i in indices]
+    return snapshot

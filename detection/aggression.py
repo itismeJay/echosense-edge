@@ -2,7 +2,8 @@ import time
 import numpy as np
 from detection.thresholds import YAMNET_THRESHOLD, DURATION_THRESHOLD, get_final_severity, get_final_confidence, get_severity
 from model.yamnet_infer import is_aggressive_sound
-from model.tone_analyzer import analyze_tone, get_tone_confidence_boost
+from model.tone_analyzer import analyze_tone, get_tone_confidence_boost, classify_emotion
+from audio.capture import get_waveform_snapshot
 
 # Volume threshold — RMS above this = loud/aggressive
 LOUD_RMS_THRESHOLD = 800
@@ -13,17 +14,26 @@ class AggressionDetector:
         self.last_alert_time = 0
         self.alert_cooldown = 10.0
 
-    def process(self, yamnet_class, yamnet_score, has_profanity, detected_words, audio_np=None):
+    def process(self, yamnet_class, yamnet_score, has_profanity, detected_words,
+                audio_np=None, transcribed_text=""):
         current_time = time.time()
+
+        # Keep the genuine YAMNet score for evidence — `yamnet_score` may get
+        # floored below when profanity is present.
+        reported_yamnet_score = float(yamnet_score)
+        detected_words = detected_words or []
 
         # Prosodic tone analysis — checks HOW something was said (acoustic),
         # not just WHAT was said. Pure sound analysis, no words needed.
         if audio_np is not None:
             tone = analyze_tone(audio_np)
+            waveform_snapshot = get_waveform_snapshot(audio_np)
         else:
             tone = {"rms": 0.0, "energy_variance": 0.0, "zero_crossing_rate": 0.0,
                     "peak_to_average": 0.0, "is_aggressive_tone": False}
+            waveform_snapshot = []
 
+        emotion = classify_emotion(tone)
         rms = int(tone["rms"])
         aggressive_tone = tone["is_aggressive_tone"]
         is_loud = rms >= LOUD_RMS_THRESHOLD
@@ -68,14 +78,30 @@ class AggressionDetector:
                     self.last_alert_time = current_time
                     self.aggressive_start_time = None
                     print(f"[ALERT] Aggression detected! Severity: {severity} "
-                          f"Confidence: {confidence:.2f} RMS={rms} ToneBoost=+{tone_boost:.2f}")
+                          f"Confidence: {confidence:.2f} RMS={rms} Emotion={emotion} "
+                          f"ToneBoost=+{tone_boost:.2f}")
                     return {"should_alert": True, "severity": severity, "confidence": confidence,
-                            "duration": round(duration, 2), "yamnet_class": yamnet_class,
-                            "detected_words": detected_words, "has_profanity": has_profanity,
+                            "duration": round(duration, 2),
+                            "transcribed_text": transcribed_text,
+                            "detected_words": detected_words,
+                            "yamnet_class": yamnet_class,
+                            "yamnet_score": reported_yamnet_score,
+                            "emotion": emotion,
+                            "tone_data": tone,
+                            "waveform_snapshot": waveform_snapshot,
+                            "has_profanity": has_profanity,
                             "tone_aggressive": aggressive_tone}
         else:
             if self.aggressive_start_time is not None:
                 print(f"[DETECTION] Sound stopped (RMS={rms})")
             self.aggressive_start_time = None
-        return {"should_alert": False, "has_profanity": has_profanity,
-                "detected_words": detected_words, "tone_aggressive": aggressive_tone}
+        return {"should_alert": False,
+                "transcribed_text": transcribed_text,
+                "detected_words": detected_words,
+                "yamnet_class": yamnet_class,
+                "yamnet_score": reported_yamnet_score,
+                "emotion": emotion,
+                "tone_data": tone,
+                "waveform_snapshot": waveform_snapshot,
+                "has_profanity": has_profanity,
+                "tone_aggressive": aggressive_tone}
