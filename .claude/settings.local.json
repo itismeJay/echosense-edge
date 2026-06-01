@@ -35,7 +35,14 @@
       "Read(//usr/lib/systemd/system/**)",
       "Bash(echosense-env/bin/python3 *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(/usr/bin/python3 -c \"import vosk; print\\('vosk OK'\\)\")",
+      "Bash(/usr/bin/python3 -c \"import ai_edge_litert; print\\('ai_edge_litert OK'\\)\")",
+      "Bash(curl -s --max-time 15 https://echosense-backend-75h3.onrender.com/alerts/)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'Total alerts: {len\\(d\\)}'\\); print\\(f'Latest: {d[0][\\\\\"severity\\\\\"]} at {d[0][\\\\\"created_at\\\\\"]} - {d[0][\\\\\"transcribed_text\\\\\"]}'\\)\")",
+      "Bash(curl *)",
+      "Bash(python3 *)"
     ]
   }
 }

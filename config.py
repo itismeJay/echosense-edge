@@ -5,7 +5,7 @@ API_URL = "https://echosense-backend-75h3.onrender.com"
 
 # Audio settings
 SAMPLE_RATE = 16000
-CHUNK_SIZE = 1024
+CHUNK_SIZE = 1040
 CHANNELS = 1
 
 # YAMNet model

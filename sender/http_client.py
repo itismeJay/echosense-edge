@@ -26,7 +26,7 @@ def send_alert(severity, confidence, duration,
     for attempt in range(retries):
         try:
             print(f"[SENDER] Sending alert... (attempt {attempt + 1})")
-            response = requests.post(f"{API_URL}/alerts", json=payload, timeout=10)
+            response = requests.post(f"{API_URL}/alerts/", json=payload, timeout=10)
             if response.status_code == 200:
                 data = response.json()
                 print(f"[SENDER] Alert sent! ID: {data.get('id')} Severity: {data.get('severity')}")

@@ -35,10 +35,9 @@ def run_yamnet(interpreter, audio_data, class_names):
     return top_class, top_score, mean_scores
 
 AGGRESSIVE_CLASSES = [
-    "Screaming", "Shouting", "Yelling",
+    "Screaming", "Scream", "Yell",
     "Crying", "Whimper", "Wail",
-    "Fighting", "Crowd", "Noise",
-    "Shout", "Scream", "Shriek"
+    "Crowd", "Noise", "Shout"
 ]
 
 def is_aggressive_sound(class_name: str, score: float, threshold: float) -> bool:
@@ -46,5 +45,4 @@ def is_aggressive_sound(class_name: str, score: float, threshold: float) -> bool
         return False
     for aggressive in AGGRESSIVE_CLASSES:
         if aggressive.lower() in class_name.lower():
-            return True
-    return False
+            return True    return False
