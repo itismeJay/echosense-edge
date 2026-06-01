@@ -20,18 +20,14 @@ def load_yamnet():
 def run_yamnet(interpreter, audio_data, class_names):
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
-
     audio_float = audio_data.astype(np.float32) / 32768.0
-
     interpreter.set_tensor(input_details[0]['index'], audio_float)
     interpreter.invoke()
-
     scores = interpreter.get_tensor(output_details[0]['index'])
     mean_scores = np.mean(scores, axis=0)
     top_index = np.argmax(mean_scores)
     top_class = class_names[top_index]
     top_score = mean_scores[top_index]
-
     return top_class, top_score, mean_scores
 
 AGGRESSIVE_CLASSES = [
@@ -45,5 +41,5 @@ def is_aggressive_sound(class_name: str, score: float, threshold: float) -> bool
         return False
     for aggressive in AGGRESSIVE_CLASSES:
         if aggressive.lower() in class_name.lower():
-            return True    
-	return False
+            return True
+    return False
