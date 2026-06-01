@@ -45,4 +45,5 @@ def is_aggressive_sound(class_name: str, score: float, threshold: float) -> bool
         return False
     for aggressive in AGGRESSIVE_CLASSES:
         if aggressive.lower() in class_name.lower():
-            return True    return False
+            return True    
+	return False
