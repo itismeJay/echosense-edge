@@ -45,8 +45,7 @@ def analyze_tone(audio_np, sample_rate=16000):
     # - zcr > 0.1: voice must be tense (not relaxed joking tone)
     is_aggressive = bool(
         rms > 800 and
-        energy_variance > 5000 and
-        zcr > 0.1
+        energy_variance > 5000
     )
 
     return {

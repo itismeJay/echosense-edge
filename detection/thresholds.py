@@ -22,6 +22,14 @@ def get_severity(confidence: float) -> str:
     else:
         return "low"
 
+def get_severity_by_duration(duration: float) -> str:
+    if duration >= 5.0:
+        return "high"
+    elif duration >= 3.0:
+        return "medium"
+    else:
+        return "low"
+
 def get_final_severity(yamnet_confidence: float, has_profanity: bool) -> str:
     confidence = yamnet_confidence
     if has_profanity:
