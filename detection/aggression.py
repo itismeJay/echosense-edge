@@ -1,11 +1,11 @@
 import time
 import numpy as np
-from detection.thresholds import YAMNET_THRESHOLD, DURATION_THRESHOLD, get_final_severity, get_final_confidence, get_severity, get_severity_by_duration
+from detection.thresholds import YAMNET_THRESHOLD, DURATION_THRESHOLD, TONE_RMS_THRESHOLD, PROFANITY_MIN_RMS, get_final_severity, get_final_confidence, get_severity, get_severity_by_duration
 from model.yamnet_infer import is_aggressive_sound
 from model.tone_analyzer import analyze_tone, get_tone_confidence_boost, classify_emotion
 from audio.capture import get_waveform_snapshot
 
-LOUD_RMS_THRESHOLD = 800
+LOUD_RMS_THRESHOLD = TONE_RMS_THRESHOLD
 
 class AggressionDetector:
     def __init__(self):
@@ -43,7 +43,7 @@ class AggressionDetector:
                 is_aggressive = False
 
         if has_profanity:
-            if aggressive_tone or rms > 200:
+            if aggressive_tone or rms > PROFANITY_MIN_RMS:
                 is_aggressive = True
                 yamnet_score = max(yamnet_score, 0.75)
             else:

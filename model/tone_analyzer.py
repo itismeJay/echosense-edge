@@ -1,4 +1,9 @@
 import numpy as np
+from detection.thresholds import (
+    TONE_RMS_THRESHOLD,
+    TONE_VARIANCE_THRESHOLD,
+    TONE_ZCR_THRESHOLD,
+)
 
 
 def analyze_tone(audio_np, sample_rate=16000):
@@ -38,14 +43,12 @@ def analyze_tone(audio_np, sample_rate=16000):
     peak = float(np.max(np.abs(audio_float)))
     par = peak / (rms + 1e-10)
 
-    # AGGRESSIVE TONE = loud AND uneven/tense AND spiky voice
-    # These thresholds distinguish bullying tone from casual/joking tone:
-    # - rms > 800: must be audibly loud (not a whisper or quiet chat)
-    # - energy_variance > 5000: energy must be uneven (not steady casual speech)
-    # - zcr > 0.1: voice must be tense (not relaxed joking tone)
+    # AGGRESSIVE TONE = loud AND uneven/tense AND high ZCR.
+    # Thresholds from detection/thresholds.py, calibrated for EMEET M0 Plus.
     is_aggressive = bool(
-        rms > 800 and
-        energy_variance > 5000
+        rms > TONE_RMS_THRESHOLD and
+        energy_variance > TONE_VARIANCE_THRESHOLD and
+        zcr > TONE_ZCR_THRESHOLD
     )
 
     return {
@@ -71,11 +74,11 @@ def get_tone_confidence_boost(tone_result):
         return 0.0
 
     score = 0
-    if tone_result["rms"] > 2000:
+    if tone_result["rms"] > 800:
         score += 1
-    if tone_result["energy_variance"] > 15000:
+    if tone_result["energy_variance"] > 8000:
         score += 1
-    if tone_result["zero_crossing_rate"] > 0.2:
+    if tone_result["zero_crossing_rate"] > 0.15:
         score += 1
 
     if score >= 3:
@@ -91,8 +94,10 @@ def classify_emotion(tone_result):
     Maps prosodic tone features to a coarse emotion label for richer alert
     evidence. Checks most-severe first so the strongest match wins.
 
+    Thresholds calibrated for EMEET OfficeCore M0 Plus (clean low-noise signal).
+
     angry      — loud, very uneven, very tense
-    aggressive — loud, uneven, tense
+    aggressive — raised voice, uneven, tense
     distressed — moderate volume, uneven, tense (e.g. crying/pleading)
     upset      — quiet-to-moderate but uneven
     neutral    — audible but calm
@@ -102,15 +107,15 @@ def classify_emotion(tone_result):
     variance = tone_result["energy_variance"]
     zcr = tone_result["zero_crossing_rate"]
 
-    if rms > 2000 and variance > 8000 and zcr > 0.15:
+    if rms > 800 and variance > 5000 and zcr > 0.12:
         return "angry"
-    elif rms > 800 and variance > 5000 and zcr > 0.1:
+    elif rms > 400 and variance > 2000 and zcr > 0.08:
         return "aggressive"
-    elif rms > 400 and variance > 6000 and zcr > 0.12:
+    elif rms > 150 and variance > 3000 and zcr > 0.10:
         return "distressed"
-    elif rms > 200 and variance > 4000:
+    elif rms > 80 and variance > 1500:
         return "upset"
-    elif rms > 100:
+    elif rms > 20:
         return "neutral"
     else:
         return "silent"
