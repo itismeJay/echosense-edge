@@ -11,6 +11,7 @@ class AggressionDetector:
     def __init__(self):
         self.aggressive_start_time = None
         self.last_alert_time = 0
+        self.last_aggressive_time = 0
         self.alert_cooldown = 10.0
 
     def process(self, yamnet_class, yamnet_score, has_profanity, detected_words,
@@ -50,13 +51,15 @@ class AggressionDetector:
                 is_aggressive = False
 
         if is_aggressive:
+            self.last_aggressive_time = current_time
             if self.aggressive_start_time is None:
                 self.aggressive_start_time = current_time
                 print(f"[DETECTION] Aggressive sound: {yamnet_class} ({yamnet_score:.2f}) RMS={rms}")
             duration = current_time - self.aggressive_start_time
             print(f"[DURATION] Aggressive for {duration:.1f}s")
         else:
-            if self.aggressive_start_time is not None:
+            grace_expired = (current_time - self.last_aggressive_time) > 1.5
+            if self.aggressive_start_time is not None and grace_expired:
                 duration = current_time - self.aggressive_start_time
                 if duration >= DURATION_THRESHOLD:
                     if current_time - self.last_alert_time >= self.alert_cooldown:
@@ -83,9 +86,11 @@ class AggressionDetector:
                         }
                 else:
                     print(f"[DETECTION] Sound stopped too short ({duration:.1f}s) - ignored")
-            if self.aggressive_start_time is not None:
                 print(f"[DETECTION] Sound stopped (RMS={rms})")
-            self.aggressive_start_time = None
+                self.aggressive_start_time = None
+            elif self.aggressive_start_time is not None:
+                duration = current_time - self.aggressive_start_time
+                print(f"[DURATION] Grace period active, still counting {duration:.1f}s")
 
         return {
             "should_alert": False,
