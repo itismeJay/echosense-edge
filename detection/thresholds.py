@@ -1,5 +1,5 @@
 YAMNET_THRESHOLD = 0.55
-DURATION_THRESHOLD = 2.0
+DURATION_THRESHOLD = 3.0
 PROFANITY_BOOST = 0.15
 CASUAL_SPEECH_MAX = 0.60
 AGGRESSIVE_SPEECH_MIN = 0.75
@@ -7,12 +7,12 @@ AGGRESSIVE_SPEECH_MIN = 0.75
 # Prosodic tone-analysis thresholds — calibrated for EMEET OfficeCore M0 Plus.
 # EMEET noise floor: RMS 1-15 (silence), 50-300 (normal speech), 800+ (screaming).
 # tone_analyzer.py imports these directly; change here, takes effect everywhere.
-TONE_RMS_THRESHOLD = 300          # raised voice without requiring screaming
+TONE_RMS_THRESHOLD = 600          # raised voice without requiring screaming
 TONE_VARIANCE_THRESHOLD = 2000    # proportional to EMEET's lower dynamic range
 TONE_ZCR_THRESHOLD = 0.08         # EMEET speech ZCR starts at 0.08
 TONE_CONFIDENCE_BOOST_HIGH = 0.10 # boost when all tone indicators are high
 TONE_CONFIDENCE_BOOST_MED = 0.05  # boost when some tone indicators are high
-PROFANITY_MIN_RMS = 80            # floor for profanity path; above whisper/noise
+PROFANITY_MIN_RMS = 300            # floor for profanity path; above whisper/noise
 
 def get_severity(confidence: float) -> str:
     if confidence >= 0.85:
@@ -23,9 +23,9 @@ def get_severity(confidence: float) -> str:
         return "low"
 
 def get_severity_by_duration(duration: float) -> str:
-    if duration >= 5.0:
+    if duration >= 6.0:
         return "high"
-    elif duration >= 3.0:
+    elif duration >= 4.0:
         return "medium"
     else:
         return "low"

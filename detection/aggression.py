@@ -12,7 +12,7 @@ class AggressionDetector:
         self.aggressive_start_time = None
         self.last_alert_time = 0
         self.last_aggressive_time = 0
-        self.alert_cooldown = 10.0
+        self.alert_cooldown = 3.0
 
     def process(self, yamnet_class, yamnet_score, has_profanity, detected_words,
                 audio_np=None, transcribed_text=""):
