@@ -7,8 +7,8 @@ AGGRESSIVE_SPEECH_MIN = 0.75
 # Prosodic tone-analysis thresholds — calibrated for EMEET OfficeCore M0 Plus.
 # EMEET noise floor: RMS 1-15 (silence), 50-300 (normal speech), 800+ (screaming).
 # tone_analyzer.py imports these directly; change here, takes effect everywhere.
-TONE_RMS_THRESHOLD = 600          # raised voice without requiring screaming
-TONE_VARIANCE_THRESHOLD = 2000    # proportional to EMEET's lower dynamic range
+TONE_RMS_THRESHOLD = 300          # raised voice without requiring screaming
+TONE_VARIANCE_THRESHOLD = 1000    # proportional to EMEET's lower dynamic range
 TONE_ZCR_THRESHOLD = 0.08         # EMEET speech ZCR starts at 0.08
 TONE_CONFIDENCE_BOOST_HIGH = 0.10 # boost when all tone indicators are high
 TONE_CONFIDENCE_BOOST_MED = 0.05  # boost when some tone indicators are high
