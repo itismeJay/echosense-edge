@@ -1,5 +1,6 @@
 import requests
 import time
+import threading
 from config import API_URL, LOCATION
 
 def send_alert(severity, confidence, duration,
@@ -37,6 +38,23 @@ def send_alert(severity, confidence, duration,
             print(f"[SENDER] Error: {e}")
             time.sleep(3)
     return False
+
+def _heartbeat_loop(interval):
+    while True:
+        time.sleep(interval)
+        try:
+            response = requests.post(
+                f"{API_URL}/system-settings/heartbeat",
+                timeout=10
+            )
+            print(f"[HEARTBEAT] {response.status_code}")
+        except Exception as e:
+            print(f"[HEARTBEAT] Error: {e}")
+
+def start_heartbeat(interval=60):
+    t = threading.Thread(target=_heartbeat_loop, args=(interval,), daemon=True)
+    t.start()
+    print(f"[HEARTBEAT] Started — posting every {interval}s")
 
 def check_backend_connection():
     try:
