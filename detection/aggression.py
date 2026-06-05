@@ -13,6 +13,7 @@ from detection.thresholds import (
     PROFANITY_BOOST,
     TONE_RMS_THRESHOLD,
     TONE_VARIANCE_THRESHOLD,
+    QUIET_BASE_CONFIDENCE,
     get_time_severity,
 )
 from model.yamnet_infer import is_aggressive_sound, run_yamnet_scan
@@ -20,13 +21,15 @@ from model.whisper_stt import transcribe_and_check
 from model.tone_analyzer import analyze_tone, get_tone_confidence_boost, classify_emotion
 from detection.context_gate import ContextGate
 from audio.capture import get_waveform_snapshot
+from sender.shadow_log import log_near_miss
 
 SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2}
+ANGRY_EMOTIONS = {"angry", "aggressive", "distressed"}
 
 # Threat words demand the fastest reaction (DURATION_THREAT).
 THREAT_WORDS = {
     "patyon tika", "patyon ka nako", "kill you",
-    "papatayin kita", "mamamatay ka", "away ta",
+    "papatayin kita", "mamamatay ka",
     "gusto kag sumbagay", "suwayi rag duol",
     "sumbagay ta",
 }
@@ -101,96 +104,138 @@ class AggressionDetector:
         if not stt["has_profanity"]:
             return None
 
-        detected_words = stt["detected_words"]
-        hard_hits = stt["hard_hits"]
-        soft_hits = stt["soft_hits"]
+        detected_words   = stt["detected_words"]
+        hard_hits        = stt["hard_hits"]
+        soft_hits        = stt["soft_hits"]
         transcribed_text = stt["transcribed_text"]
-        word_severity = stt["severity"]
-        categories = stt["categories"]
-        language = stt.get("language", "unknown")
+        word_severity    = stt["severity"]
+        categories       = stt["categories"]
+        language         = stt.get("language", "unknown")
+        is_casual        = stt["is_casual"]
+        has_hard         = len(hard_hits) > 0
 
-        # ---------- LAYER 2: YAMNet aggressive class ----------
-        if self.interpreter is None or not self.class_names:
-            print("[LAYER 2] YAMNet not available — cannot confirm sound profile")
-            return None
-        yamnet_class, yamnet_score = run_yamnet_scan(
-            self.interpreter, audio_np, self.class_names
-        )
-        yamnet_score = float(yamnet_score)
-        print(f"[LAYER 2] YAMNet: {yamnet_class} ({yamnet_score:.2f})")
-        if not is_aggressive_sound(yamnet_class, yamnet_score, YAMNET_THRESHOLD):
-            print(f"[LAYER 2] Sound profile not aggressive enough "
-                  f"(need {YAMNET_THRESHOLD}) — no alert")
-            return None
-
-        # ---------- LAYER 3: Tone / emotion ----------
-        tone = analyze_tone(audio_np)
-        emotion = classify_emotion(tone)
-        rms = float(tone["rms"])
-        variance = float(tone["energy_variance"])
-        print(f"[LAYER 3] Tone RMS={rms:.0f} Var={variance:.0f} "
-              f"ZCR={tone['zero_crossing_rate']:.3f} Emotion={emotion}")
-        if rms < TONE_RMS_THRESHOLD:
-            print(f"[LAYER 3] RMS {rms:.0f} < {TONE_RMS_THRESHOLD} (too quiet) — no alert")
-            return None
-        if variance < TONE_VARIANCE_THRESHOLD:
-            print(f"[LAYER 3] Variance {variance:.0f} < {TONE_VARIANCE_THRESHOLD} (not bursty) — no alert")
-            return None
-        if emotion not in ("angry", "aggressive", "distressed"):
-            print(f"[LAYER 3] Emotion '{emotion}' not angry/aggressive/distressed — no alert")
-            return None
-
-        # ---------- LAYER 4: Context gate ----------
+        # ---------- Repetition context (shared by both tracks) ----------
         ctx = self.context_gate.check(
             detected_words=detected_words,
-            emotion=emotion,
+            emotion="neutral",          # tone not needed to track repetition
             transcribed_text=transcribed_text,
-            is_casual=stt["is_casual"],
+            is_casual=is_casual,
             hard_hits=hard_hits,
             soft_hits=soft_hits,
         )
-        print(f"[LAYER 4] Context: {ctx['reason']} "
-              f"(repetitions={ctx['max_repetitions']}, laughter={ctx['has_laughter']})")
-        if not ctx["is_bullying_context"]:
-            return None
+        is_repeated = ctx.get("is_repeated", False)
 
-        # ---------- LAYER 5: Tiered duration + cooldown ----------
-        # `duration` is the continuous voiced-audio length accumulated by main.py
-        # for this utterance (sample-based — immune to STT/inference latency).
+        # Tone is computed once — used by Rule 4 / Track A and logged as evidence.
+        tone       = analyze_tone(audio_np)
+        emotion    = classify_emotion(tone)
+        rms        = float(tone["rms"])
+        variance   = float(tone["energy_variance"])
+        tone_boost = get_tone_confidence_boost(tone)
+
         if duration_seconds is None:
             duration_seconds = len(audio_np) / SAMPLE_RATE
         duration = float(duration_seconds)
 
-        # How long this severity tier must be sustained before firing.
-        is_repeated = ctx.get("is_repeated", False)
-        required_duration = get_required_duration(
-            hard_hits=hard_hits,
-            soft_hits=soft_hits,
-            is_repeated=is_repeated,
-        )
-        print(f"[LAYER 5] Voiced {duration:.1f}s (need {required_duration:.1f}s "
-              f"for this tier)")
+        print(f"[STT] '{transcribed_text}' hard={hard_hits} soft={soft_hits} "
+              f"repeated={is_repeated} casual={is_casual}")
+        print(f"[TONE] RMS={rms:.0f} Var={variance:.0f} Emotion={emotion}")
 
-        if duration < required_duration:
-            print(f"[LAYER 5] Not yet sustained {required_duration:.1f}s — building")
-            return None  # not long enough yet, keep accumulating
+        pending_track = "?"
 
-        current_time = time.time()
-        if current_time - self.last_alert_time < self.alert_cooldown:
-            remaining = self.alert_cooldown - (current_time - self.last_alert_time)
-            print(f"[LAYER 5] Cooldown active ({remaining:.0f}s left) — suppressing")
+        def _near_miss(layers_passed, reason):
+            """Record a near-miss (profanity heard, 3+ stages passed, no alert)
+            then return None. Lets us tune the system from logs/shadow_log.jsonl
+            without changing live behavior."""
+            print(f"[NO ALERT] {reason}")
+            if layers_passed >= 3:
+                log_near_miss({
+                    "transcript":     transcribed_text,
+                    "detected_words": detected_words,
+                    "layers_passed":  layers_passed,
+                    "track":          pending_track,
+                    "emotion":        emotion,
+                    "rms":            round(rms, 1),
+                    "duration":       round(duration, 2),
+                    "severity":       word_severity,
+                    "reason":         reason,
+                })
             return None
 
-        # ---------- ALL LAYERS PASSED — fire ----------
-        time_severity = get_time_severity(duration)
-        severity = max(
-            [word_severity, time_severity],
-            key=lambda s: SEVERITY_ORDER[s],
+        # ---------- Rule 5: laughter ALWAYS suppresses (any track) ----------
+        if is_casual:
+            return _near_miss(1, "Laughter present — kantiyawan, suppressed (Rule 5)")
+
+        # ================= TRACK B — quiet / relational bullying =================
+        # No scream required. Fires on repetition, 2+ hard words, hard+angry, or
+        # 2+ soft words (RA 10627 'repeated / targeted' behavior).
+        pending_track = "B"
+        if self._should_fire_track_b(hard_hits, soft_hits, is_repeated, emotion, is_casual):
+            print("[TRACK B] Quiet bullying criteria met")
+            if is_repeated or len(hard_hits) >= 2 or (has_hard and emotion in ANGRY_EMOTIONS):
+                required_duration = DURATION_HARD_TRIGGER      # 2.0s
+                duration_gate = "repeated" if is_repeated else "hard"
+            else:                                              # 2+ soft words
+                required_duration = DURATION_MEDIUM_TRIGGER    # 3.0s
+                duration_gate = "medium"
+
+            if duration < required_duration:
+                return _near_miss(3, f"Track B building "
+                                     f"({duration:.1f}s < {required_duration:.1f}s)")
+
+            now = time.time()
+            if now - self.last_alert_time < self.alert_cooldown:
+                remaining = self.alert_cooldown - (now - self.last_alert_time)
+                return _near_miss(4, f"Track B cooldown ({remaining:.0f}s left)")
+
+            confidence = min(
+                1.0,
+                QUIET_BASE_CONFIDENCE + PROFANITY_BOOST
+                + (0.10 if is_repeated else 0.0) + tone_boost,
+            )
+            return self._fire(
+                track="B", word_severity=word_severity, duration=duration,
+                required_duration=required_duration, duration_gate=duration_gate,
+                confidence=confidence, transcribed_text=transcribed_text,
+                detected_words=detected_words, categories=categories,
+                hard_hits=hard_hits, soft_hits=soft_hits, language=language,
+                yamnet_class="(quiet track)", yamnet_score=0.0,
+                emotion=emotion, tone=tone, audio_np=audio_np,
+            )
+
+        # ================= TRACK A — loud / shouted aggression =================
+        pending_track = "A"
+        if self.interpreter is None or not self.class_names:
+            return _near_miss(1, "Track B not met; YAMNet unavailable for Track A")
+
+        yamnet_class, yamnet_score = run_yamnet_scan(
+            self.interpreter, audio_np, self.class_names
         )
-        # Which tier gated this alert (for teacher-facing explanation).
+        yamnet_score = float(yamnet_score)
+        acoustic_aggressive = is_aggressive_sound(yamnet_class, yamnet_score, YAMNET_THRESHOLD)
+        loud_tone = (
+            rms >= TONE_RMS_THRESHOLD
+            and variance >= TONE_VARIANCE_THRESHOLD
+            and emotion in ANGRY_EMOTIONS
+        )
+        print(f"[TRACK A] YAMNet={yamnet_class} ({yamnet_score:.2f}) "
+              f"aggressive={acoustic_aggressive} loud_tone={loud_tone}")
+
+        if not (acoustic_aggressive and loud_tone):
+            return _near_miss(2, "Track A: not loud + aggressive enough")
+
+        required_duration = get_required_duration(hard_hits, soft_hits, is_repeated)
+        if duration < required_duration:
+            return _near_miss(3, f"Track A building "
+                                 f"({duration:.1f}s < {required_duration:.1f}s)")
+
+        now = time.time()
+        if now - self.last_alert_time < self.alert_cooldown:
+            remaining = self.alert_cooldown - (now - self.last_alert_time)
+            return _near_miss(4, f"Track A cooldown ({remaining:.0f}s left)")
+
         if required_duration == DURATION_THREAT:
             duration_gate = "threat"
-        elif len(hard_hits) > 0 and required_duration == DURATION_HARD_TRIGGER:
+        elif has_hard and required_duration == DURATION_HARD_TRIGGER:
             duration_gate = "hard"
         elif is_repeated:
             duration_gate = "repeated"
@@ -199,35 +244,71 @@ class AggressionDetector:
         else:
             duration_gate = "soft"
 
-        tone_boost = get_tone_confidence_boost(tone)
         confidence = min(1.0, yamnet_score + PROFANITY_BOOST + tone_boost)
+        return self._fire(
+            track="A", word_severity=word_severity, duration=duration,
+            required_duration=required_duration, duration_gate=duration_gate,
+            confidence=confidence, transcribed_text=transcribed_text,
+            detected_words=detected_words, categories=categories,
+            hard_hits=hard_hits, soft_hits=soft_hits, language=language,
+            yamnet_class=yamnet_class, yamnet_score=yamnet_score,
+            emotion=emotion, tone=tone, audio_np=audio_np,
+        )
 
-        self.last_alert_time = current_time
+    def _should_fire_track_b(self, hard_hits, soft_hits, is_repeated, emotion, is_casual):
+        """Track B: quiet bullying detection. Fires at normal speaking volume —
+        no scream required. Encodes the RA 10627 'repeated / targeted' rules."""
+        # Rule 5: laughter always suppresses.
+        if is_casual:
+            return False
+        # Rule 2 / 7: same word repeated 2+ times in 30s = targeting.
+        if is_repeated:
+            return True
+        # Rule 3: two or more hard triggers together = directed insult.
+        if len(hard_hits) >= 2:
+            return True
+        # Rule 4: one hard trigger + angry/aggressive tone.
+        if len(hard_hits) >= 1 and emotion in ANGRY_EMOTIONS:
+            return True
+        # Rule 8: two or more soft triggers together = shaming pattern.
+        if len(soft_hits) >= 2:
+            return True
+        # Rule 1 / 6: single word, calm, not repeated = NOT bullying.
+        return False
 
-        print(f"[ALERT] BULLYING CONFIRMED | Severity={severity} "
+    def _fire(self, *, track, word_severity, duration, required_duration,
+              duration_gate, confidence, transcribed_text, detected_words,
+              categories, hard_hits, soft_hits, language, yamnet_class,
+              yamnet_score, emotion, tone, audio_np):
+        """Stamp the cooldown, log, and build the alert payload."""
+        time_severity = get_time_severity(duration)
+        severity = max([word_severity, time_severity], key=lambda s: SEVERITY_ORDER[s])
+        self.last_alert_time = time.time()
+
+        print(f"[ALERT] BULLYING DETECTED | Track={track} Severity={severity} "
               f"Confidence={confidence:.2f} Duration={duration:.1f}s "
-              f"Gate={duration_gate} (need {required_duration:.1f}s) "
-              f"Emotion={emotion} Words={detected_words} Categories={categories}")
+              f"Gate={duration_gate} Emotion={emotion} Words={detected_words}")
 
         return {
-            "should_alert": True,
-            "severity": severity,
-            "confidence": confidence,
-            "duration": round(duration, 2),
+            "should_alert":      True,
+            "track":             track,
+            "severity":          severity,
+            "confidence":        confidence,
+            "duration":          round(duration, 2),
             "required_duration": required_duration,
-            "actual_duration": round(duration, 2),
-            "duration_gate": duration_gate,
-            "transcribed_text": transcribed_text,
-            "detected_words": detected_words,
-            "categories": categories,
-            "hard_hits": hard_hits,
-            "soft_hits": soft_hits,
-            "language": language,
-            "yamnet_class": yamnet_class,
-            "yamnet_score": yamnet_score,
-            "emotion": emotion,
-            "tone_data": tone,
+            "actual_duration":   round(duration, 2),
+            "duration_gate":     duration_gate,
+            "transcribed_text":  transcribed_text,
+            "detected_words":    detected_words,
+            "categories":        categories,
+            "hard_hits":         hard_hits,
+            "soft_hits":         soft_hits,
+            "language":          language,
+            "yamnet_class":      yamnet_class,
+            "yamnet_score":      yamnet_score,
+            "emotion":           emotion,
+            "tone_data":         tone,
             "waveform_snapshot": get_waveform_snapshot(audio_np),
-            "has_profanity": True,
-            "tone_aggressive": tone["is_aggressive_tone"],
+            "has_profanity":     True,
+            "tone_aggressive":   tone["is_aggressive_tone"],
         }

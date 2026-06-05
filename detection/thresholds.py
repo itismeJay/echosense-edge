@@ -30,6 +30,15 @@ DURATION_SOFT_TRIGGER   = 5.0
 
 ALERT_COOLDOWN          = 60.0   # was 2.0 (hardcoded in aggression.py) — max 1 alert/minute
 
+# --- Quiet / relational bullying track --------------------------------------
+# A second detection path that does NOT require a shout. It catches calm,
+# mocking, or repeated taunts that the loud (YAMNet scream + RMS>=500) path
+# misses entirely. To avoid false alarms it leans on the blacklist + repetition
+# rather than loudness.
+QUIET_RMS_FLOOR          = 150   # just confirm it is real speech, not a flatline
+QUIET_TRACK_MIN_DURATION = 3.0   # quiet evidence must be sustained longer than a shout
+QUIET_BASE_CONFIDENCE    = 0.60  # confidence floor for a quiet-track alert (no YAMNet scream score)
+
 # --- Severity by duration (used AFTER an alert fires) -----------------------
 SEVERITY_HIGH_DURATION   = 7.0   # 7+ seconds  = HIGH time severity
 SEVERITY_MEDIUM_DURATION = 4.0   # 4-7 seconds = MEDIUM time severity

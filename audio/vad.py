@@ -1,6 +1,7 @@
 import numpy as np
 
-VAD_RMS_THRESHOLD = 150   # was 80 — skip very quiet ambient noise (cuts Whisper hallucinations)
+VAD_RMS_THRESHOLD = 120  # sweet spot: blocks ambient noise, passes normal speaking voice,
+                         # cuts Whisper hallucinations (80 was too low, 150 blocked normal speech)
 
 
 def is_voice_present(audio_np: np.ndarray) -> bool:

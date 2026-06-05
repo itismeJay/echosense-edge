@@ -12,6 +12,7 @@ from model.yamnet_infer import load_yamnet, load_class_names
 from model.whisper_stt import get_model
 from detection.aggression import AggressionDetector
 from sender.http_client import send_alert, check_backend_connection, start_heartbeat
+from sender.shadow_log import log_alert
 
 # Rolling window of 1-second voiced chunks fed to STT/YAMNet (trailing context).
 BUFFER_SECONDS = 5
@@ -99,7 +100,7 @@ def main():
                 if result and result.get("should_alert"):
                     # LED indicator: 5 rapid blinks (non-blocking) on alert.
                     led.alert()
-                    send_alert(
+                    sent = send_alert(
                         severity=result["severity"],
                         confidence=result["confidence"],
                         duration=result["duration"],
@@ -117,6 +118,8 @@ def main():
                         tone_data=result.get("tone_data", {}),
                         waveform_snapshot=result.get("waveform_snapshot", []),
                     )
+                    # Shadow log for the capstone results table.
+                    log_alert(result, sent=sent)
 
             except Exception as e:
                 print(f"[ERROR] {e}")

@@ -4,6 +4,17 @@ from model.blacklist import check_transcript
 
 _model = None
 
+# Vocabulary bias: priming Whisper with the words we care about makes the tiny
+# model far more likely to transcribe them correctly in a noisy room. Mixed
+# Bisaya/Tagalog/English so all three demo paths benefit. Keep it short — long
+# prompts hurt the tiny model.
+WHISPER_INITIAL_PROMPT = (
+    "bogo, bugok, bulok, bobo, tanga, gago, yawa, "
+    "putangina, pangit, tambok, baho, hilak nasad, "
+    "dakog ilong, pango, uling, retard, patyon tika, "
+    "walang kwenta, wala kang kwenta, bata og yawa"
+)
+
 
 def get_model():
     global _model
@@ -44,8 +55,9 @@ def transcribe_and_check(audio_np: np.ndarray) -> dict:
     try:
         segments, info = model.transcribe(
             audio_float,
-            language=None,
+            language=None,                     # auto-detect (tl / en); Cebuano maps to closest
             task="transcribe",
+            initial_prompt=WHISPER_INITIAL_PROMPT,  # bias toward our bullying vocabulary
             vad_filter=True,
             word_timestamps=True,
             condition_on_previous_text=False,

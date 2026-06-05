@@ -3,6 +3,7 @@ numpy
 ai-edge-litert
 faster-whisper
 noisereduce
+rapidfuzz
 requests
 # vosk — legacy ASR path (model/vosk_detect.py), no longer used at runtime
 vosk

@@ -12,4 +12,8 @@ yamnet_class_map.csv
 *.zip.*
 .env
 
+# Runtime shadow log (tuning data, regenerated on each run)
+logs/shadow_log.jsonl
+logs/detections.jsonl
+
 seeed-voicecard/

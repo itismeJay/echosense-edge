@@ -1,6 +1,71 @@
 import re
 from typing import List
 
+from rapidfuzz import fuzz
+
+# Fuzzy-match acceptance thresholds. Fuzzy matching only helps for longer words
+# where a Whisper mis-spelling is unambiguous; on short words a 1-character
+# difference (atay≈patay, puto≈putot) is an innocent look-alike, not a typo, so
+# we require exact whole-word matching below FUZZY_MIN_LEN.
+FUZZY_MIN_LEN          = 6    # single words shorter than this are exact-match only
+FUZZY_THRESHOLD_WORD   = 86
+FUZZY_THRESHOLD_PHRASE = 88
+
+# Compiled word-boundary patterns, built lazily and cached per term.
+_PATTERNS: dict = {}
+
+
+def _boundary_pattern(term: str) -> "re.Pattern":
+    """Whole-word/phrase matcher. `term` is assumed already cleaned (lowercase,
+    no punctuation, single-spaced). Spaces become flexible whitespace so phrases
+    still match across normalized gaps."""
+    escaped = re.escape(term).replace(r"\ ", r"\s+")
+    return re.compile(r"(?<!\w)" + escaped + r"(?!\w)")
+
+
+def _exact_match(term: str, text: str) -> bool:
+    pat = _PATTERNS.get(term)
+    if pat is None:
+        pat = _boundary_pattern(term)
+        _PATTERNS[term] = pat
+    return pat.search(text) is not None
+
+
+def word_matches(phrase: str, text: str) -> bool:
+    """Whole-word / phrase match (public API). Single words match on word
+    boundaries so ordinary words no longer trip a trigger by substring
+    ("patay" no longer matches "atay"); multi-word phrases match with
+    boundaries at the ends. Backed by the cached compiled patterns above."""
+    return _exact_match(phrase, text)
+
+
+def _fuzzy_match(term: str, tokens: List[str]) -> bool:
+    parts = term.split()
+    n = len(parts)
+    if n == 1:
+        if len(term) < FUZZY_MIN_LEN:
+            return False  # too short for fuzzy — exact match already handled it
+        return any(fuzz.ratio(term, tok) >= FUZZY_THRESHOLD_WORD for tok in tokens)
+    # Multi-word phrase: slide an n-gram window of the same length over tokens.
+    for i in range(len(tokens) - n + 1):
+        window = " ".join(tokens[i:i + n])
+        if fuzz.ratio(term, window) >= FUZZY_THRESHOLD_PHRASE:
+            return True
+    return False
+
+
+def _find_hits(terms, text: str, tokens: List[str], fuzzy: bool = True) -> List[str]:
+    """Whole-word exact match first; optional fuzzy fallback for ASR mis-spellings.
+    Laughter markers pass fuzzy=False so a near-miss never wrongly suppresses an
+    alert."""
+    hits = []
+    for term in terms:
+        if _exact_match(term, text):
+            hits.append(term)
+        elif fuzzy and _fuzzy_match(term, tokens):
+            hits.append(term)
+    return hits
+
 # ══════════════════════════════════════════════════════════════
 # ECHOSENSE PRODUCTION BLACKLIST
 # Davao City Grade 6 Classroom Bullying Detection
@@ -22,13 +87,12 @@ HARD_TRIGGERS = {
     # ── Tagalog Profanity ────────────────────────────────────
     "putangina", "putang ina", "tang ina", "tangina",
     "pakyu", "anak ng puta", "anak og puta",
-    "ampota", "pakshet", "leche", "hinayupak",
-    "lintik", "bwisit",
+    "ampota", "pakshet", "hinayupak",
 
     # ── Threats ──────────────────────────────────────────────
     "patyon tika", "patyon ka nako", "kill you",
     "gusto kag sumbagay", "suwayi rag duol",
-    "sumbagay ta", "away ta", "papatayin kita",
+    "sumbagay ta", "papatayin kita",
     "papatayin kita", "mamamatay ka",
 
     # ── Severe Academic/Intelligence — Bisaya ────────────────
@@ -93,6 +157,11 @@ HARD_TRIGGERS = {
     "wala kang kwenta pare",
     "mas maayo pa kung wala ka",
     "kolera", "anak og pobre",
+
+    # ── ASR variant spellings (Whisper mishears these short Bisaya words) ──
+    # Explicit aliases for hard triggers, since fuzzy matching is unsafe on
+    # short words: bugo→bogo, bolok→bulok, bugog→bugok.
+    "bugo", "bolok", "bugog",
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -100,6 +169,17 @@ HARD_TRIGGERS = {
 # These need 2+ together OR repetition OR angry tone to flag
 # ─────────────────────────────────────────────────────────────
 SOFT_TRIGGERS = {
+
+    # ── Mild exclamations / casual — not standalone bullying ──
+    # Reclassified out of HARD_TRIGGERS: everyday expletives and playful Bisaya
+    # ("away ta") that are not directed bullying on their own. Only count when
+    # paired with another soft word or repeated.
+    "leche", "lintik", "bwisit", "away ta",
+
+    # 'pangit' (ugly) is casual-common ("pangit ang panahon"), so it is SOFT —
+    # it needs a pair or repetition to count. 'pangid' is the common Whisper
+    # mishearing of 'pangit'.
+    "pangit", "pangid",
 
     # ── Mild Academic ─────────────────────────────────────────
     "slow kaayo", "hinay og pick up", "kuwang", "abno",
@@ -361,10 +441,14 @@ def get_word_severity(word: str) -> str:
 
 def check_transcript(transcript: str) -> dict:
     text = clean_text(transcript)
+    tokens = text.split()
 
-    hard_hits = [w for w in HARD_TRIGGERS if w in text]
-    soft_hits = [w for w in SOFT_TRIGGERS if w in text]
-    laughing  = [w for w in LAUGHTER_MARKERS if w in text]
+    # Whole-word matching (+ fuzzy fallback for ASR mis-spellings) so ordinary
+    # words no longer trip a trigger by substring (e.g. "patay" no longer hits
+    # "atay"). Laughter uses exact-only to avoid wrongly suppressing alerts.
+    hard_hits = _find_hits(HARD_TRIGGERS, text, tokens)
+    soft_hits = _find_hits(SOFT_TRIGGERS, text, tokens)
+    laughing  = _find_hits(LAUGHTER_MARKERS, text, tokens, fuzzy=False)
 
     has_hard      = len(hard_hits) > 0
     has_soft_pair = len(soft_hits) >= 2
