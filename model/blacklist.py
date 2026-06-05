@@ -424,6 +424,84 @@ THREAT_KEYWORDS = {
 ALL_BLACKLIST = HARD_TRIGGERS | SOFT_TRIGGERS
 
 
+# ─────────────────────────────────────────────────────────────
+# PHONETIC VARIANTS
+# Whisper-tiny mishears specific Bisaya words in *predictable* ways
+# (young high-pitched voices + int8 model). Rather than loosen the
+# fuzzy threshold globally (unsafe on short words), we rewrite these
+# known mishearings to the canonical blacklist word BEFORE matching.
+# Keys are what Whisper *writes*; values are the real word.
+# ─────────────────────────────────────────────────────────────
+PHONETIC_VARIANTS = {
+    # Whisper hears → actual blacklist word
+    "bubo":     "bobo",
+    "boba":     "bobo",
+    "bubo ka":  "bobo",
+    "bugo":     "bogo",
+    "buga":     "bogo",
+    "bugog":    "bugok",
+    "bolok":    "bulok",
+    "buluk":    "bulok",
+    "boluk":    "bulok",
+    "pang":     "pangit",
+    "pangid":   "pangit",
+    "panget":   "pangit",
+    "tambok":   "tambok",
+    "tambuk":   "tambok",
+    "gagu":     "gago",
+    "gagu ka":  "gago",
+    "yava":     "yawa",
+    "yaba":     "yawa",
+    "iawa":     "yawa",
+    "tanga":    "tanga",
+    "tanka":    "tanga",
+    "bobu":     "bobo",
+    "bubu":     "bobo",
+    "bugu":     "bogo",
+    "hilak":    "hilak nasad",
+    "hila":     "hilak nasad",
+    "pikon":    "pikon",
+    "pican":    "pikon",
+    "ampon":    "ampon",
+    "hampon":   "ampon",
+    "dakog":    "dakog ilong",
+    "dakug":    "dakog ilong",
+    "pango":    "pango",
+    "panga":    "pango",
+    "uling":    "uling",
+    "ulin":     "uling",
+    "bungi":    "bungi",
+    "bunge":    "bungi",
+}
+
+
+def apply_phonetic_variants(text: str) -> str:
+    """Rewrite known Whisper mishearings to their canonical blacklist word.
+    Greedy: tries a two-word phrase match (e.g. 'bubo ka') before falling back
+    to single-word substitution. Operates on already-cleaned lowercase text."""
+    words = text.split()
+    result = []
+    i = 0
+    while i < len(words):
+        # Try two-word match first
+        if i + 1 < len(words):
+            two_word = words[i] + ' ' + words[i + 1]
+            if two_word in PHONETIC_VARIANTS:
+                result.append(PHONETIC_VARIANTS[two_word])
+                i += 2
+                continue
+        # Try single word match
+        if words[i] in PHONETIC_VARIANTS:
+            result.append(PHONETIC_VARIANTS[words[i]])
+        else:
+            result.append(words[i])
+        i += 1
+    corrected = ' '.join(result)
+    if corrected != text:
+        print(f"[VARIANTS] '{text}' → '{corrected}'")
+    return corrected
+
+
 def clean_text(text: str) -> str:
     text = text.lower().strip()
     text = re.sub(r"[^\w\s]", " ", text)
@@ -441,6 +519,9 @@ def get_word_severity(word: str) -> str:
 
 def check_transcript(transcript: str) -> dict:
     text = clean_text(transcript)
+    # Correct predictable Whisper mishearings BEFORE any matching, so canonical
+    # blacklist words are what we test against (see PHONETIC_VARIANTS).
+    text = apply_phonetic_variants(text)
     tokens = text.split()
 
     # Whole-word matching (+ fuzzy fallback for ASR mis-spellings) so ordinary
@@ -489,6 +570,7 @@ def check_transcript(transcript: str) -> dict:
         "severity":       severity,
         "categories":     list(set(categories)),
         "word_count":     len(all_detected),
+        "checked_text":   text,   # post-variant text actually matched (for [CHECK] log)
     }
 
 

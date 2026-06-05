@@ -12,7 +12,10 @@ WHISPER_INITIAL_PROMPT = (
     "bogo, bugok, bulok, bobo, tanga, gago, yawa, "
     "putangina, pangit, tambok, baho, hilak nasad, "
     "dakog ilong, pango, uling, retard, patyon tika, "
-    "walang kwenta, wala kang kwenta, bata og yawa"
+    "walang kwenta, wala kang kwenta, bata og yawa, "
+    "buang, yawa kaayo, gago ka, bobo ka, pangit kaayo, "
+    "bogo kaayo, bulok man ka, tambokikoy, bungi, "
+    "hilak hilak, pikon, ampon, sumbong, luod kaayo"
 )
 
 
@@ -55,7 +58,9 @@ def transcribe_and_check(audio_np: np.ndarray) -> dict:
     try:
         segments, info = model.transcribe(
             audio_float,
-            language=None,                     # auto-detect (tl / en); Cebuano maps to closest
+            language="tl",                     # force Filipino — auto-detect misfires on young,
+                                               # high-pitched voices (guesses ZH/KO/AR); Davao
+                                               # Grade 6 speech is always tl/Bisaya/en anyway
             task="transcribe",
             initial_prompt=WHISPER_INITIAL_PROMPT,  # bias toward our bullying vocabulary
             vad_filter=True,
@@ -85,6 +90,9 @@ def transcribe_and_check(audio_np: np.ndarray) -> dict:
 
     if full_text:
         print(f"[WHISPER] [{lang.upper()}] {full_text}")
+        print(f'[CHECK] Checking: "{full_text}"')
+        print(f'[CHECK] After variants: "{result.get("checked_text", full_text)}"')
+        print(f"[CHECK] Hard hits: {result['hard_hits']} Soft hits: {result['soft_hits']}")
     if result["has_profanity"]:
         print(f"[WHISPER] HIT: {result['detected_words']} "
               f"| cat: {result['categories']} "
