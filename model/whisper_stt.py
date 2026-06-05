@@ -49,6 +49,9 @@ def transcribe_and_check(audio_np: np.ndarray) -> dict:
             vad_filter=True,
             word_timestamps=True,
             condition_on_previous_text=False,
+            no_speech_threshold=0.6,           # drop segments Whisper deems silent
+            compression_ratio_threshold=2.4,   # reject repetitive hallucinations
+            log_prob_threshold=-1.0,           # reject low-confidence transcriptions
         )
         full_text = ""
         all_words = []

@@ -56,7 +56,10 @@
       "Bash(timeout 40 echosense-env/bin/python3 -u main.py)",
       "Bash(echo \"exit: $?\")",
       "Bash(ln -sf ../yamnet_class_map.csv model/yamnet_class_map.csv)",
-      "Bash(echo \"exit: $? \\(124=clean timeout\\)\")"
+      "Bash(echo \"exit: $? \\(124=clean timeout\\)\")",
+      "Bash(kill 49260)",
+      "Bash(kill 53549)",
+      "Bash(pkill -9 -f \"main.py\")"
     ]
   }
 }
