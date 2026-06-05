@@ -16,7 +16,9 @@ YAMNET_CLASSES_PATH = "/home/echosense/echosense-edge/yamnet_class_map.csv"
 VOSK_FILIPINO_MODEL = "/home/echosense/echosense-edge/vosk-model-tl-ph-generic-0.6"
 VOSK_ENGLISH_MODEL = "/home/echosense/echosense-edge/vosk-model-small-en-us-0.15"
 
-# Detection thresholds
-YAMNET_CONFIDENCE_THRESHOLD = 0.5
-DURATION_THRESHOLD = 2.0
+# Sensor location (included in every alert payload)
 LOCATION = "Grade 6 Classroom"
+
+# NOTE: Detection thresholds live in detection/thresholds.py (the authoritative
+# file the runtime actually reads). The former YAMNET_CONFIDENCE_THRESHOLD and
+# DURATION_THRESHOLD duplicates here were dead code and have been removed.

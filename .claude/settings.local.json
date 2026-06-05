@@ -42,7 +42,21 @@
       "Bash(curl -s --max-time 15 https://echosense-backend-75h3.onrender.com/alerts/)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'Total alerts: {len\\(d\\)}'\\); print\\(f'Latest: {d[0][\\\\\"severity\\\\\"]} at {d[0][\\\\\"created_at\\\\\"]} - {d[0][\\\\\"transcribed_text\\\\\"]}'\\)\")",
       "Bash(curl *)",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "Bash(sudo journalctl *)",
+      "Bash(sudo systemctl stop echosense)",
+      "Bash(arecord -D hw:0,0 --dump-hw-params -d 1 /dev/null)",
+      "Bash(sudo systemctl start echosense)",
+      "Bash(sudo systemctl *)",
+      "Bash(sudo cat /proc/17609/status)",
+      "Bash(echosense-env/bin/pip list *)",
+      "Bash(cp yamnet_class_map.csv /tmp/current_map.csv)",
+      "Read(//tmp/**)",
+      "Bash(echo \"=== exit \\($?\\) ===\")",
+      "Bash(timeout 40 echosense-env/bin/python3 -u main.py)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(ln -sf ../yamnet_class_map.csv model/yamnet_class_map.csv)",
+      "Bash(echo \"exit: $? \\(124=clean timeout\\)\")"
     ]
   }
 }

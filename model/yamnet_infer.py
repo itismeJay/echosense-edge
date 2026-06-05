@@ -30,11 +30,16 @@ def run_yamnet(interpreter, audio_data, class_names):
     top_score = mean_scores[top_index]
     return top_class, top_score, mean_scores
 
+# Distress / aggression sounds ONLY. "Crowd" and "Noise" were removed because a
+# Filipino classroom of 40-50 students matches them constantly — loud != bullying.
 AGGRESSIVE_CLASSES = [
-    "Screaming", "Scream", "Yell",
-    "Crying", "Whimper", "Wail",
-    "Crowd", "Noise", "Shout"
+    "Screaming", "Scream",
+    "Yell",      "Shout",
+    "Crying",    "Whimper", "Wail"
 ]
+
+# YAMNet's tflite graph expects exactly 15600 samples (0.975s @ 16kHz) per call.
+YAMNET_INPUT_SIZE = 15600
 
 def is_aggressive_sound(class_name: str, score: float, threshold: float) -> bool:
     if score < threshold:
@@ -43,3 +48,30 @@ def is_aggressive_sound(class_name: str, score: float, threshold: float) -> bool
         if aggressive.lower() in class_name.lower():
             return True
     return False
+
+def run_yamnet_scan(interpreter, audio_np, class_names):
+    """Run YAMNet across a multi-second buffer by splitting it into 15600-sample
+    windows. Returns (class, score) for the strongest AGGRESSIVE window if any
+    aggressive class appears; otherwise the single highest-scoring window.
+    Used by the 5-second sliding-window pipeline."""
+    n = len(audio_np)
+    if n < YAMNET_INPUT_SIZE:
+        audio_np = np.pad(audio_np, (0, YAMNET_INPUT_SIZE - n))
+        n = YAMNET_INPUT_SIZE
+
+    num_windows = n // YAMNET_INPUT_SIZE
+    best_overall = (class_names[0] if class_names else "Unknown", 0.0)
+    best_aggressive = None
+
+    for i in range(num_windows):
+        window = audio_np[i * YAMNET_INPUT_SIZE:(i + 1) * YAMNET_INPUT_SIZE]
+        cls, score, _ = run_yamnet(interpreter, window, class_names)
+        score = float(score)
+        if score > best_overall[1]:
+            best_overall = (cls, score)
+        # Aggressive-class match regardless of threshold (threshold check is done by caller)
+        if is_aggressive_sound(cls, score, 0.0):
+            if best_aggressive is None or score > best_aggressive[1]:
+                best_aggressive = (cls, score)
+
+    return best_aggressive if best_aggressive is not None else best_overall

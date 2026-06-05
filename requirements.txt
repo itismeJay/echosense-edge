@@ -1,5 +1,8 @@
 pyaudio
 numpy
-vosk
-requests
 ai-edge-litert
+faster-whisper
+noisereduce
+requests
+# vosk — legacy ASR path (model/vosk_detect.py), no longer used at runtime
+vosk

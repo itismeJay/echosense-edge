@@ -1,46 +1,422 @@
-ENGLISH_BLACKLIST = [
-    "stupid", "idiot", "shut up", "hate you",
-    "kill you", "fight me", "loser", "dumb",
-    "ugly", "freak", "moron", "jerk",
-    "tang ina", "tangina", "worthless", "nobody likes you",
-    "go away", "you smell", "get lost", "weirdo",
-    "crybaby", "nobody wants you", "you're nothing", "get out",
-    "you are nothing"
-]
+import re
+from typing import List
 
-FILIPINO_BLACKLIST = [
-    "putangina", "putang ina", "gago", "gaga",
-    "bobo", "tanga", "hayop", "pakyu",
-    "ulol", "inutil", "puta", "leche",
-    "hinayupak", "lintik", "buwisit",
-    "pangit", "pandak", "mataba", "payat",
-    "bakla", "abnormal", "baliw", "wala kang kwenta",
-    "walang kwenta", "walang silbi", "tang ina mo",
-    "ampota", "pakshet", "putcha", "p*ta"
-]
+# ══════════════════════════════════════════════════════════════
+# ECHOSENSE PRODUCTION BLACKLIST
+# Davao City Grade 6 Classroom Bullying Detection
+# Languages: Bisaya/Cebuano + Tagalog + English + Tagbis
+# Categories: Academic, Appearance/Face, Body, Emotional, Threat
+# ══════════════════════════════════════════════════════════════
 
-BISAYA_BLACKLIST = [
-    "buang", "yawa", "bogo", "uwang",
-    "boang", "bilat", "punyeta", "hudas",
-    "iyot", "pisti", "atay", "buyag",
-    "animal", "ngano", "bastos",
-    "pangit", "tonto", "ungo", "piste",
-    "buanga", "maot", "walay pulos", "katawa", "luoy", "lisod"
-]
+# ─────────────────────────────────────────────────────────────
+# HARD TRIGGERS
+# These alone are enough to flag — severe, unambiguous words
+# ─────────────────────────────────────────────────────────────
+HARD_TRIGGERS = {
 
-ALL_BLACKLIST = ENGLISH_BLACKLIST + FILIPINO_BLACKLIST + BISAYA_BLACKLIST
+    # ── Bisaya Profanity ─────────────────────────────────────
+    "yawa", "giatay", "bilat", "kayat", "iyot",
+    "pesteng yawa", "bata og yawa", "piste", "punyeta",
+    "hudas", "atay", "buyag", "puta",
 
+    # ── Tagalog Profanity ────────────────────────────────────
+    "putangina", "putang ina", "tang ina", "tangina",
+    "pakyu", "anak ng puta", "anak og puta",
+    "ampota", "pakshet", "leche", "hinayupak",
+    "lintik", "bwisit",
+
+    # ── Threats ──────────────────────────────────────────────
+    "patyon tika", "patyon ka nako", "kill you",
+    "gusto kag sumbagay", "suwayi rag duol",
+    "sumbagay ta", "away ta", "papatayin kita",
+    "papatayin kita", "mamamatay ka",
+
+    # ── Severe Academic/Intelligence — Bisaya ────────────────
+    "bogo", "bugok", "bulok", "way utok",
+    "utok bolinaw", "utok munggos", "guba og utok",
+    "sira og ulo", "kuwang og turnilyo",
+    "monggi", "bogo kaayo", "bulok man ka",
+    "bogo kaayo ka", "way utok ka",
+    "way sulod ang utok", "bugits",
+
+    # ── Severe Academic/Intelligence — Tagalog/English ───────
+    "bobo", "tanga", "gago", "gaga", "ulol",
+    "gunggong", "engot", "inutil", "luko luko",
+    "retard", "sped", "monggoloid", "kupal",
+    "sinto sinto",
+
+    # ── Severe Appearance — Face Features ────────────────────
+    # Bisaya face bullying
+    "bungi",                    # cleft lip — very cruel
+    "uling",                    # charcoal (dark skin)
+    "murag uling",              # looks like charcoal
+    "agta",                     # offensive dark skin comparison
+    "murag ungo",               # looks like a monster
+    "murag wakwak",             # looks like a witch
+    "kulisap ang buhok",        # lice in hair
+    "kuto",                     # lice
+    "dakog ulo walay laman",    # big head nothing inside
+    "nawong mo murag ungo",     # face like a monster
+    "itom kaayo murag uling",   # so dark like charcoal
+    "pango kaayo murag baboy",  # flat nosed like a pig
+    "ngipon mo murag mais",     # teeth like corn
+    "nawong mo murag piso",     # face flat like a coin
+    "pangit ang nawong ug baho pa", # ugly and smelly
+    "dakog ilong murag patatas", # big nose like potato
+    "murag litson",             # looks like lechon (fat insult)
+    "tambokikoy ka murag litson", # fat like roasted pig
+    "uling ka kaayo",           # you are charcoal dark
+
+    # Tagalog face bullying
+    "negra", "negro",           # offensive skin color
+    "nasunog",                  # burned (dark skin)
+    "itim na itim",             # very dark
+    "katulad ng uling",         # like charcoal
+    "ang pangit ng mukha mo",   # your face is so ugly
+    "ang itim mo parang uling", # dark like charcoal
+    "mukha kang unggoy",        # face like a monkey
+    "mukha kang baboy",         # face like a pig
+
+    # ── Severe Body Shaming ───────────────────────────────────
+    "tambokikoy",               # mockingly fat
+    "agta",                     # dark skin comparison
+    "bilatog iyak",             # vulgar anatomical insult
+    "bilat sa imong iro",       # vulgar anatomical insult
+    "isuka ka sa imuhang mama", # your mom regrets you
+    "walay gustong makig uban sa imo", # nobody wants you
+
+    # ── Severe Social ─────────────────────────────────────────
+    "walang kwenta", "walang silbi",
+    "wala kang kwenta", "hampaslupa",
+    "nobody likes you", "nobody wants you",
+    "you are nothing", "worthless", "go die",
+    "wala kang kwenta pare",
+    "mas maayo pa kung wala ka",
+    "kolera", "anak og pobre",
+}
+
+# ─────────────────────────────────────────────────────────────
+# SOFT TRIGGERS
+# These need 2+ together OR repetition OR angry tone to flag
+# ─────────────────────────────────────────────────────────────
+SOFT_TRIGGERS = {
+
+    # ── Mild Academic ─────────────────────────────────────────
+    "slow kaayo", "hinay og pick up", "kuwang", "abno",
+    "abnormal", "pabigat", "pabigat sa grupo", "olo",
+    "kuwang kuwang", "kulanging", "stupid", "idiot",
+    "dumb", "moron", "bobo", "tanga",
+
+    # ── Face Features — Bisaya (soft) ────────────────────────
+    "dakog ilong",              # big nose
+    "dakog dunggan",            # big ears
+    "dakog mata",               # big eyes
+    "dakog ulo",                # big head
+    "pango",                    # flat nose
+    "nipis ang ngabil",         # thin lips
+    "baga ang ngabil",          # thick lips
+    "ngipon mo murag pader",    # teeth like wall
+    "ngil-ad ang ngipon",       # ugly teeth
+    "gahong ang nawong",        # pockmarked face
+    "puno og pimple",           # full of pimples
+    "mapula ang nawong",        # blotchy red face
+    "mansa ang balat",          # blotchy skin
+    "baho og kilikili",         # smelly armpits
+    "baho og tiil",             # smelly feet
+    "baho og baba",             # bad breath
+    "baho og ilong",            # smelly nose
+    "lugaon ang dunggan",       # dirty waxy ears
+    "bulingon",                 # dirty/unwashed
+    "gididit",                  # dirty
+    "kaguron",                  # covered in scabs
+    "mala ang buhok",           # dirty hair
+    "mata mo murag baka",       # eyes like cow
+    "mata mo murag isda",       # eyes like fish
+    "libat",                    # cross-eyed
+    "duling",                   # cross-eyed
+    "upaw",                     # bald/bad haircut
+    "pisot",                    # uncircumcised (humiliating)
+    "giraf",                    # long neck/awkward tall
+    "ilong mo murag patatas",   # nose like potato
+    "ilong mo murag saging",    # nose like banana
+    "baboy ang ilong",          # pig nose
+    "ulo mo murag bayong",      # head like a basket
+    "ulo mo murag bola",        # head like a ball
+    "piso ang nawong",          # flat face like coin
+    "himbis ang nawong",        # very flat face
+    "ngilit ang mata",          # squinty eyes
+    "dunggan mo murag elepante", # ears like elephant
+    "baho og panit",            # smelly skin
+    "utal",                     # stutter
+    "utal ka man",              # you stutter
+
+    # ── Face Features — Tagalog (soft) ───────────────────────
+    "malaking ilong",           # big nose
+    "malaking tenga",           # big ears
+    "malaking mata",            # big eyes
+    "pango",                    # flat nose (same word)
+    "malaking ngipin",          # big teeth
+    "baho ng hininga",          # bad breath
+    "malalaking ngipin",        # big teeth
+    "puro pimple",              # full of pimples
+    "amoy pawis",               # smells like sweat
+    "amoy araw",                # smells like sun (body odor)
+    "hindi naliligo",           # doesn't bathe
+    "madumi",                   # dirty
+    "ilong mo parang patatas",  # nose like potato
+    "baboy ang ilong mo",       # pig nose
+    "mata mong parang baka",    # cow eyes
+    "tenga mo parang elepante", # elephant ears
+    "baho ng katawan",          # smelly body
+    "daming pimple",            # lots of pimples
+    "pangit ang mukha",         # ugly face
+    "pangit na pangit",         # very ugly
+
+    # ── Body Shape — Bisaya (soft) ───────────────────────────
+    "tambok",                   # fat
+    "baboy",                    # pig
+    "itom",                     # dark skin
+    "itom kaayo",               # very dark
+    "putot",                    # short
+    "pandak",                   # short
+    "niwang",                   # skinny
+    "niwang kaayo",             # very skinny
+    "butong",                   # all bones
+    "murag palito",             # like a matchstick
+    "murag sundang",            # like a machete (thin)
+    "dako og tiyan",            # big belly
+    "tiyan mo murag buntis",    # belly like pregnant
+    "dakog bulan",              # big moon belly
+    "murag dwende",             # like a dwarf
+    "murag nuno",               # like a gnome
+    "murag baka",               # looks like a cow
+    "pangit kaayo",             # very ugly
+
+    # ── Body Shape — Tagalog (soft) ──────────────────────────
+    "mataba",                   # fat
+    "payat na payat",           # very skinny
+    "tumbong na buto",          # all bones
+    "parang stick",             # like a stick
+    "parang buntis",            # looks pregnant
+    "pandak",                   # short
+    "parang dwarf",             # like a dwarf
+    "ugly", "fat", "smelly", "stinky",
+
+    # ── Emotional Taunting ────────────────────────────────────
+    "iiyak na yan",             # about to cry
+    "hilak nasad",              # crying again
+    "hilak hilak",              # crybaby sounds
+    "hilakon",                  # always crying
+    "sgeg hilak",               # always crying
+    "pikon man diay",           # sore loser
+    "oa kaayo",                 # overacting
+    "bida bida",                # attention seeker
+    "pabida",                   # attention seeker
+    "cringe kaayo ka",          # very cringe
+    "jejemon",                  # social exile
+    "luod kaayo ka",            # you are disgusting
+    "ampon",                    # adopted (used cruelly)
+    "crybaby", "loser", "freak", "weirdo",
+
+    # ── Social Exclusion ──────────────────────────────────────
+    "pikon",                    # easily offended
+    "sumbong",                  # tattletale
+    "sumbongera",               # female tattletale
+    "sumbongero",               # male tattletale
+    "isugbo sa maam",           # go tell the teacher
+    "sumbong sa maam",          # tell the teacher
+    "uli sa inyo oy",           # go home
+    "dili ka among friend",     # not our friend
+    "exclude na ta siya",       # let's exclude them
+    "ayaw siya apila",          # don't include them
+    "wala kang amigo",          # you have no friends
+    "ikaw ang problema",        # you are the problem
+    "ayaw pagpakita diri",      # don't show your face here
+    "gidat ugan",               # social outcast
+    "wala kay labot",           # you don't belong
+    "isugbo nako ka",           # i will report you
+    "sumbong didto sa imong mama", # go cry to your mom
+    "loser", "get lost", "go away",
+    "nobody cares", "you don t belong",
+    "dili ka among barkada",    # not part of our group
+
+    # ── Code-switch combo phrases ─────────────────────────────
+    "bogo ka man gyud",         # you really are stupid
+    "pangit kaayo imong nawong", # your face is very ugly
+    "tambok kaayo ka",          # you are very fat
+    "itom kaayo ka",            # you are very dark
+}
+
+# ─────────────────────────────────────────────────────────────
+# LAUGHTER / CASUAL MARKERS
+# If these appear with soft triggers = kantiyawan, suppress alert
+# Exception: hard trigger + angry tone overrides even laughter
+# ─────────────────────────────────────────────────────────────
+LAUGHTER_MARKERS = {
+    "haha", "hehe", "hihi", "ahaha", "ahahaha",
+    "lol", "char", "charot", "joke", "biro",
+    "joke lang", "char lang", "naa bay", "sus",
+    "grabe", "hala", "peace", "peace out",
+    "cge lang", "wala lang", "biro ra",
+}
+
+# ─────────────────────────────────────────────────────────────
+# SEVERITY MAPPING
+# ─────────────────────────────────────────────────────────────
+HIGH_SEVERITY_WORDS = {
+    "yawa", "giatay", "bilat", "kayat", "iyot",
+    "putangina", "putang ina", "tangina", "pakyu",
+    "patyon tika", "patyon ka nako", "kill you",
+    "puta", "anak ng puta", "pesteng yawa",
+    "gusto kag sumbagay", "monggi", "retard",
+    "papatayin kita", "go die", "uling", "murag uling",
+    "agta", "negra", "negro", "bungi",
+    "kulisap ang buhok", "mukha kang unggoy",
+}
+
+MEDIUM_SEVERITY_WORDS = {
+    "bogo", "bugok", "bulok", "gago", "bobo",
+    "tanga", "ulol", "way utok", "walang kwenta",
+    "wala kang kwenta", "walay gustong makig uban sa imo",
+    "isuka ka sa imuhang mama", "worthless", "inutil",
+    "bugits", "bogo kaayo", "bulok man ka",
+    "tambokikoy", "murag litson", "murag ungo",
+    "nawong mo murag ungo", "itom kaayo murag uling",
+    "dakog ulo walay laman", "ang pangit ng mukha mo",
+}
+
+LOW_SEVERITY_WORDS = {
+    "pangit", "tambok", "itom", "putot", "baho",
+    "pikon", "sumbong", "hilak nasad", "iiyak na yan",
+    "ugly", "fat", "crybaby", "loser", "freak",
+    "ampon", "luod kaayo ka", "dakog ilong",
+    "dakog dunggan", "pango", "niwang", "pandak",
+    "malaking ilong", "malaking tenga",
+}
+
+# ─────────────────────────────────────────────────────────────
+# CATEGORY KEYWORD SETS (for classification)
+# ─────────────────────────────────────────────────────────────
+ACADEMIC_KEYWORDS = {
+    "bogo", "bugok", "bulok", "bobo", "tanga", "way utok",
+    "retard", "sped", "slow kaayo", "guba og utok", "inutil",
+    "gunggong", "stupid", "idiot", "dumb", "moron", "ulol",
+    "kuwang", "abno", "abnormal", "pabigat", "sinto sinto",
+    "utok bolinaw", "utok munggos", "monggi", "kupal",
+}
+
+APPEARANCE_KEYWORDS = {
+    "dakog ilong", "pango", "bungi", "uling", "agta",
+    "dakog dunggan", "dakog mata", "dakog ulo", "murag",
+    "pangit ang nawong", "itim na itim", "nasunog",
+    "malaking ilong", "kulisap", "kuto", "utal", "duling",
+    "libat", "upaw", "pisot", "giraf", "lugaon",
+    "baho og kilikili", "baho og tiil", "baho og baba",
+    "baho ng hininga", "amoy pawis", "amoy araw",
+    "puno og pimple", "gahong ang nawong", "mala ang buhok",
+    "ilong mo murag", "mata mo murag", "ulo mo murag",
+    "nawong mo murag", "ngipon mo murag", "negra", "negro",
+}
+
+BODY_KEYWORDS = {
+    "tambok", "tambokikoy", "baboy", "putot", "pandak",
+    "niwang", "butong", "murag palito", "murag sundang",
+    "dako og tiyan", "murag dwende", "murag nuno",
+    "murag baka", "murag litson", "mataba", "payat",
+    "parang stick", "parang buntis",
+}
+
+EMOTIONAL_KEYWORDS = {
+    "hilak nasad", "iiyak na yan", "pikon", "ampon",
+    "wala kang kwenta", "walay gustong", "crybaby", "loser",
+    "hilakon", "sgeg hilak", "luod kaayo ka", "cringe",
+    "bida bida", "oa kaayo", "gidat ugan",
+}
+
+THREAT_KEYWORDS = {
+    "patyon", "kill", "sumbagay", "away ta",
+    "suwayi", "papatayin", "mamamatay",
+}
+
+# ─────────────────────────────────────────────────────────────
+# COMBINED SET
+# ─────────────────────────────────────────────────────────────
+ALL_BLACKLIST = HARD_TRIGGERS | SOFT_TRIGGERS
+
+
+def clean_text(text: str) -> str:
+    text = text.lower().strip()
+    text = re.sub(r"[^\w\s]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def get_word_severity(word: str) -> str:
+    if word in HIGH_SEVERITY_WORDS:
+        return "high"
+    if word in MEDIUM_SEVERITY_WORDS:
+        return "medium"
+    return "low"
+
+
+def check_transcript(transcript: str) -> dict:
+    text = clean_text(transcript)
+
+    hard_hits = [w for w in HARD_TRIGGERS if w in text]
+    soft_hits = [w for w in SOFT_TRIGGERS if w in text]
+    laughing  = [w for w in LAUGHTER_MARKERS if w in text]
+
+    has_hard      = len(hard_hits) > 0
+    has_soft_pair = len(soft_hits) >= 2
+    is_casual     = len(laughing) > 0
+    has_profanity = has_hard or has_soft_pair
+
+    all_detected = list(set(hard_hits + soft_hits))
+
+    # Severity
+    severity = "low"
+    for w in all_detected:
+        if w in HIGH_SEVERITY_WORDS:
+            severity = "high"
+            break
+        elif w in MEDIUM_SEVERITY_WORDS and severity != "high":
+            severity = "medium"
+
+    # Categories
+    categories = []
+    for w in all_detected:
+        if any(a in w for a in ACADEMIC_KEYWORDS):
+            categories.append("academic_shaming")
+        if any(a in w for a in APPEARANCE_KEYWORDS):
+            categories.append("appearance_shaming")
+        if any(b in w for b in BODY_KEYWORDS):
+            categories.append("body_shaming")
+        if any(e in w for e in EMOTIONAL_KEYWORDS):
+            categories.append("emotional_taunting")
+        if any(t in w for t in THREAT_KEYWORDS):
+            categories.append("threat")
+
+    return {
+        "has_profanity":  has_profanity,
+        "detected_words": all_detected,
+        "hard_hits":      hard_hits,
+        "soft_hits":      soft_hits,
+        "is_casual":      is_casual,
+        "severity":       severity,
+        "categories":     list(set(categories)),
+        "word_count":     len(all_detected),
+    }
+
+
+# --- Backward-compat shims --------------------------------------------------
+# The legacy Vosk path (model/vosk_detect.py) imports these. The live pipeline
+# now uses check_transcript() via model/whisper_stt.py, but these keep the old
+# module importable so nothing breaks if it is loaded.
 def contains_blacklisted_word(text: str) -> bool:
     text_lower = text.lower()
-    for word in ALL_BLACKLIST:
-        if word in text_lower:
-            return True
-    return False
+    return any(word in text_lower for word in ALL_BLACKLIST)
 
-def get_detected_words(text: str) -> list:
+
+def get_detected_words(text: str) -> List[str]:
     text_lower = text.lower()
-    detected = []
-    for word in ALL_BLACKLIST:
-        if word in text_lower:
-            detected.append(word)
-    return detected
+    return [word for word in ALL_BLACKLIST if word in text_lower]
