@@ -59,7 +59,16 @@
       "Bash(echo \"exit: $? \\(124=clean timeout\\)\")",
       "Bash(kill 49260)",
       "Bash(kill 53549)",
-      "Bash(pkill -9 -f \"main.py\")"
+      "Bash(pkill -9 -f \"main.py\")",
+      "Read(//sys/devices/platform/leds/leds/ACT/**)",
+      "Bash(chown echosense:echosense /home/echosense/echosense-edge/logs)",
+      "Bash(sudo tee /etc/systemd/system/echosense.service)",
+      "Bash(sudo cat /etc/systemd/system/echosense.service)",
+      "Bash(sudo chgrp gpio /sys/class/leds/ACT/brightness /sys/class/leds/ACT/trigger)",
+      "Bash(sudo chmod g+w /sys/class/leds/ACT/brightness /sys/class/leds/ACT/trigger)",
+      "Bash(systemctl show *)",
+      "Bash(systemctl is-active *)",
+      "Bash(systemctl is-enabled *)"
     ]
   }
 }

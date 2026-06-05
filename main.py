@@ -7,6 +7,7 @@ import numpy as np
 from config import SAMPLE_RATE
 from audio.capture import get_audio_device, capture_audio, terminate_audio_system
 from audio.vad import is_voice_present
+from audio.led_indicator import LEDIndicator
 from model.yamnet_infer import load_yamnet, load_class_names
 from model.whisper_stt import get_model
 from detection.aggression import AggressionDetector
@@ -27,6 +28,11 @@ def main():
     print("  Acoustic Bullying Detection (5-layer)")
     print("  Davao del Norte State College")
     print("=" * 50)
+
+    # LED indicator: 3 fast blinks while the system loads (no-op if LED is
+    # unavailable — never affects the detection pipeline).
+    led = LEDIndicator()
+    led.startup()
 
     print("\n[INIT] Checking backend connection...")
     check_backend_connection()
@@ -55,6 +61,9 @@ def main():
     print("[HEARTBEAT] Started")
     print("\n[MAIN] Listening...")
     print("[INIT] Press Ctrl+C to stop\n")
+
+    # LED indicator: slow heartbeat blink while the mic is active.
+    led.listening_start()
 
     try:
         while True:
@@ -88,6 +97,8 @@ def main():
                 result = detector.process(combined, duration_seconds=duration_seconds)
 
                 if result and result.get("should_alert"):
+                    # LED indicator: 5 rapid blinks (non-blocking) on alert.
+                    led.alert()
                     send_alert(
                         severity=result["severity"],
                         confidence=result["confidence"],
@@ -115,6 +126,7 @@ def main():
         print("\n[STOP] EchoSense stopped by user.")
     finally:
         print("[SHUTDOWN] Releasing microphone interface...")
+        led.cleanup()
         terminate_audio_system()
         sys.exit(0)
 

@@ -1,0 +1,90 @@
+==================================================
+  EchoSense Edge AI System
+  Acoustic Bullying Detection (5-layer)
+  Davao del Norte State College
+==================================================
+
+[INIT] Checking backend connection...
+[SENDER] Backend connected!
+[HEARTBEAT] Started — posting every 60s
+[INIT] Loading YAMNet model...
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+[INIT] YAMNet loaded successfully!
+[INIT] Loading Faster-Whisper model...
+[WHISPER] Loading multilingual tiny model...
+[WHISPER] Ready.
+[INIT] Detecting audio device...
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.rear
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.center_lfe
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.side
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.hdmi
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.hdmi
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.modem
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.modem
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.phoneline
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.phoneline
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+ALSA lib pcm_oss.c:397:(_snd_pcm_oss_open) Cannot open device /dev/dsp
+ALSA lib pcm_oss.c:397:(_snd_pcm_oss_open) Cannot open device /dev/dsp
+ALSA lib pulse.c:242:(pulse_connect) PulseAudio: Unable to connect: Connection refused
+
+ALSA lib pulse.c:242:(pulse_connect) PulseAudio: Unable to connect: Connection refused
+
+ALSA lib pcm_a52.c:1001:(_snd_pcm_a52_open) a52 is only for playback
+ALSA lib confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib pcm_usb_stream.c:482:(_snd_pcm_usb_stream_open) Invalid card 'card'
+ALSA lib confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib pcm_usb_stream.c:482:(_snd_pcm_usb_stream_open) Invalid card 'card'
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+Available audio devices:
+  [0] EMEET OfficeCore M0 Plus: USB Audio (hw:0,0) (Available Inputs: 2)
+  → Active EMEET mic input found at index 0
+  [1] sysdefault (Available Inputs: 128)
+  [2] front (Available Inputs: 0)
+  [3] surround40 (Available Inputs: 0)
+  [4] iec958 (Available Inputs: 0)
+  [5] spdif (Available Inputs: 2)
+  [6] a52 (Available Inputs: 0)
+  [7] speex (Available Inputs: 1)
+  [8] upmix (Available Inputs: 8)
+  [9] vdownmix (Available Inputs: 6)
+  [10] default (Available Inputs: 128)
+  [11] dmix (Available Inputs: 0)
+[INIT] Selected hardware device index: 0
+[INIT] Using device index: 0
+[HEARTBEAT] Started
+
+[MAIN] Listening...
+[INIT] Press Ctrl+C to stop
+
+[WHISPER] [EN] let's move it.
+[WHISPER] [EN] cause i'm just gonna hit me with you.
+[WHISPER] [EN] you
+[WHISPER] [NN] let's go, let's go!
+[WHISPER] [EN] 10
+[WHISPER] [KO] 응?  고맙게!
+[HEARTBEAT] 500
+[WHISPER] [ES] de ganas por el animal tan lindo
+[WHISPER] [ES] de ganas para levantar y no
+[WHISPER] [ES] de ganas por el animal tan lindo
+[WHISPER] [EN] thank you.
+[WHISPER] [EN] thank you.
+[HEARTBEAT] 500
+[WHISPER] [ZH] 所以我還要補
+[HEARTBEAT] 500
+[WHISPER] [EN] thank you.
+[WHISPER] [EN] please, come on.
+[HEARTBEAT] 500
