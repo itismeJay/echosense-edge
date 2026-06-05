@@ -171,9 +171,12 @@ class AggressionDetector:
         pending_track = "B"
         if self._should_fire_track_b(hard_hits, soft_hits, is_repeated, emotion, is_casual):
             print("[TRACK B] Quiet bullying criteria met")
-            if is_repeated or len(hard_hits) >= 2 or (has_hard and emotion in ANGRY_EMOTIONS):
+            if is_repeated:
+                required_duration = DURATION_REPEATED_WORD     # 2.0s
+                duration_gate = "repeated"
+            elif has_hard:                                     # 2+ hard, hard+angry, hard+soft
                 required_duration = DURATION_HARD_TRIGGER      # 2.0s
-                duration_gate = "repeated" if is_repeated else "hard"
+                duration_gate = "hard"
             else:                                              # 2+ soft words
                 required_duration = DURATION_MEDIUM_TRIGGER    # 3.0s
                 duration_gate = "medium"
@@ -269,6 +272,10 @@ class AggressionDetector:
             return True
         # Rule 4: one hard trigger + angry/aggressive tone.
         if len(hard_hits) >= 1 and emotion in ANGRY_EMOTIONS:
+            return True
+        # Rule 9: a hard word + a soft word together = combined directed insult
+        #   ("bobo ka pangit mo").
+        if len(hard_hits) >= 1 and len(soft_hits) >= 1:
             return True
         # Rule 8: two or more soft triggers together = shaming pattern.
         if len(soft_hits) >= 2:
