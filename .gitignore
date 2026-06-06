@@ -17,3 +17,6 @@ logs/shadow_log.jsonl
 logs/detections.jsonl
 
 seeed-voicecard/
+
+# RealtimeSTT runtime log
+realtimesst.log

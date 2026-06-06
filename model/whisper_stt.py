@@ -1,13 +1,8 @@
-from faster_whisper import WhisperModel
-import numpy as np
-from model.blacklist import check_transcript
+from RealtimeSTT import AudioToTextRecorder
+from model.blacklist import check_transcript, apply_phonetic_variants
+import threading
+import time
 
-_model = None
-
-# Vocabulary bias: priming Whisper with the words we care about makes the model
-# far more likely to transcribe them correctly in a noisy room. Mixed
-# Bisaya/Tagalog/English so all three demo paths benefit. Keep it short — long
-# prompts still hurt the small/base models.
 WHISPER_INITIAL_PROMPT = (
     "bogo, bugok, bulok, bobo, tanga, gago, yawa, "
     "putangina, pangit, tambok, baho, hilak nasad, "
@@ -18,83 +13,102 @@ WHISPER_INITIAL_PROMPT = (
     "hilak hilak, pikon, ampon, sumbong, luod kaayo"
 )
 
+_recorder = None
+_latest_result = None
+_result_lock = threading.Lock()
+_new_result_event = threading.Event()
+_recorder_ready = threading.Event()
+
+def _on_realtime_update(text: str):
+    if text and text.strip():
+        print(f"[LIVE] {text.strip()}")
+
+def _on_text(text: str):
+    global _latest_result
+    if not text or not text.strip():
+        return
+
+    text_clean = text.strip().lower()
+    print(f"[STT] Heard: {text_clean}")
+
+    corrected = apply_phonetic_variants(text_clean)
+    if corrected != text_clean:
+        print(f"[VARIANTS] '{text_clean}' -> '{corrected}'")
+
+    result = check_transcript(corrected)
+    result["transcribed_text"] = corrected
+    result["language"] = "tl"
+    result["all_words"] = corrected.split()
+
+    print(f"[CHECK] Hard: {result['hard_hits']} Soft: {result['soft_hits']}")
+
+    if result["has_profanity"]:
+        print(
+            f"[STT] HIT: {result['detected_words']} "
+            f"| cat: {result['categories']} "
+            f"| sev: {result['severity']}"
+        )
+
+    with _result_lock:
+        _latest_result = result
+    _new_result_event.set()
+
+def _recorder_loop():
+    global _recorder
+    print("[STT] Loading RealtimeSTT with Whisper base...")
+    _recorder = AudioToTextRecorder(
+        model="base",
+        language="tl",
+        spinner=False,
+        silero_sensitivity=0.3,
+        webrtc_sensitivity=2,
+        post_speech_silence_duration=0.5,
+        min_length_of_recording=0.5,
+        min_gap_between_recordings=0.1,
+        initial_prompt=WHISPER_INITIAL_PROMPT,
+        on_realtime_transcription_update=_on_realtime_update,
+    )
+    print("[STT] Ready.")
+    _recorder_ready.set()
+    while True:
+        try:
+            _recorder.text(_on_text)
+        except Exception as e:
+            print(f"[STT] Error: {e}")
+            time.sleep(1)
+
+def get_recorder():
+    global _recorder
+    if _recorder is None:
+        t = threading.Thread(target=_recorder_loop, daemon=True)
+        t.start()
+        _recorder_ready.wait(timeout=60)
+    return _recorder
+
+def transcribe_and_check(audio_np=None) -> dict:
+    get_recorder()
+    _new_result_event.wait(timeout=1.0)
+    _new_result_event.clear()
+
+    with _result_lock:
+        result = _latest_result
+
+    if result is None:
+        return {
+            "has_profanity": False,
+            "detected_words": [],
+            "transcribed_text": "",
+            "hard_hits": [],
+            "soft_hits": [],
+            "is_casual": False,
+            "severity": "low",
+            "categories": [],
+            "language": "tl",
+            "all_words": [],
+            "word_count": 0,
+            "checked_text": "",
+        }
+    return result
 
 def get_model():
-    global _model
-    if _model is None:
-        print("[WHISPER] Loading multilingual base model...")
-        _model = WhisperModel("base", device="cpu", compute_type="int8")
-        print("[WHISPER] Ready.")
-    return _model
-
-
-def preprocess_audio(audio_np: np.ndarray) -> np.ndarray:
-    try:
-        import noisereduce as nr
-        reduced = nr.reduce_noise(
-            y=audio_np.astype(float),
-            sr=16000,
-            prop_decrease=0.75
-        )
-        return reduced.astype(np.int16)
-    except Exception:
-        return audio_np
-
-
-def transcribe_and_check(audio_np: np.ndarray) -> dict:
-    model = get_model()
-    clean  = preprocess_audio(audio_np)
-    audio_float = clean.astype(np.float32) / 32768.0
-
-    empty_result = {
-        "has_profanity": False, "detected_words": [],
-        "transcribed_text": "", "hard_hits": [],
-        "soft_hits": [], "is_casual": False,
-        "severity": "low", "categories": [],
-        "language": "unknown", "all_words": [],
-        "word_count": 0,
-    }
-
-    try:
-        segments, info = model.transcribe(
-            audio_float,
-            language="tl",                     # force Filipino — auto-detect misfires on young,
-                                               # high-pitched voices (guesses ZH/KO/AR); Davao
-                                               # Grade 6 speech is always tl/Bisaya/en anyway
-            task="transcribe",
-            initial_prompt=WHISPER_INITIAL_PROMPT,  # bias toward our bullying vocabulary
-            vad_filter=True,
-            word_timestamps=True,
-            condition_on_previous_text=False,
-            no_speech_threshold=0.6,           # drop segments Whisper deems silent
-            compression_ratio_threshold=2.4,   # reject repetitive hallucinations
-            log_prob_threshold=-1.0,           # reject low-confidence transcriptions
-        )
-        full_text = ""
-        all_words = []
-        for seg in segments:
-            full_text += seg.text + " "
-            if seg.words:
-                all_words.extend([w.word.lower().strip()
-                                   for w in seg.words])
-        full_text = full_text.strip().lower()
-        lang = info.language if info else "unknown"
-    except Exception as e:
-        print(f"[WHISPER] Error: {e}")
-        return empty_result
-
-    result = check_transcript(full_text)
-    result["transcribed_text"] = full_text
-    result["language"]         = lang
-    result["all_words"]        = all_words
-
-    if full_text:
-        print(f"[WHISPER] [{lang.upper()}] {full_text}")
-        print(f'[CHECK] Checking: "{full_text}"')
-        print(f'[CHECK] After variants: "{result.get("checked_text", full_text)}"')
-        print(f"[CHECK] Hard hits: {result['hard_hits']} Soft hits: {result['soft_hits']}")
-    if result["has_profanity"]:
-        print(f"[WHISPER] HIT: {result['detected_words']} "
-              f"| cat: {result['categories']} "
-              f"| sev: {result['severity']}")
-    return result
+    return get_recorder()

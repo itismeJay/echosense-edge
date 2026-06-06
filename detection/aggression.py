@@ -94,6 +94,10 @@ class AggressionDetector:
 
         self.last_alert_time = 0.0
         self.alert_cooldown = ALERT_COOLDOWN
+        # Tracks the start of the current quiet-bullying run for process_text()
+        # (the RealtimeSTT path). The legacy process() path uses sample-based
+        # duration from main.py and does not read this.
+        self.aggressive_start_time = None
 
     def process(self, audio_np, duration_seconds=None):
         if audio_np is None or len(audio_np) == 0:
@@ -282,6 +286,108 @@ class AggressionDetector:
             return True
         # Rule 1 / 6: single word, calm, not repeated = NOT bullying.
         return False
+
+    def process_text(self, stt_result: dict):
+        import time as _time
+        current_time = _time.time()
+
+        if not stt_result.get("has_profanity"):
+            return None
+
+        hard_hits = stt_result.get("hard_hits", [])
+        soft_hits = stt_result.get("soft_hits", [])
+        transcribed_text = stt_result.get("transcribed_text", "")
+        word_severity = stt_result.get("severity", "low")
+        categories = stt_result.get("categories", [])
+
+        ctx = self.context_gate.check(
+            detected_words=stt_result.get("detected_words", []),
+            emotion="neutral",
+            transcribed_text=transcribed_text,
+            is_casual=stt_result.get("is_casual", False),
+            hard_hits=hard_hits,
+            soft_hits=soft_hits,
+        )
+
+        track_b_fires = self._should_fire_track_b(
+            hard_hits=hard_hits,
+            soft_hits=soft_hits,
+            is_repeated=ctx.get("is_repeated", False),
+            emotion="neutral",
+            is_casual=stt_result.get("is_casual", False),
+        )
+
+        if not track_b_fires:
+            print(f"[TRACK B] Criteria not met — "
+                  f"hard={hard_hits} soft={soft_hits} "
+                  f"repeated={ctx.get('is_repeated')}")
+            return None
+
+        print(f"[TRACK B] Quiet bullying detected")
+
+        if self.aggressive_start_time is None:
+            self.aggressive_start_time = current_time
+
+        duration = current_time - self.aggressive_start_time
+
+        required = get_required_duration(
+            hard_hits=hard_hits,
+            soft_hits=soft_hits,
+            is_repeated=ctx.get("is_repeated", False),
+        )
+
+        print(f"[DURATION] {duration:.1f}s needed={required}s")
+
+        if duration < required:
+            print(f"[NO ALERT] Building ({duration:.1f}s < {required}s)")
+            return None
+
+        if current_time - self.last_alert_time < self.alert_cooldown:
+            remaining = self.alert_cooldown - (
+                current_time - self.last_alert_time
+            )
+            print(f"[COOLDOWN] {remaining:.0f}s remaining")
+            self.aggressive_start_time = None
+            return None
+
+        self.last_alert_time = current_time
+        self.aggressive_start_time = None
+
+        time_severity = get_time_severity(duration)
+        SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2}
+        final_severity = max(
+            [word_severity, time_severity],
+            key=lambda s: SEVERITY_ORDER.get(s, 0)
+        )
+
+        gate = "repeated" if ctx.get("is_repeated") else "hard"
+
+        print(
+            f"[ALERT] BULLYING CONFIRMED | Track=B "
+            f"Severity={final_severity} Duration={duration:.1f}s "
+            f"Gate={gate} Words={stt_result.get('detected_words', [])}"
+        )
+
+        return {
+            "should_alert":      True,
+            "severity":          final_severity,
+            "confidence":        0.85,
+            "duration":          round(duration, 2),
+            "transcribed_text":  transcribed_text,
+            "detected_words":    stt_result.get("detected_words", []),
+            "categories":        categories,
+            "yamnet_class":      "Speech",
+            "yamnet_score":      0.60,
+            "emotion":           "neutral",
+            "tone_data":         {},
+            "waveform_snapshot": [],
+            "has_profanity":     True,
+            "language":          stt_result.get("language", "tl"),
+            "hard_hits":         hard_hits,
+            "soft_hits":         soft_hits,
+            "duration_gate":     gate,
+            "required_duration": required,
+        }
 
     def _fire(self, *, track, word_severity, duration, required_duration,
               duration_gate, confidence, transcribed_text, detected_words,
