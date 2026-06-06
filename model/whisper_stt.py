@@ -4,10 +4,10 @@ from model.blacklist import check_transcript
 
 _model = None
 
-# Vocabulary bias: priming Whisper with the words we care about makes the tiny
-# model far more likely to transcribe them correctly in a noisy room. Mixed
+# Vocabulary bias: priming Whisper with the words we care about makes the model
+# far more likely to transcribe them correctly in a noisy room. Mixed
 # Bisaya/Tagalog/English so all three demo paths benefit. Keep it short — long
-# prompts hurt the tiny model.
+# prompts still hurt the small/base models.
 WHISPER_INITIAL_PROMPT = (
     "bogo, bugok, bulok, bobo, tanga, gago, yawa, "
     "putangina, pangit, tambok, baho, hilak nasad, "
@@ -22,8 +22,8 @@ WHISPER_INITIAL_PROMPT = (
 def get_model():
     global _model
     if _model is None:
-        print("[WHISPER] Loading multilingual tiny model...")
-        _model = WhisperModel("tiny", device="cpu", compute_type="int8")
+        print("[WHISPER] Loading multilingual base model...")
+        _model = WhisperModel("base", device="cpu", compute_type="int8")
         print("[WHISPER] Ready.")
     return _model
 
