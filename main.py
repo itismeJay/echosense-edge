@@ -1,3 +1,4 @@
+import subprocess
 import sys
 import time
 
@@ -10,6 +11,29 @@ from sender.http_client import (
 )
 from model.yamnet_infer import load_yamnet, load_class_names
 from audio.led_indicator import LEDIndicator
+
+
+def get_ip():
+    try:
+        result = subprocess.run(
+            ['hostname', '-I'],
+            capture_output=True, text=True
+        )
+        ips = result.stdout.strip().split()
+        return ips[0] if ips else "unknown"
+    except Exception:
+        return "unknown"
+
+
+def get_ssid():
+    try:
+        result = subprocess.run(
+            ['iwgetid', '-r'],
+            capture_output=True, text=True
+        )
+        return result.stdout.strip() or "unknown"
+    except Exception:
+        return "unknown"
 
 
 def main():
@@ -25,6 +49,13 @@ def main():
     print("\n[INIT] Checking backend connection...")
     check_backend_connection()
     start_heartbeat(interval=60)
+
+    ip = get_ip()
+    ssid = get_ssid()
+    print(f"[NETWORK] WiFi:   {ssid}")
+    print(f"[NETWORK] IP:     {ip}")
+    print(f"[NETWORK] SSH:    ssh echosense@{ip}")
+    print(f"[NETWORK] OR:     ssh echosense@raspberrypi.local")
 
     print("[INIT] Loading YAMNet model...")
     interpreter = load_yamnet()
