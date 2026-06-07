@@ -478,6 +478,53 @@ PHONETIC_VARIANTS = {
     "ulin":     "uling",
     "bungi":    "bungi",
     "bunge":    "bungi",
+
+    # ── Field-observed Grade 6 mishearings (added) ─────────────────────────
+    # Only genuinely NEW keys below; entries already mapped above (bugo, pangid,
+    # panget, pang, tambuk, gagu, yava/yaba/iawa, hilak, dakog, pango, ulin,
+    # bunge, …) and pointless single-word self-maps are intentionally omitted.
+
+    # dakog ilong
+    "daku bilong":  "dakog ilong",
+    "dacoge illan": "dakog ilong",
+    "dakog bilong": "dakog ilong",
+    "dako ilong":   "dakog ilong",
+    "dakong ilong": "dakog ilong",
+    "dakog along":  "dakog ilong",
+    "daku along":   "dakog ilong",
+    # dakog mata
+    "dakog matha":  "dakog mata",
+    "daku mata":    "dakog mata",
+    "dacoge mata":  "dakog mata",
+    "dakog mato":   "dakog mata",
+    # pangit
+    "bangit":       "pangit",
+    "banggit":      "pangit",
+    # dakog dunggan
+    "dakog dungan": "dakog dunggan",
+    "daku dunggan": "dakog dunggan",
+    "dakog dongan": "dakog dunggan",
+    # tambok
+    "tambog":       "tambok",
+    "thambok":      "tambok",
+    # pango
+    "panggo":       "pango",
+    "pango ka":     "pango",
+    # bungi
+    "bongi":        "bungi",
+    # uling
+    "ooling":       "uling",
+    # hilak nasad — keep the 2-word form intact (avoids "hilak nasad nasad")
+    "hilak nasad":  "hilak nasad",
+    "hila nasad":   "hilak nasad",
+    # bogo
+    "boga":         "bogo",
+    "bogoh":        "bogo",
+    # yawa
+    "yowa":         "yawa",
+    # niwang
+    "niwangan":     "niwang",
+    "niwag":        "niwang",
 }
 
 

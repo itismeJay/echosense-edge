@@ -63,14 +63,19 @@ def _recorder_loop():
         batch_size=0,            # plain WhisperModel (no batching) — matches the old pipeline
         language="tl",
         spinner=False,
-        # FIX 3 — stricter VAD so noise (rooster/dog/keyboard/music/brief
-        # clicks) never reaches Whisper; only clear, sustained human speech
-        # passes. min_length_of_recording=1.0 alone drops most short noises.
-        silero_sensitivity=0.6,
-        webrtc_sensitivity=3,
-        post_speech_silence_duration=0.8,
-        min_length_of_recording=1.0,
-        min_gap_between_recordings=0.3,
+        # VAD tuned for QUIET, high-pitched Grade 6 voices at ~1 m. These are
+        # deliberately permissive so short/soft words (bobo, pangit, dakog
+        # ilong) are not missed. min_length_of_recording=0.3 is the key lever
+        # for catching short words. False alarms are held back DOWNSTREAM
+        # instead (consume-once + tightened Track B: a lone word never alerts;
+        # it must repeat or be paired).
+        # NOTE: in RealtimeSTT, silero_sensitivity is "more sensitive at higher
+        # values" — if quiet speech is still missed, RAISE this, don't lower it.
+        silero_sensitivity=0.3,
+        webrtc_sensitivity=2,
+        post_speech_silence_duration=0.4,
+        min_length_of_recording=0.3,
+        min_gap_between_recordings=0.1,
         # FIX 2 — initial_prompt removed (was priming profanity hallucinations).
         # --- Live word-by-word preview ([LIVE] lines) — DISABLED on the Pi ---
         # Running a 2nd (realtime) Whisper model alongside the base model
@@ -135,13 +140,21 @@ def transcribe_and_check(audio_np=None) -> dict:
         return _empty_result()
 
     # FIX 7 — reject likely noise / Whisper hallucinations before they can alert.
-    words = result.get("all_words") or result.get("transcribed_text", "").split()
-    # Single-word transcriptions are almost always noise or a non-directed slip.
-    if len(words) < 2:
+    words   = result.get("all_words") or result.get("transcribed_text", "").split()
+    has_hit = bool(result.get("hard_hits") or result.get("soft_hits"))
+
+    # Single-word transcriptions are usually noise — BUT let a single recognised
+    # trigger word through so the context gate can track REPETITION of it across
+    # utterances (a lone trigger still won't alert on its own; it must repeat or
+    # be paired). This is what makes "bobo" ... "bobo" fire on the 2nd time.
+    if len(words) < 2 and not has_hit:
         return _empty_result()
-    # Hallucination signature: the same token(s) echoed back
-    # ("thank you thank you thank you", "hello hello hello").
-    if len(set(words)) < len(words) / 2:
+
+    # Hallucination signature: the same NON-trigger token echoed back
+    # ("thank you thank you", "hello hello hello"). Do NOT drop a repeated
+    # trigger ("bobo bobo", "pangit ka pangit ka") — that is the targeting
+    # signal we want to keep.
+    if not has_hit and len(set(words)) < len(words) / 2:
         return _empty_result()
 
     return result
