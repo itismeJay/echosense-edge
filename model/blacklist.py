@@ -174,6 +174,41 @@ HARD_TRIGGERS = {
     # Explicit aliases for hard triggers, since fuzzy matching is unsafe on
     # short words: bugo→bogo, bolok→bulok, bugog→bugok.
     "bugo", "bolok", "bugog",
+
+    # ── English bullying sentences (Grade 6) — added ─────────
+    # Contractions are stored apostrophe-free with a space ("you re ...") because
+    # clean_text() turns "you're" into "you re"; the "youre" -> "you re" phonetic
+    # variant normalizes the no-apostrophe spelling.
+    "you are so ugly", "you re so ugly",
+    "you are stupid", "you re stupid",
+    "you are dumb", "you re dumb",
+    "you are an idiot", "you re an idiot",
+    "you are fat", "you re fat",
+    "you are ugly", "shut up",
+    "nobody likes you", "no one likes you",
+    "you are worthless", "you are useless",
+    "go away loser", "you are a loser",
+    "you are disgusting", "you smell bad",
+    "you are poor", "you are dirty",
+    "kill yourself", "go kill yourself",
+
+    # ── Tagalog bullying sentences (Grade 6) — added ─────────
+    "ikaw ay pangit", "pangit ka talaga",
+    "ikaw ay bobo", "napaka bobo mo", "napaka tanga mo",
+    "ang tanga mo", "ang bobo mo",
+    "walang kwenta ka", "walang silbi ka", "hampaslupa ka",
+    "walang kwenta ang buhay mo", "patay ka na sana",
+    "napaka sama mo", "ikaw ay basura", "basura ka",
+    "mukha kang basura", "ang dumi mo",
+    "hindi ka namin kailangan", "ayaw namin sa iyo",
+    "wala kang kaibigan", "walang nagmamahal sa iyo",
+    "palayasin mo ang sarili mo",
+
+    # ── Bisaya bullying sentences (Grade 6) — added ──────────
+    "buang kaayo ka", "wala kay kapuse pahan", "wala kay pulos",
+    "yawa ka gyud", "piste ka", "giatay ka", "bogo gyud ka",
+    "walay pulos ka", "dili ka gusto sa tanan", "dili ka gusto",
+    "wala kay bili",
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -358,6 +393,48 @@ SOFT_TRIGGERS = {
     "dilaw ang ngipon",         # yellow teeth
     "bulok ang ngipon",         # rotten teeth
     "wala kay ngipon",          # you have no teeth
+
+    # ── English bullying phrases (Grade 6) — added ───────────
+    # Casual English singles (ugly/stupid/dumb/idiot/...) were removed earlier as
+    # false-alarm prone; re-added per request. Safe now because a lone soft word
+    # only DETECTS — it cannot alert without a pair, repetition, or angry audio.
+    "ugly", "so ugly", "very ugly", "you re ugly",
+    "stupid", "so stupid", "very stupid",
+    "dumb", "so dumb", "idiot",
+    "fatso", "fatty", "fat ass",
+    "skinny", "too skinny", "too fat", "too tall", "too short",
+    "you smell", "dirty", "so dirty",
+    "big loser", "such a loser", "loser nerd",
+    "cry baby", "stop crying", "you always cry",
+    "nobody wants you", "no one wants you",
+    "you have no friends", "friendless", "you are alone",
+    "ugly face", "big nose", "flat nose", "big ears",
+    "bad teeth", "yellow teeth", "bucktooth", "four eyes",
+    "nerd", "geek",
+
+    # ── Tagalog bullying phrases (Grade 6) — added ───────────
+    "ang pangit mo", "napaka pangit",
+    "taba mo", "mataba ka", "payat na payat",
+    "pandak ka", "maitim ka",
+    "amoy ka", "dami mong pimple", "pimple face",
+    "malaking ilong mo", "sarat ang ilong mo", "malaking tenga mo",
+    "ngipin mo", "dilaw ang ngipin mo", "baluktot ang ngipin",
+    "suplado", "suplada", "epal", "arte",
+    "mayabang", "hambog", "plastik", "ksp",
+    "feeling maganda", "feeling gwapo", "sosyal na sosyal",
+    "baduy", "jologs", "luma", "outdated",
+    "bata pa", "immature", "cry baby ka", "iyakin",
+    "pokpok", "siraulo", "baliw", "loka loka", "ulyanin",
+
+    # ── Bisaya bullying phrases (Grade 6) — added ────────────
+    "baho ka", "baho imong baba", "baho imong kilikili",
+    "baho imong tiil", "mala imong buhok", "libog imong buhok",
+    "hugaw ka", "dili ka naligo",
+    "puti kaayo murag multo", "gahong nawong", "himbis nawong",
+    "dabok", "gahi og ulo", "bugo sa tanan", "wala kay ulinapon",
+    "wala kay kwenta", "dili maayo ka", "bastos ka", "supak ka",
+    "hambogero", "hambogera", "burikat", "tarantado",
+    "grabi ka", "way batasan", "way ugali",
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -417,6 +494,7 @@ ACADEMIC_KEYWORDS = {
     "kuwang", "abno", "abnormal", "pabigat", "sinto sinto",
     "utok bolinaw", "utok munggos", "monggi", "kupal",
     "buang", "ulaga",                       # Grade 6 additions
+    "napaka bobo", "ang tanga", "wala kang kwenta",  # sentence additions
 }
 
 APPEARANCE_KEYWORDS = {
@@ -431,6 +509,8 @@ APPEARANCE_KEYWORDS = {
     "ilong mo murag", "mata mo murag", "ulo mo murag",
     "nawong mo murag", "ngipon mo murag", "negra", "negro",
     "bungal", "unano", "taas kaayo", "gamay kaayo",  # Grade 6 additions
+    "ugly", "pangit", "big nose", "flat nose",       # sentence additions
+    "bucktooth", "four eyes", "pimple face",
 }
 
 BODY_KEYWORDS = {
@@ -440,6 +520,8 @@ BODY_KEYWORDS = {
     "murag baka", "murag litson", "mataba", "payat",
     "parang stick", "parang buntis",
     "buto buto", "kalansay",                # Grade 6 additions
+    "fat", "fatty", "fatso", "skinny",      # sentence additions
+    "too short", "too tall", "smelly", "amoy", "baho",
 }
 
 EMOTIONAL_KEYWORDS = {
@@ -448,12 +530,15 @@ EMOTIONAL_KEYWORDS = {
     "hilakon", "sgeg hilak", "luod kaayo ka", "cringe",
     "bida bida", "oa kaayo", "gidat ugan",
     "walay amigo", "wala kay barkada",      # Grade 6 additions
+    "iyakin", "nobody likes you", "wala kang kaibigan",  # sentence additions
+    "freak", "weirdo",
 }
 
 THREAT_KEYWORDS = {
     "patyon", "kill", "sumbagay", "away ta",
     "suwayi", "papatayin", "mamamatay",
     "bungoan tika", "suntukan ta", "sampalan tika",  # Grade 6 additions
+    "kill yourself", "go kill yourself", "patay ka na sana",  # sentence additions
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -565,6 +650,19 @@ PHONETIC_VARIANTS = {
     "buyang":       "buang",
     "bongal":       "bungal",
     "onano":        "unano",
+
+    # ── English contraction / mishearing normalization (added) ─────────────
+    # clean_text turns "you're" -> "you re"; map the no-apostrophe spellings to
+    # the same spaced form so the "you re ..." terms match. Bare "your" is NOT
+    # mapped (too common); only the wrong-grammar 2-word insults are.
+    # NOTE: deliberately NO "X" -> "X mo" Tagalog maps — those reintroduce the
+    # dakog-style injection bug ("napaka bobo mo" -> "napaka bobo mo mo"), and
+    # the base words (bobo/tanga/walang kwenta/pangit) already catch them.
+    "youre":        "you re",
+    "your stupid":  "you re stupid",
+    "your dumb":    "you re dumb",
+    "your ugly":    "you re ugly",
+    "your fat":     "you re fat",
 }
 
 
