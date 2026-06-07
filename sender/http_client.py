@@ -48,20 +48,33 @@ def send_alert(severity, confidence, duration,
             time.sleep(3)
     return False
 
-def _heartbeat_loop(interval):
+def _heartbeat_loop(interval, info_provider=None):
     while True:
         time.sleep(interval)
+        # Best-effort: include the Pi's live LAN IP/SSID so the device can be
+        # located from the backend even when raspberrypi.local can't be reached
+        # (e.g. a phone hotspot that blocks mDNS). Unknown fields are harmless;
+        # if the backend ignores the body the heartbeat still works.
+        info = {}
+        try:
+            info = info_provider() if info_provider else {}
+        except Exception:
+            info = {}
         try:
             response = requests.post(
                 f"{API_URL}/system-settings/heartbeat",
+                json=info or None,
                 timeout=10
             )
-            print(f"[HEARTBEAT] {response.status_code}")
+            ip = info.get("ip", "?")
+            print(f"[HEARTBEAT] {response.status_code} ip={ip}")
         except Exception as e:
             print(f"[HEARTBEAT] Error: {e}")
 
-def start_heartbeat(interval=60):
-    t = threading.Thread(target=_heartbeat_loop, args=(interval,), daemon=True)
+def start_heartbeat(interval=60, info_provider=None):
+    t = threading.Thread(
+        target=_heartbeat_loop, args=(interval, info_provider), daemon=True
+    )
     t.start()
     print(f"[HEARTBEAT] Started — posting every {interval}s")
 

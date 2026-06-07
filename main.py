@@ -78,13 +78,36 @@ def get_audio_snapshot():
 
 
 def get_ip():
+    """Current global IPv4 on wlan0. On a phone hotspot the Pi gets its address
+    by DHCP from the phone, so this is the address the MacBook must SSH to when
+    raspberrypi.local fails (hotspots often block mDNS). Falls back to the first
+    non-IPv6 token from `hostname -I`."""
     try:
-        result = subprocess.run(
-            ['hostname', '-I'],
+        out = subprocess.run(
+            ['ip', '-4', '-o', 'addr', 'show', 'wlan0'],
             capture_output=True, text=True
-        )
-        ips = result.stdout.strip().split()
-        return ips[0] if ips else "unknown"
+        ).stdout
+        for part in out.split():
+            if '/' in part and part.count('.') == 3:   # e.g. 10.151.131.42/24
+                return part.split('/')[0]
+    except Exception:
+        pass
+    try:
+        ips = subprocess.run(
+            ['hostname', '-I'], capture_output=True, text=True
+        ).stdout.strip().split()
+        for ip in ips:
+            if ip.count('.') == 3:                      # skip IPv6 tokens
+                return ip
+    except Exception:
+        pass
+    return "unknown"
+
+
+def get_mac():
+    try:
+        with open('/sys/class/net/wlan0/address') as f:
+            return f.read().strip()
     except Exception:
         return "unknown"
 
@@ -98,6 +121,29 @@ def get_ssid():
         return result.stdout.strip() or "unknown"
     except Exception:
         return "unknown"
+
+
+def print_network_banner(prefix="[NETWORK]"):
+    """Print the live network identity clearly so it is easy to find in the log
+    even after a WiFi switch or DHCP renew (re-printed periodically, not just at
+    boot)."""
+    ip = get_ip()
+    ssid = get_ssid()
+    print("=" * 50)
+    print(f"{prefix} WiFi SSID : {ssid}")
+    print(f"{prefix} Pi IP     : {ip}")
+    print(f"{prefix} Pi MAC    : {get_mac()}   <- find this in the phone's hotspot device list")
+    print(f"{prefix} SSH (IP)  : ssh echosense@{ip}")
+    print(f"{prefix} SSH (mDNS): ssh echosense@raspberrypi.local")
+    print("=" * 50)
+
+
+def _network_status_thread(interval=60):
+    """Re-print the network banner every `interval`s so the CURRENT hotspot IP is
+    always visible in the log — the boot-time line goes stale if WiFi changes."""
+    while True:
+        time.sleep(interval)
+        print_network_banner(prefix="[NET-HEARTBEAT]")
 
 
 def main():
@@ -116,14 +162,20 @@ def main():
 
     print("\n[INIT] Checking backend connection...")
     check_backend_connection()
-    start_heartbeat(interval=60)
+    start_heartbeat(
+        interval=60,
+        info_provider=lambda: {
+            "ip": get_ip(),
+            "ssid": get_ssid(),
+            "mac": get_mac(),
+            "hostname": "raspberrypi",
+        },
+    )
 
-    ip = get_ip()
-    ssid = get_ssid()
-    print(f"[NETWORK] WiFi:   {ssid}")
-    print(f"[NETWORK] IP:     {ip}")
-    print(f"[NETWORK] SSH:    ssh echosense@{ip}")
-    print(f"[NETWORK] OR:     ssh echosense@raspberrypi.local")
+    print_network_banner()
+    # Re-print the live IP/SSID every 60s so the current hotspot address is
+    # always discoverable in the log (the boot line goes stale on a WiFi switch).
+    threading.Thread(target=_network_status_thread, args=(60,), daemon=True).start()
 
     print("[INIT] Loading YAMNet model...")
     interpreter = load_yamnet()
