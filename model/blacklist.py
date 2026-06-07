@@ -97,6 +97,16 @@ HARD_TRIGGERS = {
     "sumbagay ta", "papatayin kita",
     "papatayin kita", "mamamatay ka",
 
+    # ── Grade 6 Bisaya (Davao) — field-observed, added ───────
+    "buang",            # crazy/stupid — most-used Bisaya insult
+    "buang ka",         # you are crazy
+    "buang kaayo",      # very crazy
+    "ulaga",            # idiot/fool in Bisaya
+    "bungoan tika",     # I will punch your face (threat)
+    "suntukan ta",      # let's fight (threat)
+    "away ta",          # let's fight, Bisaya (promoted from SOFT_TRIGGERS)
+    "sampalan tika",    # I will slap you (threat)
+
     # ── Severe Academic/Intelligence — Bisaya ────────────────
     "bogo", "bugok", "bulok", "way utok",
     "utok bolinaw", "utok munggos", "guba og utok",
@@ -176,7 +186,7 @@ SOFT_TRIGGERS = {
     # Reclassified out of HARD_TRIGGERS: everyday expletives and playful Bisaya
     # ("away ta") that are not directed bullying on their own. Only count when
     # paired with another soft word or repeated.
-    "leche", "lintik", "bwisit", "away ta",
+    "leche", "lintik", "bwisit",
 
     # 'pangit' (ugly) is casual-common ("pangit ang panahon"), so it is SOFT —
     # it needs a pair or repetition to count. 'pangid' is the common Whisper
@@ -331,6 +341,23 @@ SOFT_TRIGGERS = {
     "pangit kaayo imong nawong", # your face is very ugly
     "tambok kaayo ka",          # you are very fat
     "itom kaayo ka",            # you are very dark
+
+    # ── Grade 6 Bisaya (Davao) — field-observed, added ───────
+    "bungal",                   # missing tooth
+    "bungal ka",                # you have a missing tooth
+    "walay amigo",              # no friends (Bisaya)
+    "wala kay amigo",           # you have no friends
+    "wala kay barkada",         # you have no friends
+    "walay barkada",            # no friends
+    "taas kaayo ka",            # you are too tall
+    "gamay kaayo ka",           # you are too small
+    "pandak kaayo",             # very short
+    "buto buto",                # very bony / skinny
+    "kalansay",                 # skeleton — very thin
+    "unano ka",                 # you are a dwarf
+    "dilaw ang ngipon",         # yellow teeth
+    "bulok ang ngipon",         # rotten teeth
+    "wala kay ngipon",          # you have no teeth
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -389,6 +416,7 @@ ACADEMIC_KEYWORDS = {
     "gunggong", "stupid", "idiot", "dumb", "moron", "ulol",
     "kuwang", "abno", "abnormal", "pabigat", "sinto sinto",
     "utok bolinaw", "utok munggos", "monggi", "kupal",
+    "buang", "ulaga",                       # Grade 6 additions
 }
 
 APPEARANCE_KEYWORDS = {
@@ -402,6 +430,7 @@ APPEARANCE_KEYWORDS = {
     "puno og pimple", "gahong ang nawong", "mala ang buhok",
     "ilong mo murag", "mata mo murag", "ulo mo murag",
     "nawong mo murag", "ngipon mo murag", "negra", "negro",
+    "bungal", "unano", "taas kaayo", "gamay kaayo",  # Grade 6 additions
 }
 
 BODY_KEYWORDS = {
@@ -410,6 +439,7 @@ BODY_KEYWORDS = {
     "dako og tiyan", "murag dwende", "murag nuno",
     "murag baka", "murag litson", "mataba", "payat",
     "parang stick", "parang buntis",
+    "buto buto", "kalansay",                # Grade 6 additions
 }
 
 EMOTIONAL_KEYWORDS = {
@@ -417,11 +447,13 @@ EMOTIONAL_KEYWORDS = {
     "wala kang kwenta", "walay gustong", "crybaby", "loser",
     "hilakon", "sgeg hilak", "luod kaayo ka", "cringe",
     "bida bida", "oa kaayo", "gidat ugan",
+    "walay amigo", "wala kay barkada",      # Grade 6 additions
 }
 
 THREAT_KEYWORDS = {
     "patyon", "kill", "sumbagay", "away ta",
     "suwayi", "papatayin", "mamamatay",
+    "bungoan tika", "suntukan ta", "sampalan tika",  # Grade 6 additions
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -470,8 +502,9 @@ PHONETIC_VARIANTS = {
     "pican":    "pikon",
     "ampon":    "ampon",
     "hampon":   "ampon",
-    "dakog":    "dakog ilong",
-    "dakug":    "dakog ilong",
+    # FIX 1 — removed single-word "dakog"/"dakug" → "dakog ilong" mappings.
+    # They injected "ilong" into every dakog phrase ("dakog mata mo" became
+    # "dakog ilong mata mo"). Only the multi-word dakog variants below are safe.
     "pango":    "pango",
     "panga":    "pango",
     "uling":    "uling",
@@ -525,6 +558,13 @@ PHONETIC_VARIANTS = {
     # niwang
     "niwangan":     "niwang",
     "niwag":        "niwang",
+
+    # ── Grade 6 Bisaya (Davao) — field-observed, added ─────────────────────
+    "buwan":        "buang",
+    "bwang":        "buang",
+    "buyang":       "buang",
+    "bongal":       "bungal",
+    "onano":        "unano",
 }
 
 
@@ -589,9 +629,15 @@ def check_transcript(transcript: str) -> dict:
     soft_hits = [w for w in soft_hits if w not in HARD_TRIGGERS]
 
     has_hard      = len(hard_hits) > 0
-    has_soft_pair = len(soft_hits) >= 2
+    has_soft      = len(soft_hits) >= 1
     is_casual     = len(laughing) > 0
-    has_profanity = has_hard or has_soft_pair
+    # FIX 3/4 — a single soft hit now counts as profanity DETECTION so the
+    # audio-primary path (FIX 4) can confirm it by tone/YAMNet. The old "2+ soft"
+    # gate was a TEXT-ONLY false-alarm guard from before audio was wired in; that
+    # guard now lives downstream (Track A needs aggressive audio; Track B still
+    # requires 2+ soft / repetition — see aggression.process_text Layer 2), so a
+    # lone soft word can never alert on the quiet path.
+    has_profanity = has_hard or has_soft
 
     all_detected = list(set(hard_hits + soft_hits))
 

@@ -1,5 +1,5 @@
 from RealtimeSTT import AudioToTextRecorder
-from model.blacklist import check_transcript, apply_phonetic_variants
+from model.blacklist import check_transcript
 import threading
 import time
 
@@ -26,11 +26,12 @@ def _on_text(text: str):
     text_clean = text.strip().lower()
     print(f"[STT] Heard: {text_clean}")
 
-    corrected = apply_phonetic_variants(text_clean)
-    if corrected != text_clean:
-        print(f"[VARIANTS] '{text_clean}' -> '{corrected}'")
-
-    result = check_transcript(corrected)
+    # FIX 2 — apply_phonetic_variants() is called EXACTLY ONCE, inside
+    # check_transcript(). It used to be called here too and again downstream,
+    # double-applying the rewrite and corrupting text. The corrected text is
+    # returned as result["checked_text"].
+    result = check_transcript(text_clean)
+    corrected = result.get("checked_text", text_clean)
     result["transcribed_text"] = corrected
     result["language"] = "tl"
     result["all_words"] = corrected.split()

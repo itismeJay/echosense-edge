@@ -26,6 +26,17 @@ from sender.shadow_log import log_near_miss
 SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2}
 ANGRY_EMOTIONS = {"angry", "aggressive", "distressed"}
 
+
+def _distinct_hits(terms: list) -> list:
+    """Collapse overlapping blacklist hits that are the SAME insult counted
+    twice. Listing variants like {"buang", "buang ka", "buang kaayo"} means a
+    single phrase ("buang ka") matches several entries; without this, that lone
+    insult would trip the "2+ hard = directed tirade" rule and fire immediately
+    on first (often casual) use. We keep only terms that are not a substring of
+    a longer matched term, so "buang ka" counts as ONE distinct insult while two
+    genuinely different insults ("bobo gago") still count as two."""
+    return [t for t in terms if not any(t != o and t in o for o in terms)]
+
 # Threat words demand the fastest reaction (DURATION_THREAT).
 THREAT_WORDS = {
     "patyon tika", "patyon ka nako", "kill you",
@@ -286,8 +297,10 @@ class AggressionDetector:
         # Real, cross-utterance repetition = targeting (RA 10627).
         if is_repeated:
             return True
-        # Two or more hard triggers together = directed insult.
-        if len(hard_hits) >= 2:
+        # Two or more DISTINCT hard triggers together = directed insult.
+        # (Distinct so "buang ka" — which matches both "buang" and "buang ka" —
+        # counts as one insult and does not fire on a single casual use.)
+        if len(_distinct_hits(hard_hits)) >= 2:
             return True
         # Hard + soft together = combined directed insult.
         if len(hard_hits) >= 1 and len(soft_hits) >= 1:
@@ -398,6 +411,7 @@ class AggressionDetector:
 
         return {
             "should_alert":      True,
+            "track":             "B",
             "severity":          final_severity,
             "confidence":        0.85,
             "duration":          round(duration, 2),
@@ -415,6 +429,123 @@ class AggressionDetector:
             "soft_hits":         soft_hits,
             "duration_gate":     gate,
             "required_duration": required,
+        }
+
+    def process_with_audio(self, stt_result: dict, audio_np=None) -> dict:
+        """Audio-primary detection (FIX 4).
+
+        Audio classifies HOW it was said (emotion / aggression via YAMNet+tone);
+        text confirms WHAT word was said (the blacklist hit). Track A fires when
+        the audio is aggressive AND a word was detected; otherwise we fall back to
+        the quiet text path (Track B = process_text), which keeps its own strict
+        gates (2+ soft / repetition) so a lone soft word never alerts quietly.
+        """
+        if not stt_result.get("has_profanity"):
+            return None
+
+        hard_hits = stt_result.get("hard_hits", [])
+        soft_hits = stt_result.get("soft_hits", [])
+        is_casual = stt_result.get("is_casual", False)
+
+        # Laughter always suppresses.
+        if is_casual:
+            print("[NO ALERT] Kantiyawan")
+            return None
+
+        # ── TRACK A — Audio Primary ──────────────────────────────────────────
+        if (
+            audio_np is not None
+            and len(audio_np) >= 8000
+            and self.interpreter is not None
+            and self.class_names
+        ):
+            yamnet_class, yamnet_score = run_yamnet_scan(
+                self.interpreter, audio_np, self.class_names
+            )
+            yamnet_score = float(yamnet_score)
+            tone = analyze_tone(audio_np)
+            emotion = classify_emotion(tone)
+
+            print(f"[AUDIO] YAMNet={yamnet_class}({yamnet_score:.2f})"
+                  f" RMS={tone['rms']:.0f} Emotion={emotion}")
+
+            audio_aggressive = (
+                is_aggressive_sound(yamnet_class, yamnet_score, YAMNET_THRESHOLD)
+                or (
+                    tone["rms"] >= TONE_RMS_THRESHOLD
+                    and emotion in ANGRY_EMOTIONS
+                )
+            )
+
+            if audio_aggressive and (hard_hits or soft_hits):
+                print("[TRACK A] Loud bullying — audio+text")
+                return self._build_track_a_alert(
+                    stt_result=stt_result,
+                    audio_np=audio_np,
+                    yamnet_class=yamnet_class,
+                    yamnet_score=yamnet_score,
+                    tone=tone,
+                    emotion=emotion,
+                )
+            else:
+                print("[TRACK A] Audio not aggressive — trying Track B")
+        else:
+            print("[TRACK A] No audio — trying Track B")
+
+        # ── TRACK B — Text Primary (quiet / relational) ──────────────────────
+        return self.process_text(stt_result)
+
+    def _build_track_a_alert(self, stt_result, audio_np, yamnet_class,
+                             yamnet_score, tone, emotion) -> dict:
+        current_time = time.time()
+
+        if current_time - self.last_alert_time < self.alert_cooldown:
+            remaining = self.alert_cooldown - (current_time - self.last_alert_time)
+            print(f"[COOLDOWN] {remaining:.0f}s remaining")
+            return None
+
+        self.last_alert_time = current_time
+        self.aggressive_start_time = None
+
+        word_sev = stt_result.get("severity", "low")
+        final_sev = max([word_sev, "medium"], key=lambda s: SEVERITY_ORDER.get(s, 0))
+
+        confidence = min(
+            yamnet_score + 0.15 + get_tone_confidence_boost(tone),
+            1.0,
+        )
+
+        hard_hits = stt_result.get("hard_hits", [])
+        soft_hits = stt_result.get("soft_hits", [])
+
+        print(
+            f"[ALERT] BULLYING CONFIRMED | Track=A"
+            f" Severity={final_sev}"
+            f" YAMNet={yamnet_class}"
+            f" Emotion={emotion}"
+            f" Words={stt_result.get('detected_words')}"
+        )
+
+        return {
+            "should_alert":      True,
+            "track":             "A",
+            "severity":          final_sev,
+            "confidence":        round(confidence, 3),
+            "duration":          2.0,
+            "transcribed_text":  stt_result.get("transcribed_text", ""),
+            "detected_words":    stt_result.get("detected_words", []),
+            "categories":        stt_result.get("categories", []),
+            "yamnet_class":      yamnet_class,
+            "yamnet_score":      round(yamnet_score, 3),
+            "emotion":           emotion,
+            "tone_data":         tone,
+            "waveform_snapshot": get_waveform_snapshot(audio_np),
+            "has_profanity":     True,
+            "language":          stt_result.get("language", "tl"),
+            "hard_hits":         hard_hits,
+            "soft_hits":         soft_hits,
+            "duration_gate":     "hard" if hard_hits else "medium",
+            "required_duration": 1.5,
         }
 
     def _fire(self, *, track, word_severity, duration, required_duration,
