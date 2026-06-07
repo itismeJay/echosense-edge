@@ -38,6 +38,16 @@ class ContextGate:
         )
         is_repeated = max_rep >= self.REPETITION_MIN
 
+        # Real elapsed time between the first and last occurrence of the
+        # most-repeated detected word. Used by the event-driven Track B path as
+        # the "duration" (the old per-loop accumulation no longer exists now that
+        # each utterance is consumed exactly once). 0.0 until something repeats.
+        repetition_span = 0.0
+        for w in detected_words:
+            ts = self.word_history[w]
+            if len(ts) >= self.REPETITION_MIN:
+                repetition_span = max(repetition_span, ts[-1] - ts[0])
+
         # Emotion gate
         ALERT_EMOTIONS = {"angry", "aggressive", "distressed"}
         emotion_ok = emotion in ALERT_EMOTIONS
@@ -72,6 +82,7 @@ class ContextGate:
             "is_bullying_context": is_bullying,
             "max_repetitions":     max_rep,
             "is_repeated":         is_repeated,
+            "repetition_span":     repetition_span,
             "emotion_ok":          emotion_ok,
             "has_laughter":        is_casual,
             "reason":              reason,

@@ -12,11 +12,11 @@ DURATION_THREAT         = 1.5
 # Reason: threat words (patyon tika, kill you) = immediate danger.
 # Teacher must be notified within ~2 seconds.
 
-DURATION_HARD_TRIGGER   = 2.0
+DURATION_HARD_TRIGGER   = 1.5
 # Reason: severe words (yawa, bogo, bungi, uling, putangina) are unambiguous
 # bullying even if brief; 2s confirms it was intentional, not accidental.
 
-DURATION_REPEATED_WORD  = 2.0
+DURATION_REPEATED_WORD  = 1.5
 # Reason: same word said 2x in 30s = targeting confirmed (RA 10627 defines
 # bullying as REPEATED behavior). Repetition itself is the evidence — 2s confirms.
 

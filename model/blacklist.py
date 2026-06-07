@@ -82,7 +82,9 @@ HARD_TRIGGERS = {
     # ── Bisaya Profanity ─────────────────────────────────────
     "yawa", "giatay", "bilat", "kayat", "iyot",
     "pesteng yawa", "bata og yawa", "piste", "punyeta",
-    "hudas", "atay", "buyag", "puta",
+    "hudas", "puta",
+    # FIX 4 — removed "atay" (substring of common word "patay"/means 'liver')
+    # and "buyag" (too common) — both tripped on normal speech.
 
     # ── Tagalog Profanity ────────────────────────────────────
     "putangina", "putang ina", "tang ina", "tangina",
@@ -183,9 +185,13 @@ SOFT_TRIGGERS = {
 
     # ── Mild Academic ─────────────────────────────────────────
     "slow kaayo", "hinay og pick up", "kuwang", "abno",
-    "abnormal", "pabigat", "pabigat sa grupo", "olo",
-    "kuwang kuwang", "kulanging", "stupid", "idiot",
-    "dumb", "moron", "bobo", "tanga",
+    "abnormal", "pabigat", "pabigat sa grupo",
+    "kuwang kuwang", "kulanging",
+    "moron",
+    # FIX 4 — removed "olo" (too short/common), "stupid"/"idiot"/"dumb"
+    # (everyday English in songs/movies/casual talk). Also removed "bobo"/"tanga"
+    # here — they are HARD triggers; listing them in both sets made a single
+    # "bobo" count as hard+soft and wrongly satisfy the hard+soft rule.
 
     # ── Face Features — Bisaya (soft) ────────────────────────
     "dakog ilong",              # big nose
@@ -254,9 +260,9 @@ SOFT_TRIGGERS = {
 
     # ── Body Shape — Bisaya (soft) ───────────────────────────
     "tambok",                   # fat
-    "baboy",                    # pig
-    "itom",                     # dark skin
     "itom kaayo",               # very dark
+    # FIX 4 — removed standalone "baboy" (casual Filipino word) and "itom"
+    # (matches normal "dark" descriptions). Specific phrases below still match.
     "putot",                    # short
     "pandak",                   # short
     "niwang",                   # skinny
@@ -280,7 +286,7 @@ SOFT_TRIGGERS = {
     "parang buntis",            # looks pregnant
     "pandak",                   # short
     "parang dwarf",             # like a dwarf
-    "ugly", "fat", "smelly", "stinky",
+    "smelly", "stinky",         # FIX 4 — removed casual English "ugly"/"fat"
 
     # ── Emotional Taunting ────────────────────────────────────
     "iiyak na yan",             # about to cry
@@ -530,6 +536,10 @@ def check_transcript(transcript: str) -> dict:
     hard_hits = _find_hits(HARD_TRIGGERS, text, tokens)
     soft_hits = _find_hits(SOFT_TRIGGERS, text, tokens)
     laughing  = _find_hits(LAUGHTER_MARKERS, text, tokens, fuzzy=False)
+
+    # Safety: a term must never count as BOTH hard and soft (e.g. a word listed
+    # in both sets), otherwise one hard word alone would trip the hard+soft rule.
+    soft_hits = [w for w in soft_hits if w not in HARD_TRIGGERS]
 
     has_hard      = len(hard_hits) > 0
     has_soft_pair = len(soft_hits) >= 2

@@ -263,109 +263,137 @@ class AggressionDetector:
         )
 
     def _should_fire_track_b(self, hard_hits, soft_hits, is_repeated, emotion, is_casual):
-        """Track B: quiet bullying detection. Fires at normal speaking volume —
-        no scream required. Encodes the RA 10627 'repeated / targeted' rules."""
-        # Rule 5: laughter always suppresses.
+        """Track B firing rules — TIGHTENED (FIX 6).
+
+        Fires when ONE of:
+          - real repetition of a detected word across separate utterances, OR
+          - 2+ hard triggers in the same utterance (directed insult), OR
+          - a hard + a soft trigger in the same utterance ("bobo ka pangit mo"), OR
+          - 1 hard + angry/aggressive tone (audio path only — tone is neutral on
+            the text-only path, so this rule is inert there).
+
+        NEVER fires on:
+          - a single hard word said ONCE (the biggest false-positive fix),
+          - 2+ soft words WITHOUT repetition,
+          - anything with laughter.
+
+        'is_repeated' must come from the context gate tracking DIFFERENT
+        utterances over time — not the same stale result read twice (fixed in
+        whisper_stt.transcribe_and_check via consume-once)."""
+        # Laughter always suppresses.
         if is_casual:
             return False
-        # Rule 2 / 7: same word repeated 2+ times in 30s = targeting.
+        # Real, cross-utterance repetition = targeting (RA 10627).
         if is_repeated:
             return True
-        # Rule 3: two or more hard triggers together = directed insult.
+        # Two or more hard triggers together = directed insult.
         if len(hard_hits) >= 2:
             return True
-        # Rule 4: one hard trigger + angry/aggressive tone.
-        if len(hard_hits) >= 1 and emotion in ANGRY_EMOTIONS:
-            return True
-        # Rule 9: a hard word + a soft word together = combined directed insult
-        #   ("bobo ka pangit mo").
+        # Hard + soft together = combined directed insult.
         if len(hard_hits) >= 1 and len(soft_hits) >= 1:
             return True
-        # Rule 8: two or more soft triggers together = shaming pattern.
-        if len(soft_hits) >= 2:
+        # One hard trigger + angry tone (audio path only; neutral on text path).
+        if len(hard_hits) >= 1 and emotion in ANGRY_EMOTIONS:
             return True
-        # Rule 1 / 6: single word, calm, not repeated = NOT bullying.
+        # Single hard word once, OR 2+ soft without repetition = NOT bullying.
         return False
 
     def process_text(self, stt_result: dict):
-        import time as _time
-        current_time = _time.time()
+        """Event-driven Track B (the live RealtimeSTT path). One complete
+        utterance in, one decision out. Runs the same logical layers as
+        process() minus the audio-only ones (no waveform is available here):
+
+          L1 STT + blacklist (already done upstream)
+          L2 tone proxy   — no audio, so reject soft-only/non-repeated as casual
+          L3 context gate — REAL cross-utterance repetition only (consume-once)
+          L4 laughter     — kantiyawan always suppresses
+          L5 duration     — tiered required seconds + 60s cooldown
+
+        Note: because each utterance is now consumed exactly once
+        (whisper_stt FIX 1), the old per-loop duration accumulation no longer
+        exists. A single qualifying utterance (2 hard / hard+soft) is complete
+        evidence on its own, and a repeated pattern uses the REAL elapsed span
+        between utterances from the context gate."""
+        current_time = time.time()
 
         if not stt_result.get("has_profanity"):
             return None
 
-        hard_hits = stt_result.get("hard_hits", [])
-        soft_hits = stt_result.get("soft_hits", [])
+        hard_hits        = stt_result.get("hard_hits", [])
+        soft_hits        = stt_result.get("soft_hits", [])
         transcribed_text = stt_result.get("transcribed_text", "")
-        word_severity = stt_result.get("severity", "low")
-        categories = stt_result.get("categories", [])
+        word_severity    = stt_result.get("severity", "low")
+        categories       = stt_result.get("categories", [])
+        detected_words   = stt_result.get("detected_words", [])
+        is_casual        = stt_result.get("is_casual", False)
 
-        ctx = self.context_gate.check(
-            detected_words=stt_result.get("detected_words", []),
-            emotion="neutral",
-            transcribed_text=transcribed_text,
-            is_casual=stt_result.get("is_casual", False),
-            hard_hits=hard_hits,
-            soft_hits=soft_hits,
-        )
-
-        track_b_fires = self._should_fire_track_b(
-            hard_hits=hard_hits,
-            soft_hits=soft_hits,
-            is_repeated=ctx.get("is_repeated", False),
-            emotion="neutral",
-            is_casual=stt_result.get("is_casual", False),
-        )
-
-        if not track_b_fires:
-            print(f"[TRACK B] Criteria not met — "
-                  f"hard={hard_hits} soft={soft_hits} "
-                  f"repeated={ctx.get('is_repeated')}")
+        # ---------- LAYER 4: laughter / casual ALWAYS suppresses ----------
+        # Checked before the context gate so a joke ("bobo haha") is never
+        # recorded as a bullying instance and can never build fake repetition.
+        if is_casual:
+            print("[NO ALERT] Laughter/casual present — kantiyawan (Layer 4)")
             return None
 
-        print(f"[TRACK B] Quiet bullying detected")
-
-        if self.aggressive_start_time is None:
-            self.aggressive_start_time = current_time
-
-        duration = current_time - self.aggressive_start_time
-
-        required = get_required_duration(
+        # ---------- LAYER 3: context gate — REAL repetition only ----------
+        ctx = self.context_gate.check(
+            detected_words=detected_words,
+            emotion="neutral",
+            transcribed_text=transcribed_text,
+            is_casual=is_casual,
             hard_hits=hard_hits,
             soft_hits=soft_hits,
-            is_repeated=ctx.get("is_repeated", False),
         )
+        is_repeated     = ctx.get("is_repeated", False)
+        repetition_span = ctx.get("repetition_span", 0.0)
 
-        print(f"[DURATION] {duration:.1f}s needed={required}s")
+        # ---------- LAYER 2: tone proxy (no waveform on this path) ----------
+        # Without audio we cannot measure anger. A soft-only utterance that is
+        # not repeated is most likely casual chatter → skip.
+        if not hard_hits and not is_repeated and len(soft_hits) < 2:
+            print("[NO ALERT] Soft-only, not repeated — likely casual (Layer 2)")
+            return None
 
+        # ---------- Track B decision (single hard word once ≠ alert) ----------
+        if not self._should_fire_track_b(
+            hard_hits=hard_hits, soft_hits=soft_hits,
+            is_repeated=is_repeated, emotion="neutral", is_casual=is_casual,
+        ):
+            print(f"[TRACK B] Criteria not met — hard={hard_hits} "
+                  f"soft={soft_hits} repeated={is_repeated}")
+            return None
+
+        print("[TRACK B] Quiet bullying detected")
+
+        # ---------- LAYER 5: tiered duration + cooldown ----------
+        required = get_required_duration(hard_hits, soft_hits, is_repeated)
+        # Repeated pattern → real elapsed span between utterances.
+        # Single qualifying utterance → complete evidence, meets its tier now.
+        duration = repetition_span if is_repeated else required
+
+        print(f"[DURATION] {duration:.1f}s needed={required}s repeated={is_repeated}")
         if duration < required:
             print(f"[NO ALERT] Building ({duration:.1f}s < {required}s)")
             return None
 
         if current_time - self.last_alert_time < self.alert_cooldown:
-            remaining = self.alert_cooldown - (
-                current_time - self.last_alert_time
-            )
+            remaining = self.alert_cooldown - (current_time - self.last_alert_time)
             print(f"[COOLDOWN] {remaining:.0f}s remaining")
-            self.aggressive_start_time = None
             return None
 
         self.last_alert_time = current_time
-        self.aggressive_start_time = None
 
         time_severity = get_time_severity(duration)
-        SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2}
         final_severity = max(
             [word_severity, time_severity],
             key=lambda s: SEVERITY_ORDER.get(s, 0)
         )
 
-        gate = "repeated" if ctx.get("is_repeated") else "hard"
+        gate = "repeated" if is_repeated else ("hard" if hard_hits else "medium")
 
         print(
             f"[ALERT] BULLYING CONFIRMED | Track=B "
             f"Severity={final_severity} Duration={duration:.1f}s "
-            f"Gate={gate} Words={stt_result.get('detected_words', [])}"
+            f"Gate={gate} Words={detected_words}"
         )
 
         return {
@@ -374,7 +402,7 @@ class AggressionDetector:
             "confidence":        0.85,
             "duration":          round(duration, 2),
             "transcribed_text":  transcribed_text,
-            "detected_words":    stt_result.get("detected_words", []),
+            "detected_words":    detected_words,
             "categories":        categories,
             "yamnet_class":      "Speech",
             "yamnet_score":      0.60,
