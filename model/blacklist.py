@@ -454,9 +454,9 @@ SOFT_TRIGGERS = {
     "grabi ka", "way batasan", "way ugali",
 
     # ── Weight bullying (most common in PH Grade 6) — added ───
-    "tambok", "tambok ka", "tambok kaayo", "taba mo", "mataba ka",
+    "tambok", "tambok ka", "tambok kaayo", "taba", "taba mo", "mataba ka",
     "ang taba mo", "ang tambok nimo", "tambok na tambok",
-    "baboy ka", "baboy ang katawan", "murag baboy",
+    "baboy", "baboy ka", "baboy ang katawan", "murag baboy",
     "fat ka", "ang fat mo", "chubby", "ang chubby mo", "overweight ka",
 
     # ── Nose bullying (very common) — added ──────────────────
@@ -621,6 +621,39 @@ THREAT_KEYWORDS = {
 # COMBINED SET
 # ─────────────────────────────────────────────────────────────
 ALL_BLACKLIST = HARD_TRIGGERS | SOFT_TRIGGERS
+
+
+# ─────────────────────────────────────────────────────────────
+# APPEARANCE / BODY "DIRECT" ROOTS
+# These are the cruel appearance/body insults that — for a Grade 6
+# classroom — count as bullying even when said ONCE, provided the
+# AUDIO confirms it was directed (raised / uneven voice), not calm
+# normal talk and not near-silence. The audio gate lives in
+# detection/aggression.py (process_with_audio). Matched as substrings
+# against the blacklist terms that were detected, so a root like
+# "baboy" covers "baboy ka", "murag baboy", "baboy ang ilong mo".
+# ─────────────────────────────────────────────────────────────
+APPEARANCE_DIRECT_ROOTS = {
+    # weight / body
+    "baboy", "tambok", "taba", "mataba", "fat", "chubby", "overweight",
+    "pandak", "putot", "liit", "taas", "niwang", "kalansay",
+    # nose / face
+    "pango", "ilong", "nawong",
+    # skin color
+    "itom", "uling", "negro", "negra", "agta",
+    # eyes
+    "duling", "libat", "mata",
+    # teeth
+    "bungi", "bungal", "ngipon", "dilaw",
+    # hygiene
+    "baho", "amoy", "hugaw",
+    # hair
+    "kulot", "buhok",
+    # animal comparisons
+    "unggoy", "hayop", "iro", "manok", "aso",
+    # style / general ugly
+    "baduy", "jologs", "pangit", "ugly",
+}
 
 
 # ─────────────────────────────────────────────────────────────

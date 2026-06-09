@@ -14,11 +14,14 @@ from detection.thresholds import (
     TONE_RMS_THRESHOLD,
     TONE_VARIANCE_THRESHOLD,
     QUIET_BASE_CONFIDENCE,
+    APPEARANCE_MIN_RMS,
+    APPEARANCE_LOUD_RMS,
     get_time_severity,
 )
 from model.yamnet_infer import is_aggressive_sound, run_yamnet_scan
 from model.whisper_stt import transcribe_and_check
 from model.tone_analyzer import analyze_tone, get_tone_confidence_boost, classify_emotion
+from model.blacklist import APPEARANCE_DIRECT_ROOTS
 from detection.context_gate import ContextGate
 from audio.capture import get_waveform_snapshot
 from sender.shadow_log import log_near_miss
@@ -486,28 +489,58 @@ class AggressionDetector:
         if not stt_result.get("has_profanity"):
             return None
 
-        hard_hits = stt_result.get("hard_hits", [])
-        soft_hits = stt_result.get("soft_hits", [])
-        is_casual = stt_result.get("is_casual", False)
+        hard_hits      = stt_result.get("hard_hits", [])
+        soft_hits      = stt_result.get("soft_hits", [])
+        detected_words = stt_result.get("detected_words", [])
+        is_casual      = stt_result.get("is_casual", False)
 
         # Laughter always suppresses.
         if is_casual:
             print("[NO ALERT] Kantiyawan")
             return None
 
-        # ── TRACK A — Audio Primary ──────────────────────────────────────────
-        if (
-            audio_np is not None
-            and len(audio_np) >= 8000
-            and self.interpreter is not None
-            and self.class_names
-        ):
+        # Tone is computed ONCE from the rolling buffer (needs no YAMNet) and
+        # reused by both the appearance branch and the YAMNet Track A below.
+        tone = emotion = None
+        if audio_np is not None and len(audio_np) >= 8000:
+            tone = analyze_tone(audio_np)
+            emotion = classify_emotion(tone)
+
+            # ── APPEARANCE / BODY bullying — single utterance, audio-gated ──
+            # For Grade 6, a directed appearance insult (baboy, tambok, taba,
+            # pango, itom, uling, pandak, bungi, baho, baduy …) is bullying even
+            # said ONCE — but only when the VOICE carries it. "Directed" = above
+            # the too-quiet floor AND an angry/upset tone, OR clearly loud. Calm
+            # normal talk (emotion=neutral) and near-silence never fire here; a
+            # calm/quiet appearance word still needs repetition (Track B). Tone
+            # only, so this keeps working even if YAMNet fails to load.
+            appearance_hit = any(
+                root in w
+                for w in detected_words
+                for root in APPEARANCE_DIRECT_ROOTS
+            )
+            directed = (
+                (tone["rms"] >= APPEARANCE_MIN_RMS and emotion in ANGRY_EMOTIONS)
+                or tone["rms"] >= APPEARANCE_LOUD_RMS
+            )
+            if appearance_hit and directed:
+                print(f"[APPEARANCE] Directed appearance insult "
+                      f"(RMS={tone['rms']:.0f} {emotion}) → single-utterance alert")
+                return self._build_track_a_alert(
+                    stt_result=stt_result,
+                    audio_np=audio_np,
+                    yamnet_class="(appearance)",
+                    yamnet_score=0.60,
+                    tone=tone,
+                    emotion=emotion,
+                )
+
+        # ── TRACK A — Audio Primary (YAMNet + tone) ──────────────────────────
+        if tone is not None and self.interpreter is not None and self.class_names:
             yamnet_class, yamnet_score = run_yamnet_scan(
                 self.interpreter, audio_np, self.class_names
             )
             yamnet_score = float(yamnet_score)
-            tone = analyze_tone(audio_np)
-            emotion = classify_emotion(tone)
 
             print(f"[AUDIO] YAMNet={yamnet_class}({yamnet_score:.2f})"
                   f" RMS={tone['rms']:.0f} Emotion={emotion}")
@@ -533,7 +566,7 @@ class AggressionDetector:
             else:
                 print("[TRACK A] Audio not aggressive — trying Track B")
         else:
-            print("[TRACK A] No audio — trying Track B")
+            print("[TRACK A] No audio/YAMNet — trying Track B")
 
         # ── TRACK B — Text Primary (quiet / relational) ──────────────────────
         return self.process_text(stt_result)

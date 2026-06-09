@@ -46,6 +46,17 @@ SEVERITY_MEDIUM_DURATION = 4.0   # 4-7 seconds = MEDIUM time severity
 
 # --- Prosodic tone thresholds (EMEET OfficeCore M0 Plus) --------------------
 TONE_RMS_THRESHOLD      = 100    # Grade 6: lowered to 100 — catch the quietest classroom voices after EMEET AGC
+
+# --- Appearance / body "direct" single-utterance gate -----------------------
+# Appearance insults (baboy, tambok, taba, pango, itom, uling, pandak, bungi…)
+# alert on ONE utterance, but only when the voice carries it:
+#   - "too quiet" floor: below APPEARANCE_MIN_RMS = treated as not directed.
+#   - directed = (RMS >= APPEARANCE_MIN_RMS AND emotion is angry/upset/etc.)
+#                OR clearly loud (RMS >= APPEARANCE_LOUD_RMS, a raised voice).
+# Calm normal talk (emotion=neutral, moderate RMS) and near-silence never fire;
+# a calm/quiet appearance word still needs repetition (Track B).
+APPEARANCE_MIN_RMS      = 100    # below this = too quiet / not clearly directed
+APPEARANCE_LOUD_RMS     = 400    # a raised voice fires even if monotone
 TONE_VARIANCE_THRESHOLD = 3000   # was 1000 — require bursty aggression
 TONE_ZCR_THRESHOLD      = 0.10   # was 0.08
 PROFANITY_MIN_RMS       = 400    # was 300 — floor for the profanity path
