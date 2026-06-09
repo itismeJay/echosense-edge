@@ -323,6 +323,13 @@ class AggressionDetector:
             "wala kang kwenta",
             "nobody likes you",
             "you are worthless",
+            # Appearance/body — direct physical attacks (Grade 6). Each targets
+            # a specific feature of a child; alert immediately even if quiet.
+            "tambok ka", "baboy ka", "murag baboy", "murag baboy ka",
+            "dakog ilong", "pango ka", "pandak ka", "itom kaayo ka",
+            "uling kaayo ka", "baho ka", "bungi ka", "bungal ka",
+            "fat ka", "mataba ka", "negro ka", "negra ka",
+            "duling ka", "putot ka",
         }
 
         single_high = any(

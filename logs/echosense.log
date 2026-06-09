@@ -25131,3 +25131,337 @@ INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
 [HEARTBEAT] 200 ip=192.168.1.80
 [STT] Heard: bo mo ka, bang it mo.
 [CHECK] Hard: [] Soft: []
+/usr/lib/python3.11/multiprocessing/resource_tracker.py:224: UserWarning: resource_tracker: There appear to be 25 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
+[WIFI] Waiting for internet...
+[WIFI] Connected!
+[WIFI] Network:  PLDTHOMEFIBR8QWXX
+[WIFI] IP:       192.168.1.80
+[WIFI] SSH:      ssh echosense@192.168.1.80
+[WIFI] OR:       ssh echosense@raspberrypi.local
+[LOGS] Log sender started
+==================================================
+  EchoSense Edge AI System
+  Acoustic Bullying Detection (5-layer)
+  Davao del Norte State College
+==================================================
+
+[INIT] Checking backend connection...
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.rear
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.center_lfe
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.side
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.hdmi
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.hdmi
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.modem
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.modem
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.phoneline
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.phoneline
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+ALSA lib pcm_oss.c:397:(_snd_pcm_oss_open) Cannot open device /dev/dsp
+ALSA lib pcm_oss.c:397:(_snd_pcm_oss_open) Cannot open device /dev/dsp
+ALSA lib pulse.c:242:(pulse_connect) PulseAudio: Unable to connect: Connection refused
+
+ALSA lib pulse.c:242:(pulse_connect) PulseAudio: Unable to connect: Connection refused
+
+ALSA lib pcm_a52.c:1001:(_snd_pcm_a52_open) a52 is only for playback
+ALSA lib confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib pcm_usb_stream.c:482:(_snd_pcm_usb_stream_open) Invalid card 'card'
+ALSA lib confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib pcm_usb_stream.c:482:(_snd_pcm_usb_stream_open) Invalid card 'card'
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+[AUDIO RING] Buffer started (device 1)
+[SENDER] Backend connected!
+[HEARTBEAT] Started — posting every 60s
+==================================================
+[NETWORK] WiFi SSID : PLDTHOMEFIBR8QWXX
+[NETWORK] Pi IP     : 192.168.1.80
+[NETWORK] Pi MAC    : 2c:cf:67:69:59:ce   <- find this in the phone's hotspot device list
+[NETWORK] SSH (IP)  : ssh echosense@192.168.1.80
+[NETWORK] SSH (mDNS): ssh echosense@raspberrypi.local
+==================================================
+[INIT] Loading YAMNet model...
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+[INIT] YAMNet loaded!
+[INIT] Loading RealtimeSTT...
+[STT] Loading RealtimeSTT with Whisper base...
+[STT] Ready.
+
+[HEARTBEAT] Started
+
+[MAIN] Listening...
+[INIT] Press Ctrl+C to stop
+
+[STT] Heard: ba?
+[CHECK] Hard: [] Soft: []
+[STT] Heard: baboi.
+[CHECK] Hard: [] Soft: []
+[STT] Heard: baboi.
+[CHECK] Hard: [] Soft: []
+==================================================
+[NET-HEARTBEAT] WiFi SSID : PLDTHOMEFIBR8QWXX
+[NET-HEARTBEAT] Pi IP     : 192.168.1.80
+[NET-HEARTBEAT] Pi MAC    : 2c:cf:67:69:59:ce   <- find this in the phone's hotspot device list
+[NET-HEARTBEAT] SSH (IP)  : ssh echosense@192.168.1.80
+[NET-HEARTBEAT] SSH (mDNS): ssh echosense@raspberrypi.local
+==================================================
+[HEARTBEAT] 200 ip=192.168.1.80
+[STT] Heard: bo bo ka?
+[CHECK] Hard: [] Soft: []
+[STT] Heard: bangit.
+[VARIANTS] 'bangit' → 'pangit'
+[CHECK] Hard: [] Soft: ['pangit']
+[STT] HIT: ['pangit'] | cat: ['appearance_shaming'] | sev: low
+[AUDIO] YAMNet=Silence(0.74) RMS=3 Emotion=silent
+[TRACK A] Audio not aggressive — trying Track B
+[NO ALERT] Soft-only, not repeated — likely casual (Layer 2)
+/usr/lib/python3.11/multiprocessing/resource_tracker.py:224: UserWarning: resource_tracker: There appear to be 25 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
+[WIFI] Waiting for internet...
+[WIFI] Connected!
+[WIFI] Network:  PLDTHOMEFIBR8QWXX
+[WIFI] IP:       192.168.1.80
+[WIFI] SSH:      ssh echosense@192.168.1.80
+[WIFI] OR:       ssh echosense@raspberrypi.local
+[LOGS] Log sender started
+==================================================
+  EchoSense Edge AI System
+  Acoustic Bullying Detection (5-layer)
+  Davao del Norte State College
+==================================================
+
+[INIT] Checking backend connection...
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.rear
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.center_lfe
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.side
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.hdmi
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.hdmi
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.modem
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.modem
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.phoneline
+ALSA lib pcm.c:2666:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.phoneline
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+ALSA lib pcm_oss.c:397:(_snd_pcm_oss_open) Cannot open device /dev/dsp
+ALSA lib pcm_oss.c:397:(_snd_pcm_oss_open) Cannot open device /dev/dsp
+ALSA lib pulse.c:242:(pulse_connect) PulseAudio: Unable to connect: Connection refused
+
+ALSA lib pulse.c:242:(pulse_connect) PulseAudio: Unable to connect: Connection refused
+
+ALSA lib pcm_a52.c:1001:(_snd_pcm_a52_open) a52 is only for playback
+ALSA lib confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib pcm_usb_stream.c:482:(_snd_pcm_usb_stream_open) Invalid card 'card'
+ALSA lib confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib pcm_usb_stream.c:482:(_snd_pcm_usb_stream_open) Invalid card 'card'
+Cannot connect to server socket err = No such file or directory
+Cannot connect to server request channel
+jack server is not running or cannot be started
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+JackShmReadWritePtr::~JackShmReadWritePtr - Init not done for -1, skipping unlock
+[AUDIO RING] Buffer started (device 1)
+[SENDER] Backend connected!
+[HEARTBEAT] Started — posting every 60s
+==================================================
+[NETWORK] WiFi SSID : PLDTHOMEFIBR8QWXX
+[NETWORK] Pi IP     : 192.168.1.80
+[NETWORK] Pi MAC    : 2c:cf:67:69:59:ce   <- find this in the phone's hotspot device list
+[NETWORK] SSH (IP)  : ssh echosense@192.168.1.80
+[NETWORK] SSH (mDNS): ssh echosense@raspberrypi.local
+==================================================
+[INIT] Loading YAMNet model...
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+[INIT] YAMNet loaded!
+[INIT] Loading RealtimeSTT...
+[STT] Loading RealtimeSTT with Whisper base...
+[STT] Ready.
+
+[HEARTBEAT] Started
+
+[MAIN] Listening...
+[INIT] Press Ctrl+C to stop
+
+[STT] Heard: hello.
+[CHECK] Hard: [] Soft: []
+[STT] Heard: bol buka.
+[CHECK] Hard: [] Soft: []
+[STT] Heard: bo bo ka?
+[CHECK] Hard: [] Soft: []
+[STT] Heard: bobo ka?
+[CHECK] Hard: ['bobo'] Soft: []
+[STT] HIT: ['bobo'] | cat: ['academic_shaming'] | sev: medium
+[AUDIO] YAMNet=Speech(0.85) RMS=442 Emotion=upset
+[TRACK A] Loud bullying — audio+text
+[ALERT] BULLYING CONFIRMED | Track=A Severity=medium YAMNet=Speech Emotion=upset Words=['bobo']
+[SENDER] Sending alert... (attempt 1)
+[SENDER] Alert sent! ID: 1205 Severity: medium
+[STT] Heard: bo bo ka?
+[CHECK] Hard: [] Soft: []
+[STT] Heard: bo bo ka?
+[CHECK] Hard: [] Soft: []
+==================================================
+[NET-HEARTBEAT] WiFi SSID : PLDTHOMEFIBR8QWXX
+[NET-HEARTBEAT] Pi IP     : 192.168.1.80
+[NET-HEARTBEAT] Pi MAC    : 2c:cf:67:69:59:ce   <- find this in the phone's hotspot device list
+[NET-HEARTBEAT] SSH (IP)  : ssh echosense@192.168.1.80
+[NET-HEARTBEAT] SSH (mDNS): ssh echosense@raspberrypi.local
+==================================================
+[HEARTBEAT] 200 ip=192.168.1.80
+[STT] Heard: hello.
+[CHECK] Hard: [] Soft: []
+[STT] Heard: baboi.
+[CHECK] Hard: [] Soft: []
+[STT] Heard: bangit.
+[VARIANTS] 'bangit' → 'pangit'
+[CHECK] Hard: [] Soft: ['pangit']
+[STT] HIT: ['pangit'] | cat: ['appearance_shaming'] | sev: low
+[AUDIO] YAMNet=Silence(0.74) RMS=9 Emotion=silent
+[TRACK A] Audio not aggressive — trying Track B
+[NO ALERT] Soft-only, not repeated — likely casual (Layer 2)
+[STT] Heard: bangit.
+[VARIANTS] 'bangit' → 'pangit'
+[CHECK] Hard: [] Soft: ['pangit']
+[STT] HIT: ['pangit'] | cat: ['appearance_shaming'] | sev: low
+[AUDIO] YAMNet=Silence(0.74) RMS=1 Emotion=silent
+[TRACK A] Audio not aggressive — trying Track B
+[TRACK B] Quiet bullying detected
+[DURATION] 5.9s needed=1.5s repeated=True
+[ALERT] BULLYING CONFIRMED | Track=B Severity=medium Duration=5.9s Gate=repeated Words=['pangit']
+[SENDER] Sending alert... (attempt 1)
+[SENDER] Alert sent! ID: 1206 Severity: medium
+==================================================
+[NET-HEARTBEAT] WiFi SSID : PLDTHOMEFIBR8QWXX
+[NET-HEARTBEAT] Pi IP     : 192.168.1.80
+[NET-HEARTBEAT] Pi MAC    : 2c:cf:67:69:59:ce   <- find this in the phone's hotspot device list
+[NET-HEARTBEAT] SSH (IP)  : ssh echosense@192.168.1.80
+[NET-HEARTBEAT] SSH (mDNS): ssh echosense@raspberrypi.local
+==================================================
+[HEARTBEAT] 200 ip=192.168.1.80
+[STT] Heard: ...
+[CHECK] Hard: [] Soft: []
+==================================================
+[NET-HEARTBEAT] WiFi SSID : PLDTHOMEFIBR8QWXX
+[NET-HEARTBEAT] Pi IP     : 192.168.1.80
+[NET-HEARTBEAT] Pi MAC    : 2c:cf:67:69:59:ce   <- find this in the phone's hotspot device list
+[NET-HEARTBEAT] SSH (IP)  : ssh echosense@192.168.1.80
+[NET-HEARTBEAT] SSH (mDNS): ssh echosense@raspberrypi.local
+==================================================
+[HEARTBEAT] 200 ip=192.168.1.80
+[STT] Heard: bangit.
+[VARIANTS] 'bangit' → 'pangit'
+[CHECK] Hard: [] Soft: ['pangit']
+[STT] HIT: ['pangit'] | cat: ['appearance_shaming'] | sev: low
+[AUDIO] YAMNet=Silence(0.67) RMS=1 Emotion=silent
+[TRACK A] Audio not aggressive — trying Track B
+[NO ALERT] Soft-only, not repeated — likely casual (Layer 2)
+[STT] Heard: bangin!
+[CHECK] Hard: [] Soft: []
+[STT] Heard: bangit!
+[VARIANTS] 'bangit' → 'pangit'
+[CHECK] Hard: [] Soft: ['pangit']
+[STT] HIT: ['pangit'] | cat: ['appearance_shaming'] | sev: low
+[AUDIO] YAMNet=Silence(0.67) RMS=1 Emotion=silent
+[TRACK A] Audio not aggressive — trying Track B
+[TRACK B] Quiet bullying detected
+[DURATION] 10.5s needed=1.5s repeated=True
+[ALERT] BULLYING CONFIRMED | Track=B Severity=high Duration=10.5s Gate=repeated Words=['pangit']
+[SENDER] Sending alert... (attempt 1)
+==================================================
+[NET-HEARTBEAT] WiFi SSID : PLDTHOMEFIBR8QWXX
+[NET-HEARTBEAT] Pi IP     : 192.168.1.80
+[NET-HEARTBEAT] Pi MAC    : 2c:cf:67:69:59:ce   <- find this in the phone's hotspot device list
+[NET-HEARTBEAT] SSH (IP)  : ssh echosense@192.168.1.80
+[NET-HEARTBEAT] SSH (mDNS): ssh echosense@raspberrypi.local
+==================================================
+[SENDER] Alert sent! ID: 1207 Severity: high
+[HEARTBEAT] 200 ip=192.168.1.80
+==================================================
+[NET-HEARTBEAT] WiFi SSID : PLDTHOMEFIBR8QWXX
+[NET-HEARTBEAT] Pi IP     : 192.168.1.80
+[NET-HEARTBEAT] Pi MAC    : 2c:cf:67:69:59:ce   <- find this in the phone's hotspot device list
+[NET-HEARTBEAT] SSH (IP)  : ssh echosense@192.168.1.80
+[NET-HEARTBEAT] SSH (mDNS): ssh echosense@raspberrypi.local
+==================================================
+[HEARTBEAT] 200 ip=192.168.1.80
+[STT] Heard: si noko, na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na na.
+[CHECK] Hard: [] Soft: []
+[STT] Heard: pangin.
+[CHECK] Hard: [] Soft: []
+[STT] Heard: pangig. jit? no, sili tao gimog. uleinong testo sa mama jit ka? sa? sa wadar.
+[CHECK] Hard: [] Soft: []
+==================================================
+[NET-HEARTBEAT] WiFi SSID : PLDTHOMEFIBR8QWXX
+[NET-HEARTBEAT] Pi IP     : 192.168.1.80
+[NET-HEARTBEAT] Pi MAC    : 2c:cf:67:69:59:ce   <- find this in the phone's hotspot device list
+[NET-HEARTBEAT] SSH (IP)  : ssh echosense@192.168.1.80
+[NET-HEARTBEAT] SSH (mDNS): ssh echosense@raspberrypi.local
+==================================================
+[STT] Heard: bangit bangit.
+[VARIANTS] 'bangit bangit' → 'pangit pangit'
+[CHECK] Hard: [] Soft: ['pangit']
+[STT] HIT: ['pangit'] | cat: ['appearance_shaming'] | sev: low
+[AUDIO] YAMNet=Silence(0.67) RMS=3 Emotion=silent
+[TRACK A] Audio not aggressive — trying Track B
+[NO ALERT] Soft-only, not repeated — likely casual (Layer 2)
+[STT] Heard: bangin!
+[CHECK] Hard: [] Soft: []
+[HEARTBEAT] 200 ip=192.168.1.80
+[STT] Heard: bangit.
+[VARIANTS] 'bangit' → 'pangit'
+[CHECK] Hard: [] Soft: ['pangit']
+[STT] HIT: ['pangit'] | cat: ['appearance_shaming'] | sev: low
+[AUDIO] YAMNet=Speech(0.85) RMS=50 Emotion=neutral
+[TRACK A] Audio not aggressive — trying Track B
+[TRACK B] Quiet bullying detected
+[DURATION] 11.8s needed=1.5s repeated=True
+[ALERT] BULLYING CONFIRMED | Track=B Severity=high Duration=11.8s Gate=repeated Words=['pangit']
+[SENDER] Sending alert... (attempt 1)
+[SENDER] Alert sent! ID: 1208 Severity: high
+==================================================
+[NET-HEARTBEAT] WiFi SSID : PLDTHOMEFIBR8QWXX
+[NET-HEARTBEAT] Pi IP     : 192.168.1.80
+[NET-HEARTBEAT] Pi MAC    : 2c:cf:67:69:59:ce   <- find this in the phone's hotspot device list
+[NET-HEARTBEAT] SSH (IP)  : ssh echosense@192.168.1.80
+[NET-HEARTBEAT] SSH (mDNS): ssh echosense@raspberrypi.local
+==================================================
+[HEARTBEAT] 200 ip=192.168.1.80
+[STT] Heard: bang it!
+[CHECK] Hard: [] Soft: []
+==================================================
+[NET-HEARTBEAT] WiFi SSID : PLDTHOMEFIBR8QWXX
+[NET-HEARTBEAT] Pi IP     : 192.168.1.80
+[NET-HEARTBEAT] Pi MAC    : 2c:cf:67:69:59:ce   <- find this in the phone's hotspot device list
+[NET-HEARTBEAT] SSH (IP)  : ssh echosense@192.168.1.80
+[NET-HEARTBEAT] SSH (mDNS): ssh echosense@raspberrypi.local
+==================================================
+[STT] Heard: baong ni?
+[CHECK] Hard: [] Soft: []
+[STT] Heard: bangit, bangit, bangit.
+[VARIANTS] 'bangit bangit bangit' → 'pangit pangit pangit'
+[CHECK] Hard: [] Soft: ['pangit']
+[STT] HIT: ['pangit'] | cat: ['appearance_shaming'] | sev: low
+[AUDIO] YAMNet=Silence(0.74) RMS=0 Emotion=silent
+[TRACK A] Audio not aggressive — trying Track B
+[NO ALERT] Soft-only, not repeated — likely casual (Layer 2)
+[HEARTBEAT] 200 ip=192.168.1.80
+[STT] Heard: bangin.
+[CHECK] Hard: [] Soft: []

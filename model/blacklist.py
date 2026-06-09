@@ -226,6 +226,21 @@ HARD_TRIGGERS = {
     "pangit kaayo imong nawong", "nawong mo pang kalye",
     "nawong nimo pang banyo", "nawong mo murag binuksan",
     "nawong mo murag guba", "basag ang nawong mo",
+
+    # ── Appearance/body shaming PROMOTED from SOFT → HARD ─────
+    # Direct physical attacks common in Grade 6 PH. Treated as bullying even
+    # said once. (Leftover SOFT copies are filtered out by check_transcript's
+    # "soft_hits not in HARD_TRIGGERS" guard, so no double-counting.)
+    "tambok", "tambok ka", "tambok kaayo",
+    "baboy ka", "murag baboy",
+    "taba mo", "mataba ka", "ang taba mo", "ang tambok nimo",
+    "fat ka", "ang fat mo",
+    "dakog ilong", "dakog ilong mo",
+    "pango ka", "pango kaayo", "flat nose ka",
+    "pandak ka", "pandak kaayo", "putot ka",
+    "itom kaayo ka", "uling kaayo ka", "negro ka", "negra ka",
+    "duling ka", "bungi ka", "bungal ka",
+    "baho ka", "baho mo",
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -734,9 +749,9 @@ PHONETIC_VARIANTS = {
     # tambok
     "tambog":       "tambok",
     "thambok":      "tambok",
-    # pango
+    # pango — NOTE: do NOT collapse "pango ka" → "pango"; "pango ka" is now a
+    # HARD/high-severity directed insult and must survive to match as-is.
     "panggo":       "pango",
-    "pango ka":     "pango",
     # bungi
     "bongi":        "bungi",
     # uling
@@ -790,6 +805,21 @@ PHONETIC_VARIANTS = {
     "murag ungoy":      "murag unggoy",
     "murag unggo":      "murag unggoy",
     "mukha kang babuy": "mukha kang baboy",
+
+    # ── Appearance/body mishearings — batch 2 (added) ──────────────────────
+    # DELIBERATELY OMITTED two requested maps that would cause false alarms:
+    #   "tawa" -> "taba"  ("tawa" = laugh; would flag every laugh as fat-shaming)
+    #   "babay" -> "baboy" ("babay" = bye; would flag goodbyes as "pig")
+    # Self-maps (tambok/taba/pango/uling…) and existing keys are omitted too.
+    "baboi":     "baboy",
+    "babuy":     "baboy",
+    "baboi ka":  "baboy ka",
+    "babuy ka":  "baboy ka",
+    "danbok":    "tambok",
+    "tanbok":    "tambok",
+    "thaba":     "taba",
+    "dooling":   "duling",
+    "pondak":    "pandak",
 }
 
 
