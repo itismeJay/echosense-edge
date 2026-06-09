@@ -87,3 +87,61 @@ def check_backend_connection():
     except:
         print(f"[SENDER] Backend not reachable!")
         return False
+
+
+# ── Remote log shipping ─────────────────────────────────────────────────────
+# Buffers print() output and ships it to the backend so admins can read the
+# Pi's logs from the dashboard without SSH. Best-effort: failures are swallowed
+# so log shipping can never take down the detection loop.
+import queue as _queue
+import threading as _threading
+
+_LOG_BUFFER = []
+_LOG_LOCK = _threading.Lock()
+
+def push_log_line(line: str) -> None:
+    global _LOG_BUFFER
+    if not line or not line.strip():
+        return
+    with _LOG_LOCK:
+        _LOG_BUFFER.append(line.strip())
+        if len(_LOG_BUFFER) >= 20:
+            lines = _LOG_BUFFER.copy()
+            _LOG_BUFFER.clear()
+            _threading.Thread(
+                target=_send_logs_batch,
+                args=(lines,),
+                daemon=True,
+            ).start()
+
+def _send_logs_batch(lines: list) -> None:
+    try:
+        requests.post(
+            f"{API_URL}/system/logs",
+            json={"lines": lines},
+            timeout=5,
+        )
+    except Exception:
+        pass  # logs are not critical — fail silently
+
+def flush_logs() -> None:
+    global _LOG_BUFFER
+    with _LOG_LOCK:
+        if _LOG_BUFFER:
+            lines = _LOG_BUFFER.copy()
+            _LOG_BUFFER.clear()
+            _threading.Thread(
+                target=_send_logs_batch,
+                args=(lines,),
+                daemon=True,
+            ).start()
+
+def start_log_flush_thread() -> None:
+    import time as _time
+    def _flush_loop():
+        while True:
+            _time.sleep(10)
+            flush_logs()
+    t = _threading.Thread(target=_flush_loop, daemon=True)
+    t.start()
+    print("[LOGS] Log sender started")

@@ -147,6 +147,20 @@ def _network_status_thread(interval=60):
 
 
 def main():
+    from sender.http_client import push_log_line
+    from sender.http_client import start_log_flush_thread
+    import builtins as _builtins
+
+    _orig_print = _builtins.print
+
+    def _log_print(*args, **kwargs):
+        _orig_print(*args, **kwargs)
+        line = " ".join(str(a) for a in args)
+        push_log_line(line)
+
+    _builtins.print = _log_print
+    start_log_flush_thread()
+
     print("=" * 50)
     print("  EchoSense Edge AI System")
     print("  Acoustic Bullying Detection (5-layer)")
