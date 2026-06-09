@@ -4,7 +4,7 @@
 # ============================================================================
 
 # --- Core detection gates ---------------------------------------------------
-YAMNET_THRESHOLD        = 0.55   # Grade 6: lowered from 0.72 — 0.72 missed moderate aggression in normal speech
+YAMNET_THRESHOLD        = 0.45   # Grade 6: lowered to 0.45 — catch moderate aggression signals in normal speech
 
 # --- Tiered duration gates — replaces the single DURATION_THRESHOLD ----------
 # Match how fast the system reacts to how serious the spoken word is.
@@ -28,7 +28,7 @@ DURATION_SOFT_TRIGGER   = 3.0
 # Reason: a single mild word (pikon, sumbong, ampon) alone needs a sustained
 # pattern to rule out kantiyawan. Grade 6: lowered 5.0 → 3.0 for quicker detection.
 
-ALERT_COOLDOWN          = 30.0   # Grade 6: lowered 60.0 → 30.0 — catch a 2nd incident in the same minute
+ALERT_COOLDOWN          = 15.0   # Grade 6: lowered to 15s — catch back-to-back incidents quickly
 
 # --- Quiet / relational bullying track --------------------------------------
 # A second detection path that does NOT require a shout. It catches calm,
@@ -45,7 +45,7 @@ SEVERITY_MEDIUM_DURATION = 4.0   # 4-7 seconds = MEDIUM time severity
 # below 4 seconds = LOW time severity
 
 # --- Prosodic tone thresholds (EMEET OfficeCore M0 Plus) --------------------
-TONE_RMS_THRESHOLD      = 150    # Grade 6: lowered 500 → 150 — kids speak at RMS 50-150 after EMEET AGC; 500 never fired
+TONE_RMS_THRESHOLD      = 100    # Grade 6: lowered to 100 — catch the quietest classroom voices after EMEET AGC
 TONE_VARIANCE_THRESHOLD = 3000   # was 1000 — require bursty aggression
 TONE_ZCR_THRESHOLD      = 0.10   # was 0.08
 PROFANITY_MIN_RMS       = 400    # was 300 — floor for the profanity path

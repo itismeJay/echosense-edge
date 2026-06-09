@@ -209,6 +209,23 @@ HARD_TRIGGERS = {
     "yawa ka gyud", "piste ka", "giatay ka", "bogo gyud ka",
     "walay pulos ka", "dili ka gusto sa tanan", "dili ka gusto",
     "wala kay bili",
+
+    # ── Animal comparisons (very common Grade 6) — added ─────
+    "murag baboy ka", "murag unggoy ka", "murag iro ka",
+    "murag baka ka", "murag manok ka",
+    "mukha kang baboy", "mukha kang unggoy", "mukha kang aso",
+    "mukha kang hayop", "para kang hayop",
+    "animal ka", "hayop ka",
+
+    # ── Mocking / taunting phrases — added ───────────────────
+    "nganong ingon ana imong nawong", "tan awa imong nawong",
+    "tan awa ka sa salamin", "hala ka", "kadiyot nimo",
+    "kataw anan ka", "katawa tawa ka", "kawatan ka",
+
+    # ── Strong appearance insults — added ────────────────────
+    "pangit kaayo imong nawong", "nawong mo pang kalye",
+    "nawong nimo pang banyo", "nawong mo murag binuksan",
+    "nawong mo murag guba", "basag ang nawong mo",
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -435,6 +452,58 @@ SOFT_TRIGGERS = {
     "wala kay kwenta", "dili maayo ka", "bastos ka", "supak ka",
     "hambogero", "hambogera", "burikat", "tarantado",
     "grabi ka", "way batasan", "way ugali",
+
+    # ── Weight bullying (most common in PH Grade 6) — added ───
+    "tambok", "tambok ka", "tambok kaayo", "taba mo", "mataba ka",
+    "ang taba mo", "ang tambok nimo", "tambok na tambok",
+    "baboy ka", "baboy ang katawan", "murag baboy",
+    "fat ka", "ang fat mo", "chubby", "ang chubby mo", "overweight ka",
+
+    # ── Nose bullying (very common) — added ──────────────────
+    "dakog ilong", "dakog ilong mo", "ilong mo murag patatas",
+    "ilong mo murag saging", "ilong mo murag bola",
+    "pango ka", "pango kaayo", "flat nose ka",
+    "pango ang ilong mo", "baboy ang ilong mo", "sarat ang ilong",
+
+    # ── Skin color bullying (very common PH) — added ─────────
+    "itom ka", "itom kaayo ka", "uling ka", "murag uling",
+    "negro ka", "negra ka", "nag sunog ka", "nasusunog",
+    "burnt ka", "gwapa lang kung puti", "pangit kay itom",
+    "maputi ka sana",
+
+    # ── Face / eyes bullying — added ─────────────────────────
+    "duling ka", "libat ka", "duling ang mata mo",
+    "mata mo murag baka", "mata mo murag isda", "dakog mata mo",
+    "maliit ang mata mo", "ngilit ang mata",
+
+    # ── Height / size bullying — added ───────────────────────
+    "pandak ka", "pandak kaayo", "ang pandak mo", "putot ka",
+    "ang liit mo", "ang liit liit mo", "murag bata ka",
+    "murag kindergarten", "murag grade one pa",
+    "ang taas mo murag poste", "taas na taas",
+
+    # ── Teeth bullying — added ───────────────────────────────
+    "ngipon mo murag mais", "ngipon mo murag pader", "bungi ka",
+    "bungal ka", "dilaw ang ngipon", "bulok ang ngipon",
+    "wala kay ngipon", "ngipon mo murag saging",
+
+    # ── Hair bullying — added ────────────────────────────────
+    "kulot ang buhok mo", "mala ang buhok mo", "buhok mo murag walis",
+    "buhok mo murag pugad", "walang ayos ang buhok", "malanding buhok",
+
+    # ── Hygiene bullying — added ─────────────────────────────
+    "baho ka", "baho mo", "maarte ang amoy mo", "hindi ka naliligo",
+    "dili ka naligo", "amoy pawis ka", "amoy ka", "ang baho mo",
+    "baho ang katawan mo", "hugaw ka",
+
+    # ── Mocking laughter phrases — added ─────────────────────
+    "hala bira", "kadaog nimo", "kalami nimo", "grabi ka",
+    "sus ka", "ay sus", "hala ka", "nganong ingon ana ka",
+
+    # ── Social appearance mocking — added ────────────────────
+    "baduy ang damit mo", "baduy ka", "luma ang damit mo",
+    "ukay ukay lang", "hindi branded", "wala kang style",
+    "jologs ka", "jejemon ka", "jologs ang damit",
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -511,6 +580,11 @@ APPEARANCE_KEYWORDS = {
     "bungal", "unano", "taas kaayo", "gamay kaayo",  # Grade 6 additions
     "ugly", "pangit", "big nose", "flat nose",       # sentence additions
     "bucktooth", "four eyes", "pimple face",
+    # ── Appearance-shaming additions (Grade 6 face/body/skin/hair) ──
+    "tambok", "taba", "mataba", "baboy", "fat", "chubby",
+    "ilong", "itom", "mata", "pandak", "putot", "liit",
+    "ngipon", "bulok", "dilaw", "buhok", "kulot", "mala", "nawong",
+    "murag baboy", "murag unggoy", "baduy",
 }
 
 BODY_KEYWORDS = {
@@ -522,6 +596,8 @@ BODY_KEYWORDS = {
     "buto buto", "kalansay",                # Grade 6 additions
     "fat", "fatty", "fatso", "skinny",      # sentence additions
     "too short", "too tall", "smelly", "amoy", "baho",
+    # ── Body-shaming additions (Grade 6 weight/size) ──
+    "taba", "chubby", "taas", "liit", "buto",
 }
 
 EMOTIONAL_KEYWORDS = {
@@ -663,6 +739,24 @@ PHONETIC_VARIANTS = {
     "your dumb":    "you re dumb",
     "your ugly":    "you re ugly",
     "your fat":     "you re fat",
+
+    # ── Appearance-word mishearings (added) ────────────────────────────────
+    # Only genuinely new keys: pure self-maps (tambok→tambok, etc.) and keys
+    # already mapped above (tambuk, thambok, tambog, panggo, bunge, bongal) are
+    # intentionally omitted (see convention note above).
+    "itum":             "itom",
+    "eetom":            "itom",
+    "doling":           "duling",
+    "pooling":          "duling",
+    "pundak":           "pandak",
+    "pongo":            "pango",
+    "bonggi":           "bungi",
+    "koulot":           "kulot",
+    "baaduy":           "baduy",
+    "murag babuy":      "murag baboy",
+    "murag ungoy":      "murag unggoy",
+    "murag unggo":      "murag unggoy",
+    "mukha kang babuy": "mukha kang baboy",
 }
 
 

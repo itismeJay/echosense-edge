@@ -24,9 +24,11 @@ from audio.capture import get_waveform_snapshot
 from sender.shadow_log import log_near_miss
 
 SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2}
-# Grade 6: added "upset" — bullying tone is often calm/upset, not full anger.
-# classify_emotion() returns "upset" for quiet-but-uneven voices (rms>80, var>1500).
-ANGRY_EMOTIONS = {"angry", "aggressive", "distressed", "upset"}
+# Grade 6: bullying tone is often calm/upset/tense, not full anger.
+# NOTE: classify_emotion() (model/tone_analyzer.py) currently only emits
+# angry/aggressive/distressed/upset/neutral/silent — "tense" and "fearful" are
+# listed here for forward-compat but are inert until tone_analyzer emits them.
+ANGRY_EMOTIONS = {"angry", "aggressive", "distressed", "upset", "tense", "fearful"}
 
 
 def _distinct_hits(terms: list) -> list:
