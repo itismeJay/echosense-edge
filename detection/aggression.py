@@ -24,7 +24,9 @@ from audio.capture import get_waveform_snapshot
 from sender.shadow_log import log_near_miss
 
 SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2}
-ANGRY_EMOTIONS = {"angry", "aggressive", "distressed"}
+# Grade 6: added "upset" — bullying tone is often calm/upset, not full anger.
+# classify_emotion() returns "upset" for quiet-but-uneven voices (rms>80, var>1500).
+ANGRY_EMOTIONS = {"angry", "aggressive", "distressed", "upset"}
 
 
 def _distinct_hits(terms: list) -> list:
@@ -291,6 +293,45 @@ class AggressionDetector:
         'is_repeated' must come from the context gate tracking DIFFERENT
         utterances over time — not the same stale result read twice (fixed in
         whisper_stt.transcribe_and_check via consume-once)."""
+        # Grade 6 fix — single high-severity word fires immediately without
+        # needing repetition. These words are unambiguous bullying even said
+        # quietly once. Good students do not say these words. Alert teacher
+        # immediately (RA 10627 — even one incident = bullying). Soft words
+        # still need repetition/pairing.
+        HIGH_SEVERITY_WORDS = {
+            # Bisaya hard
+            "yawa", "bogo", "bugok", "buang",
+            "giatay", "piste", "putang ina",
+            "patyon tika", "patyon ka nako",
+            "bungoan tika", "suntukan ta",
+            "away ta", "sampalan tika",
+            # Tagalog hard
+            "putangina", "pakyu", "tang ina",
+            "tangina", "papatayin kita",
+            "mamamatay ka",
+            # English hard
+            "kill yourself", "go kill yourself",
+            "kill you",
+            # Academic hard (very common Grade 6)
+            "bobo", "tanga", "gago", "ulol",
+            "inutil", "retard", "buang",
+            "wala kang kwenta",
+            "nobody likes you",
+            "you are worthless",
+        }
+
+        single_high = any(
+            w.lower() in HIGH_SEVERITY_WORDS
+            for w in (hard_hits or [])
+        )
+
+        if single_high and not is_casual:
+            print(
+                f"[TRACK B] Single high-severity "
+                f"word → immediate alert"
+            )
+            return True
+
         # Laughter always suppresses.
         if is_casual:
             return False

@@ -113,7 +113,27 @@
       "Bash(sudo nmcli connection reload)",
       "Bash(ping -c 3 -W 2 8.8.8.8)",
       "Bash(nmcli -f NAME,UUID,TYPE,AUTOCONNECT-PRIORITY connection show)",
-      "Bash(echo \"--- push exit: $? ---\")"
+      "Bash(echo \"--- push exit: $? ---\")",
+      "Bash(echo \"exit=$?\")",
+      "Bash(sudo fuser -v /dev/snd/*)",
+      "Bash(echo \"service: $\\(systemctl is-active echosense.service\\)\")",
+      "Bash(ps -eo pid,ppid,etimes,cmd)",
+      "Bash(ip addr *)",
+      "Read(//etc/avahi/**)",
+      "Read(//etc/**)",
+      "Bash(nmcli -t -f NAME,UUID,TYPE,AUTOCONNECT,AUTOCONNECT-PRIORITY connection show)",
+      "Read(//etc/avahi/services/**)",
+      "Bash(nmcli -f ipv4.method,ipv4.addresses,ipv4.gateway,ipv4.dns,ipv6.method connection show TECNOCAMON)",
+      "Bash(nmcli -f ipv4.method,ipv4.addresses connection show PLDTHOMEFIBR8QWXX)",
+      "Bash(sudo grep -i 'host name' /var/log/syslog)",
+      "Bash(avahi-resolve -n raspberrypi.local)",
+      "Bash(getent hosts *)",
+      "Bash(timeout 5 avahi-browse -art)",
+      "Bash(sudo ss -tlnp)",
+      "Bash(sudo tee /etc/avahi/services/ssh.service)",
+      "Bash(timeout 4 avahi-browse -rt _ssh._tcp)",
+      "Bash(grep -aA6 'NETWORK\\\\] WiFi SSID' /home/echosense/echosense-edge/logs/echosense.log)",
+      "Bash(journalctl -u echosense.service --no-pager -n 40)"
     ]
   }
 }

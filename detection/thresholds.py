@@ -4,7 +4,7 @@
 # ============================================================================
 
 # --- Core detection gates ---------------------------------------------------
-YAMNET_THRESHOLD        = 0.72   # was 0.55 — require stronger aggressive-class confidence
+YAMNET_THRESHOLD        = 0.55   # Grade 6: lowered from 0.72 — 0.72 missed moderate aggression in normal speech
 
 # --- Tiered duration gates — replaces the single DURATION_THRESHOLD ----------
 # Match how fast the system reacts to how serious the spoken word is.
@@ -20,15 +20,15 @@ DURATION_REPEATED_WORD  = 1.5
 # Reason: same word said 2x in 30s = targeting confirmed (RA 10627 defines
 # bullying as REPEATED behavior). Repetition itself is the evidence — 2s confirms.
 
-DURATION_MEDIUM_TRIGGER = 3.0
+DURATION_MEDIUM_TRIGGER = 2.0
 # Reason: 2+ soft words together (pangit + tambok, pango + baho) need slightly
-# more context but still short; 3s confirms sustained aggression not a casual slip.
+# more context but still short. Grade 6: lowered 3.0 → 2.0 for quicker detection.
 
-DURATION_SOFT_TRIGGER   = 5.0
+DURATION_SOFT_TRIGGER   = 3.0
 # Reason: a single mild word (pikon, sumbong, ampon) alone needs a sustained
-# pattern to rule out kantiyawan; 5s = definitely not a brief casual use.
+# pattern to rule out kantiyawan. Grade 6: lowered 5.0 → 3.0 for quicker detection.
 
-ALERT_COOLDOWN          = 60.0   # was 2.0 (hardcoded in aggression.py) — max 1 alert/minute
+ALERT_COOLDOWN          = 30.0   # Grade 6: lowered 60.0 → 30.0 — catch a 2nd incident in the same minute
 
 # --- Quiet / relational bullying track --------------------------------------
 # A second detection path that does NOT require a shout. It catches calm,
@@ -45,7 +45,7 @@ SEVERITY_MEDIUM_DURATION = 4.0   # 4-7 seconds = MEDIUM time severity
 # below 4 seconds = LOW time severity
 
 # --- Prosodic tone thresholds (EMEET OfficeCore M0 Plus) --------------------
-TONE_RMS_THRESHOLD      = 500    # was 300 — normal classroom voice is loud
+TONE_RMS_THRESHOLD      = 150    # Grade 6: lowered 500 → 150 — kids speak at RMS 50-150 after EMEET AGC; 500 never fired
 TONE_VARIANCE_THRESHOLD = 3000   # was 1000 — require bursty aggression
 TONE_ZCR_THRESHOLD      = 0.10   # was 0.08
 PROFANITY_MIN_RMS       = 400    # was 300 — floor for the profanity path

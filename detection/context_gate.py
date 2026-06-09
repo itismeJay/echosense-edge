@@ -5,7 +5,7 @@ from collections import defaultdict
 class ContextGate:
     def __init__(self):
         self.word_history      = defaultdict(list)
-        self.REPETITION_WINDOW = 30.0   # seconds
+        self.REPETITION_WINDOW = 45.0   # seconds — Grade 6: widened 30 → 45 for spaced-out repeated bullying
         self.REPETITION_MIN    = 2      # same word 2x in 30s = bullying signal
 
     def check(

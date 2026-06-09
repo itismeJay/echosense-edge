@@ -72,10 +72,10 @@ def _recorder_loop():
         # it must repeat or be paired).
         # NOTE: in RealtimeSTT, silero_sensitivity is "more sensitive at higher
         # values" — if quiet speech is still missed, RAISE this, don't lower it.
-        silero_sensitivity=0.3,
-        webrtc_sensitivity=2,
-        post_speech_silence_duration=0.4,
-        min_length_of_recording=0.3,
+        silero_sensitivity=0.2,
+        webrtc_sensitivity=1,
+        post_speech_silence_duration=0.3,
+        min_length_of_recording=0.2,
         min_gap_between_recordings=0.1,
         # FIX 2 — initial_prompt removed (was priming profanity hallucinations).
         # --- Live word-by-word preview ([LIVE] lines) — DISABLED on the Pi ---
