@@ -29,6 +29,8 @@ class AlertPayloadTests(unittest.TestCase):
             "duration_gate": "medium",
             "yamnet_class": "Speech",
             "yamnet_score": 0.6,
+            "yamnet_ran": True,
+            "event_id": "event-123",
             "emotion": "upset",
             "tone_data": {
                 "rms": 250,
@@ -62,6 +64,7 @@ class AlertPayloadTests(unittest.TestCase):
             "severity", "confidence", "duration", "required_duration",
             "duration_gate", "location", "detected_words", "categories",
             "hard_hits", "soft_hits", "yamnet_class", "yamnet_score",
+            "yamnet_ran", "event_id",
             "emotion", "rms", "energy_variance", "zero_crossing_rate",
             "peak_to_average", "waveform_snapshot",
         ):
@@ -191,7 +194,30 @@ class AlertPayloadTests(unittest.TestCase):
         self.assertEqual(posted["language"], "unknown")
         self.assertIsNone(posted["language_confidence"])
         self.assertEqual(posted["matched_terms"], [])
+        self.assertEqual(posted["yamnet_class"], "NotRun")
+        self.assertEqual(posted["yamnet_score"], 0.0)
+        self.assertFalse(posted["yamnet_ran"])
         self.assertEqual(post.call_count, 1)
+
+    def test_skipped_yamnet_uses_truthful_not_run_sentinel(self):
+        payload = self._payload(
+            yamnet_class="Speech",
+            yamnet_score=0.60,
+            yamnet_ran=False,
+        )
+        self.assertEqual(payload["yamnet_class"], "NotRun")
+        self.assertEqual(payload["yamnet_score"], 0.0)
+        self.assertFalse(payload["yamnet_ran"])
+
+    def test_successful_yamnet_preserves_measured_result(self):
+        payload = self._payload(
+            yamnet_class="Screaming",
+            yamnet_score=0.81,
+            yamnet_ran=True,
+        )
+        self.assertEqual(payload["yamnet_class"], "Screaming")
+        self.assertEqual(payload["yamnet_score"], 0.81)
+        self.assertTrue(payload["yamnet_ran"])
 
 
 if __name__ == "__main__":

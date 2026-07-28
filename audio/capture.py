@@ -1,6 +1,7 @@
 import pyaudio
 import numpy as np
 from config import SAMPLE_RATE, CHUNK_SIZE, CHANNELS
+from audio.waveform import get_waveform_snapshot
 
 # Global instance so PortAudio stays initialized across calls
 _pa_instance = None
@@ -87,13 +88,6 @@ def capture_audio(duration: float = 1.0, device_index=None):
         audio_bytes = audio_np.tobytes()
 
     return audio_np, audio_bytes
-
-def get_waveform_snapshot(audio_np, num_points=40):
-    if len(audio_np) == 0:
-        return [0] * num_points
-    indices = np.linspace(0, len(audio_np)-1, num_points, dtype=int)
-    snapshot = [int(abs(audio_np[i])) for i in indices]
-    return snapshot
 
 def terminate_audio_system():
     """Call this explicitly in main.py's 'finally' block when closing the app."""

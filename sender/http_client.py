@@ -79,11 +79,13 @@ def build_alert_payload(
     duration_gate=None,
     yamnet_class="Unknown",
     yamnet_score=0.0,
+    yamnet_ran=False,
     emotion="unknown",
     tone_data=None,
     waveform_snapshot=None,
     language_confidence=None,
     matched_terms=None,
+    event_id=None,
 ):
     """Build the production payload while retaining every legacy field."""
 
@@ -91,7 +93,17 @@ def build_alert_payload(
     if language not in _LANGUAGE_VALUES:
         language = "unknown"
     transcript = str(transcribed_text or "")
+    yamnet_ran = bool(yamnet_ran)
+    if yamnet_ran:
+        payload_yamnet_class = str(yamnet_class or "Unknown")
+        payload_yamnet_score = float(round(float(yamnet_score), 4))
+    else:
+        # Backend null support is not established. This explicit sentinel means
+        # "not measured"; it is never interpreted as a real YAMNet score.
+        payload_yamnet_class = "NotRun"
+        payload_yamnet_score = 0.0
     return {
+        "event_id": str(event_id) if event_id else None,
         "severity": str(severity),
         "confidence": float(round(float(confidence), 4)),
         "duration": float(round(float(duration), 2)),
@@ -108,8 +120,9 @@ def build_alert_payload(
         "matched_terms": _clean_matched_terms(matched_terms),
         "hard_hits": hard_hits or [],
         "soft_hits": soft_hits or [],
-        "yamnet_class": yamnet_class,
-        "yamnet_score": float(round(float(yamnet_score), 4)),
+        "yamnet_class": payload_yamnet_class,
+        "yamnet_score": payload_yamnet_score,
+        "yamnet_ran": yamnet_ran,
         "emotion": emotion,
         "rms": round(float(tone_data.get("rms", 0)), 2) if tone_data else 0,
         "energy_variance": round(float(tone_data.get("energy_variance", 0)), 2) if tone_data else 0,
@@ -125,9 +138,10 @@ def send_alert(severity, confidence, duration,
                hard_hits=None, soft_hits=None,
                required_duration=None, duration_gate=None,
                yamnet_class="Unknown", yamnet_score=0.0,
+               yamnet_ran=False,
                emotion="unknown", tone_data=None,
                waveform_snapshot=None, language_confidence=None,
-               matched_terms=None, retries=3):
+               matched_terms=None, event_id=None, retries=3):
     payload = build_alert_payload(
         severity=severity,
         confidence=confidence,
@@ -144,9 +158,11 @@ def send_alert(severity, confidence, duration,
         duration_gate=duration_gate,
         yamnet_class=yamnet_class,
         yamnet_score=yamnet_score,
+        yamnet_ran=yamnet_ran,
         emotion=emotion,
         tone_data=tone_data,
         waveform_snapshot=waveform_snapshot,
+        event_id=event_id,
     )
     for attempt in range(retries):
         try:

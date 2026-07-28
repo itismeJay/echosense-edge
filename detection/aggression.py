@@ -1,6 +1,7 @@
 import time
 import numpy as np
 
+from audio.audio_event import AudioEvent
 from config import SAMPLE_RATE
 from detection.thresholds import (
     YAMNET_THRESHOLD,
@@ -18,12 +19,24 @@ from detection.thresholds import (
     APPEARANCE_LOUD_RMS,
     get_time_severity,
 )
-from model.yamnet_infer import is_aggressive_sound, run_yamnet_scan
+from model.yamnet_infer import (
+    is_aggressive_sound,
+    run_yamnet_scan,
+    scan_audio_float32,
+)
 from model.whisper_stt import transcribe_and_check
-from model.tone_analyzer import analyze_tone, get_tone_confidence_boost, classify_emotion
+from model.tone_analyzer import (
+    analyze_tone,
+    analyze_tone_float32,
+    get_tone_confidence_boost,
+    classify_emotion,
+)
 from model.blacklist import APPEARANCE_DIRECT_ROOTS
 from detection.context_gate import ContextGate
-from audio.capture import get_waveform_snapshot
+from audio.waveform import (
+    get_waveform_snapshot,
+    get_waveform_snapshot_float32,
+)
 from sender.shadow_log import log_near_miss
 
 SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2}
@@ -371,22 +384,28 @@ class AggressionDetector:
         # Single hard word once, OR 2+ soft without repetition = NOT bullying.
         return False
 
-    def process_text(self, stt_result: dict):
+    def process_text(
+        self,
+        stt_result: dict,
+        audio_event: AudioEvent | None = None,
+        *,
+        yamnet_class="NotRun",
+        yamnet_score=0.0,
+        yamnet_ran=False,
+    ):
         """Event-driven Track B (the live RealtimeSTT path). One complete
         utterance in, one decision out. Runs the same logical layers as
-        process() minus the audio-only ones (no waveform is available here):
+        process() while keeping its text-primary decision rules:
 
           L1 STT + blacklist (already done upstream)
           L2 tone proxy   — no audio, so reject soft-only/non-repeated as casual
           L3 context gate — REAL cross-utterance repetition only (consume-once)
           L4 laughter     — kantiyawan always suppresses
-          L5 duration     — tiered required seconds + 60s cooldown
+          L5 duration     — synchronized event duration + cooldown
 
-        Note: because each utterance is now consumed exactly once
-        (whisper_stt FIX 1), the old per-loop duration accumulation no longer
-        exists. A single qualifying utterance (2 hard / hard+soft) is complete
-        evidence on its own, and a repeated pattern uses the REAL elapsed span
-        between utterances from the context gate."""
+        The current event's sample count is the only observed audio duration.
+        Context history still decides repetition, but never substitutes a
+        wall-clock span or required threshold for measured duration."""
         current_time = time.time()
 
         if not stt_result.get("has_profanity"):
@@ -399,6 +418,8 @@ class AggressionDetector:
         categories       = stt_result.get("categories", [])
         detected_words   = stt_result.get("detected_words", [])
         is_casual        = stt_result.get("is_casual", False)
+        if audio_event is None:
+            audio_event = stt_result.get("audio_event")
 
         # ---------- LAYER 4: laughter / casual ALWAYS suppresses ----------
         # Checked before the context gate so a joke ("bobo haha") is never
@@ -416,8 +437,7 @@ class AggressionDetector:
             hard_hits=hard_hits,
             soft_hits=soft_hits,
         )
-        is_repeated     = ctx.get("is_repeated", False)
-        repetition_span = ctx.get("repetition_span", 0.0)
+        is_repeated = ctx.get("is_repeated", False)
 
         # ---------- LAYER 2: tone proxy (no waveform on this path) ----------
         # Without audio we cannot measure anger. A soft-only utterance that is
@@ -439,9 +459,10 @@ class AggressionDetector:
 
         # ---------- LAYER 5: tiered duration + cooldown ----------
         required = get_required_duration(hard_hits, soft_hits, is_repeated)
-        # Repeated pattern → real elapsed span between utterances.
-        # Single qualifying utterance → complete evidence, meets its tier now.
-        duration = repetition_span if is_repeated else required
+        if not isinstance(audio_event, AudioEvent):
+            print("[NO ALERT] AudioEvent duration unavailable")
+            return None
+        duration = audio_event.duration_ms / 1000.0
 
         print(f"[DURATION] {duration:.1f}s needed={required}s repeated={is_repeated}")
         if duration < required:
@@ -476,13 +497,17 @@ class AggressionDetector:
             "confidence":        0.85,
             "duration":          round(duration, 2),
             "transcribed_text":  transcribed_text,
+            "event_id":          audio_event.event_id,
             "detected_words":    detected_words,
             "categories":        categories,
-            "yamnet_class":      "Speech",
-            "yamnet_score":      0.60,
+            "yamnet_class":      yamnet_class,
+            "yamnet_score":      round(float(yamnet_score), 3),
+            "yamnet_ran":        bool(yamnet_ran),
             "emotion":           "neutral",
             "tone_data":         {},
-            "waveform_snapshot": [],
+            "waveform_snapshot": get_waveform_snapshot_float32(
+                audio_event.samples
+            ),
             "has_profanity":     True,
             "language":          stt_result.get("language", "unknown"),
             "language_confidence": stt_result.get("language_confidence"),
@@ -493,7 +518,11 @@ class AggressionDetector:
             "required_duration": required,
         }
 
-    def process_with_audio(self, stt_result: dict, audio_np=None) -> dict:
+    def process_with_audio(
+        self,
+        stt_result: dict,
+        audio_event: AudioEvent | None = None,
+    ) -> dict:
         """Audio-primary detection (FIX 4).
 
         Audio classifies HOW it was said (emotion / aggression via YAMNet+tone);
@@ -505,6 +534,13 @@ class AggressionDetector:
         if not stt_result.get("has_profanity"):
             return None
 
+        if audio_event is None:
+            audio_event = stt_result.get("audio_event")
+        if audio_event is not None and not isinstance(audio_event, AudioEvent):
+            print("[AUDIO_EVENT] unavailable: invalid event type")
+            audio_event = None
+        event_id = audio_event.event_id if audio_event is not None else "unavailable"
+
         hard_hits      = stt_result.get("hard_hits", [])
         soft_hits      = stt_result.get("soft_hits", [])
         detected_words = stt_result.get("detected_words", [])
@@ -515,12 +551,18 @@ class AggressionDetector:
             print("[NO ALERT] Kantiyawan")
             return None
 
-        # Tone is computed ONCE from the rolling buffer (needs no YAMNet) and
-        # reused by both the appearance branch and the YAMNet Track A below.
+        # Tone is computed once from the same finalized event submitted to STT.
         tone = emotion = None
-        if audio_np is not None and len(audio_np) >= 8000:
-            tone = analyze_tone(audio_np)
+        if audio_event is not None and len(audio_event.samples) >= 8000:
+            tone = analyze_tone_float32(
+                audio_event.samples,
+                sample_rate=audio_event.sample_rate,
+            )
             emotion = classify_emotion(tone)
+            print(
+                f"[TONE] event={event_id} rms={tone['rms']:.0f} "
+                f"aggressive={tone['is_aggressive_tone']}"
+            )
 
             # ── APPEARANCE / BODY bullying — single utterance, audio-gated ──
             # For Grade 6, a directed appearance insult (baboy, tambok, taba,
@@ -542,24 +584,41 @@ class AggressionDetector:
             if appearance_hit and directed:
                 print(f"[APPEARANCE] Directed appearance insult "
                       f"(RMS={tone['rms']:.0f} {emotion}) → single-utterance alert")
+                print(
+                    f"[YAMNET] event={event_id} ran=False "
+                    "label=NotRun score=unavailable"
+                )
                 return self._build_track_a_alert(
                     stt_result=stt_result,
-                    audio_np=audio_np,
-                    yamnet_class="(appearance)",
-                    yamnet_score=0.60,
+                    audio_event=audio_event,
+                    yamnet_class="NotRun",
+                    yamnet_score=0.0,
+                    yamnet_ran=False,
                     tone=tone,
                     emotion=emotion,
                 )
 
         # ── TRACK A — Audio Primary (YAMNet + tone) ──────────────────────────
         if tone is not None and self.interpreter is not None and self.class_names:
-            yamnet_class, yamnet_score = run_yamnet_scan(
-                self.interpreter, audio_np, self.class_names
-            )
-            yamnet_score = float(yamnet_score)
+            try:
+                yamnet_class, yamnet_score = scan_audio_float32(
+                    audio_event.samples,
+                    audio_event.sample_rate,
+                    self.interpreter,
+                    self.class_names,
+                )
+                yamnet_score = float(yamnet_score)
+            except Exception as exc:
+                print(
+                    f"[YAMNET] event={event_id} ran=False "
+                    f"label=NotRun score=unavailable error={type(exc).__name__}"
+                )
+                return self.process_text(stt_result, audio_event)
 
-            print(f"[AUDIO] YAMNet={yamnet_class}({yamnet_score:.2f})"
-                  f" RMS={tone['rms']:.0f} Emotion={emotion}")
+            print(
+                f"[YAMNET] event={event_id} ran=True label={yamnet_class} "
+                f"score={yamnet_score:.2f}"
+            )
 
             audio_aggressive = (
                 is_aggressive_sound(yamnet_class, yamnet_score, YAMNET_THRESHOLD)
@@ -573,23 +632,47 @@ class AggressionDetector:
                 print("[TRACK A] Loud bullying — audio+text")
                 return self._build_track_a_alert(
                     stt_result=stt_result,
-                    audio_np=audio_np,
+                    audio_event=audio_event,
                     yamnet_class=yamnet_class,
                     yamnet_score=yamnet_score,
+                    yamnet_ran=True,
                     tone=tone,
                     emotion=emotion,
                 )
             else:
                 print("[TRACK A] Audio not aggressive — trying Track B")
+                return self.process_text(
+                    stt_result,
+                    audio_event,
+                    yamnet_class=yamnet_class,
+                    yamnet_score=yamnet_score,
+                    yamnet_ran=True,
+                )
         else:
+            print(
+                f"[YAMNET] event={event_id} ran=False "
+                "label=NotRun score=unavailable"
+            )
             print("[TRACK A] No audio/YAMNet — trying Track B")
 
         # ── TRACK B — Text Primary (quiet / relational) ──────────────────────
-        return self.process_text(stt_result)
+        return self.process_text(stt_result, audio_event)
 
-    def _build_track_a_alert(self, stt_result, audio_np, yamnet_class,
-                             yamnet_score, tone, emotion) -> dict:
+    def _build_track_a_alert(
+        self,
+        stt_result,
+        audio_event,
+        yamnet_class,
+        yamnet_score,
+        yamnet_ran,
+        tone,
+        emotion,
+    ) -> dict:
         current_time = time.time()
+
+        if not isinstance(audio_event, AudioEvent):
+            print("[NO ALERT] AudioEvent duration unavailable")
+            return None
 
         if current_time - self.last_alert_time < self.alert_cooldown:
             remaining = self.alert_cooldown - (current_time - self.last_alert_time)
@@ -609,6 +692,7 @@ class AggressionDetector:
 
         hard_hits = stt_result.get("hard_hits", [])
         soft_hits = stt_result.get("soft_hits", [])
+        duration = audio_event.duration_ms / 1000.0
 
         print(
             f"[ALERT] POSSIBLE BULLYING | Track=A"
@@ -623,15 +707,19 @@ class AggressionDetector:
             "track":             "A",
             "severity":          final_sev,
             "confidence":        round(confidence, 3),
-            "duration":          2.0,
+            "duration":          round(duration, 3),
+            "event_id":          audio_event.event_id,
             "transcribed_text":  stt_result.get("transcribed_text", ""),
             "detected_words":    stt_result.get("detected_words", []),
             "categories":        stt_result.get("categories", []),
             "yamnet_class":      yamnet_class,
             "yamnet_score":      round(yamnet_score, 3),
+            "yamnet_ran":        yamnet_ran,
             "emotion":           emotion,
             "tone_data":         tone,
-            "waveform_snapshot": get_waveform_snapshot(audio_np),
+            "waveform_snapshot": get_waveform_snapshot_float32(
+                audio_event.samples
+            ),
             "has_profanity":     True,
             "language":          stt_result.get("language", "unknown"),
             "language_confidence": stt_result.get("language_confidence"),

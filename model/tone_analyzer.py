@@ -1,9 +1,18 @@
 import numpy as np
+from audio.audio_event import float32_samples_to_int16
 from detection.thresholds import (
     TONE_RMS_THRESHOLD,
     TONE_VARIANCE_THRESHOLD,
     TONE_ZCR_THRESHOLD,
 )
+
+
+def analyze_tone_float32(samples, sample_rate=16000):
+    """Preserve calibrated int16 thresholds for normalized event samples."""
+    return analyze_tone(
+        float32_samples_to_int16(samples),
+        sample_rate=sample_rate,
+    )
 
 
 def analyze_tone(audio_np, sample_rate=16000):

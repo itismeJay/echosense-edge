@@ -1,6 +1,7 @@
 from RealtimeSTT import AudioToTextRecorder
 from model.blacklist import check_transcript
 from model.monitored_terms import classify_transcript_language
+from model.realtimestt_audio_adapter import RealtimeSTTAudioEventAdapter
 import threading
 import time
 
@@ -14,6 +15,7 @@ _latest_result = None
 _result_lock = threading.Lock()
 _new_result_event = threading.Event()
 _recorder_ready = threading.Event()
+_audio_event_adapter = RealtimeSTTAudioEventAdapter(sample_rate=16000)
 
 def _on_realtime_update(text: str):
     if text and text.strip():
@@ -23,6 +25,7 @@ def _on_text(
     text: str,
     whisper_language=None,
     whisper_language_confidence=None,
+    audio_event=None,
 ):
     global _latest_result
     if not text or not text.strip():
@@ -46,6 +49,8 @@ def _on_text(
     )
     result["language"] = language
     result["language_confidence"] = language_confidence
+    result["audio_event"] = audio_event
+    result["event_id"] = audio_event.event_id if audio_event is not None else None
     result["all_words"] = corrected.split()
 
     print(f"[CHECK] Hard: {result['hard_hits']} Soft: {result['soft_hits']}")
@@ -66,6 +71,25 @@ def _on_text(
     with _result_lock:
         _latest_result = result
     _new_result_event.set()
+
+
+def _run_transcription_cycle(recorder, audio_event_adapter):
+    """Run exactly one synchronous transcription and consume its event once."""
+    audio_event_adapter.clear_pending()
+    try:
+        text = recorder.text()
+    except Exception:
+        audio_event_adapter.clear_pending()
+        raise
+
+    audio_event = audio_event_adapter.consume_pending()
+    return (
+        text,
+        audio_event,
+        getattr(recorder, "detected_language", None),
+        getattr(recorder, "detected_language_probability", None),
+    )
+
 
 def _recorder_loop():
     global _recorder
@@ -97,6 +121,7 @@ def _recorder_loop():
         post_speech_silence_duration=0.6,
         min_length_of_recording=0.5,
         min_gap_between_recordings=0.1,
+        on_transcription_start=_audio_event_adapter.on_transcription_start,
         # FIX 2 — initial_prompt removed (was priming profanity hallucinations).
         # --- Live word-by-word preview ([LIVE] lines) — DISABLED on the Pi ---
         # Running a 2nd (realtime) Whisper model alongside the base model
@@ -118,11 +143,28 @@ def _recorder_loop():
             # the same transcription. RealtimeSTT's callback form starts a new
             # thread, which can race with the next utterance and overwrite the
             # recorder's detected_language fields.
-            text = _recorder.text()
+            (
+                text,
+                audio_event,
+                detected_language,
+                detected_language_probability,
+            ) = _run_transcription_cycle(_recorder, _audio_event_adapter)
+            event_id = (
+                audio_event.event_id
+                if audio_event is not None
+                else "unavailable"
+            )
+            if audio_event is None:
+                print("[AUDIO_EVENT] unavailable for completed transcription")
+            print(
+                f"[STT] event={event_id} transcript_length={len(text or '')} "
+                f"language={detected_language or 'unknown'}"
+            )
             _on_text(
                 text,
-                getattr(_recorder, "detected_language", None),
-                getattr(_recorder, "detected_language_probability", None),
+                detected_language,
+                detected_language_probability,
+                audio_event,
             )
         except Exception as e:
             print(f"[STT] Error: {e}")
@@ -149,6 +191,8 @@ def _empty_result() -> dict:
         "categories": [],
         "language": "unknown",
         "language_confidence": None,
+        "audio_event": None,
+        "event_id": None,
         "matched_terms": [],
         "all_words": [],
         "word_count": 0,
