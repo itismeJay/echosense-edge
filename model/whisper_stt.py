@@ -1,5 +1,6 @@
 from RealtimeSTT import AudioToTextRecorder
 from model.blacklist import check_transcript
+from model.monitored_terms import classify_transcript_language
 import threading
 import time
 
@@ -18,7 +19,11 @@ def _on_realtime_update(text: str):
     if text and text.strip():
         print(f"[LIVE] {text.strip()}")
 
-def _on_text(text: str):
+def _on_text(
+    text: str,
+    whisper_language=None,
+    whisper_language_confidence=None,
+):
     global _latest_result
     if not text or not text.strip():
         return
@@ -33,10 +38,23 @@ def _on_text(text: str):
     result = check_transcript(text_clean)
     corrected = result.get("checked_text", text_clean)
     result["transcribed_text"] = corrected
-    result["language"] = "tl"
+    result["transcript"] = corrected
+    language, language_confidence = classify_transcript_language(
+        whisper_language,
+        whisper_language_confidence,
+        result.get("matched_terms", []),
+    )
+    result["language"] = language
+    result["language_confidence"] = language_confidence
     result["all_words"] = corrected.split()
 
     print(f"[CHECK] Hard: {result['hard_hits']} Soft: {result['soft_hits']}")
+    confidence_summary = (
+        f"{language_confidence:.2f}"
+        if language_confidence is not None
+        else "unavailable"
+    )
+    print(f"[LANGUAGE] {language} confidence={confidence_summary}")
 
     if result["has_profanity"]:
         print(
@@ -62,7 +80,9 @@ def _recorder_loop():
         compute_type="int8",     # was defaulting to float32 (slow). int8 = 2-4x faster
         beam_size=1,             # was 5; greedy decode is much faster, minor accuracy cost
         batch_size=0,            # plain WhisperModel (no batching) — matches the old pipeline
-        language="tl",
+        # No forced language: faster-whisper auto-detects supported languages.
+        # Whisper has Tagalog ("tl") and English tokens but no native Cebuano
+        # token, so downstream monitored-term evidence handles ceb/mixed labels.
         spinner=False,
         # VAD tuned for QUIET, high-pitched Grade 6 voices at ~1 m. These are
         # deliberately permissive so short/soft words (bobo, pangit, dakog
@@ -94,7 +114,16 @@ def _recorder_loop():
     _recorder_ready.set()
     while True:
         try:
-            _recorder.text(_on_text)
+            # Use the synchronous result so language metadata and text come from
+            # the same transcription. RealtimeSTT's callback form starts a new
+            # thread, which can race with the next utterance and overwrite the
+            # recorder's detected_language fields.
+            text = _recorder.text()
+            _on_text(
+                text,
+                getattr(_recorder, "detected_language", None),
+                getattr(_recorder, "detected_language_probability", None),
+            )
         except Exception as e:
             print(f"[STT] Error: {e}")
             time.sleep(1)
@@ -111,13 +140,16 @@ def _empty_result() -> dict:
     return {
         "has_profanity": False,
         "detected_words": [],
+        "transcript": "",
         "transcribed_text": "",
         "hard_hits": [],
         "soft_hits": [],
         "is_casual": False,
         "severity": "low",
         "categories": [],
-        "language": "tl",
+        "language": "unknown",
+        "language_confidence": None,
+        "matched_terms": [],
         "all_words": [],
         "word_count": 0,
         "checked_text": "",

@@ -3,25 +3,109 @@ import time
 import threading
 from config import API_URL, LOCATION
 
-def send_alert(severity, confidence, duration,
-               transcribed_text="", detected_words=None,
-               categories=None, language="unknown",
-               hard_hits=None, soft_hits=None,
-               required_duration=None, duration_gate=None,
-               yamnet_class="Unknown", yamnet_score=0.0,
-               emotion="unknown", tone_data=None,
-               waveform_snapshot=None, retries=3):
-    payload = {
+_LANGUAGE_VALUES = {"fil", "ceb", "en", "mixed", "unknown"}
+_MATCHED_TERM_LANGUAGE_VALUES = {"fil", "ceb", "en"}
+
+
+def _optional_confidence(value):
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not 0.0 < value <= 1.0:
+        return None
+    return round(value, 4)
+
+
+def _clean_matched_terms(matched_terms):
+    cleaned = []
+    seen = set()
+    for item in matched_terms or []:
+        if not isinstance(item, dict):
+            continue
+        term = str(item.get("term") or "").strip()
+        source_language = str(item.get("language") or "").strip().lower()
+        language = (
+            source_language
+            if source_language in _MATCHED_TERM_LANGUAGE_VALUES
+            else None
+        )
+        match_type = str(item.get("match_type") or "").strip().lower()
+        if not term or len(term) > 100:
+            continue
+        if match_type not in {"word", "phrase"}:
+            match_type = "phrase" if len(term.split()) > 1 else "word"
+
+        term_id = item.get("term_id")
+        if (
+            isinstance(term_id, bool)
+            or not isinstance(term_id, int)
+            or term_id <= 0
+        ):
+            term_id = None
+        key = (
+            ("id", term_id)
+            if term_id is not None
+            else ("text", term.lower(), language, match_type)
+        )
+        if key in seen:
+            continue
+
+        evidence = {
+            "term": term,
+            "language": language,
+            "match_type": match_type,
+        }
+        if term_id is not None:
+            evidence["term_id"] = term_id
+        cleaned.append(evidence)
+        seen.add(key)
+    return cleaned
+
+
+def build_alert_payload(
+    severity,
+    confidence,
+    duration,
+    transcribed_text="",
+    detected_words=None,
+    categories=None,
+    language="unknown",
+    hard_hits=None,
+    soft_hits=None,
+    required_duration=None,
+    duration_gate=None,
+    yamnet_class="Unknown",
+    yamnet_score=0.0,
+    emotion="unknown",
+    tone_data=None,
+    waveform_snapshot=None,
+    language_confidence=None,
+    matched_terms=None,
+):
+    """Build the production payload while retaining every legacy field."""
+
+    language = str(language or "unknown").lower()
+    if language not in _LANGUAGE_VALUES:
+        language = "unknown"
+    transcript = str(transcribed_text or "")
+    return {
         "severity": str(severity),
         "confidence": float(round(float(confidence), 4)),
         "duration": float(round(float(duration), 2)),
         "required_duration": float(required_duration) if required_duration is not None else None,
         "duration_gate": duration_gate,
         "location": LOCATION,
-        "transcribed_text": transcribed_text,
+        # New contract name plus the legacy field still consumed by production.
+        "transcript": transcript,
+        "transcribed_text": transcript,
         "detected_words": detected_words or [],
         "categories": categories or [],
         "language": language,
+        "language_confidence": _optional_confidence(language_confidence),
+        "matched_terms": _clean_matched_terms(matched_terms),
         "hard_hits": hard_hits or [],
         "soft_hits": soft_hits or [],
         "yamnet_class": yamnet_class,
@@ -31,8 +115,39 @@ def send_alert(severity, confidence, duration,
         "energy_variance": round(float(tone_data.get("energy_variance", 0)), 2) if tone_data else 0,
         "zero_crossing_rate": round(float(tone_data.get("zero_crossing_rate", 0)), 4) if tone_data else 0,
         "peak_to_average": round(float(tone_data.get("peak_to_average", 0)), 2) if tone_data else 0,
-        "waveform_snapshot": waveform_snapshot or []
+        "waveform_snapshot": waveform_snapshot or [],
     }
+
+
+def send_alert(severity, confidence, duration,
+               transcribed_text="", detected_words=None,
+               categories=None, language="unknown",
+               hard_hits=None, soft_hits=None,
+               required_duration=None, duration_gate=None,
+               yamnet_class="Unknown", yamnet_score=0.0,
+               emotion="unknown", tone_data=None,
+               waveform_snapshot=None, language_confidence=None,
+               matched_terms=None, retries=3):
+    payload = build_alert_payload(
+        severity=severity,
+        confidence=confidence,
+        duration=duration,
+        transcribed_text=transcribed_text,
+        detected_words=detected_words,
+        categories=categories,
+        language=language,
+        language_confidence=language_confidence,
+        matched_terms=matched_terms,
+        hard_hits=hard_hits,
+        soft_hits=soft_hits,
+        required_duration=required_duration,
+        duration_gate=duration_gate,
+        yamnet_class=yamnet_class,
+        yamnet_score=yamnet_score,
+        emotion=emotion,
+        tone_data=tone_data,
+        waveform_snapshot=waveform_snapshot,
+    )
     for attempt in range(retries):
         try:
             print(f"[SENDER] Sending alert... (attempt {attempt + 1})")

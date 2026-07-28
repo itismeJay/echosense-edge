@@ -14,6 +14,7 @@ from sender.http_client import (
     start_heartbeat,
 )
 from model.yamnet_infer import load_yamnet, load_class_names
+from model.monitored_terms import start_dictionary_sync
 from audio.led_indicator import LEDIndicator
 
 
@@ -176,6 +177,7 @@ def main():
 
     print("\n[INIT] Checking backend connection...")
     check_backend_connection()
+    start_dictionary_sync()
     start_heartbeat(
         interval=60,
         info_provider=lambda: {
@@ -233,7 +235,9 @@ def main():
                     emotion=alert.get("emotion", "neutral"),
                     tone_data=alert.get("tone_data", {}),
                     waveform_snapshot=alert.get("waveform_snapshot", []),
-                    language=alert.get("language", "tl"),
+                    language=alert.get("language", "unknown"),
+                    language_confidence=alert.get("language_confidence"),
+                    matched_terms=alert.get("matched_terms", []),
                     hard_hits=alert.get("hard_hits", []),
                     soft_hits=alert.get("soft_hits", []),
                     duration_gate=alert.get("duration_gate", ""),

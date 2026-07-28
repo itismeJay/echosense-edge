@@ -13,6 +13,7 @@ yamnet_class_map.csv
 .env
 
 # Runtime shadow log (tuning data, regenerated on each run)
+logs/echosense.log
 logs/shadow_log.jsonl
 logs/detections.jsonl
 

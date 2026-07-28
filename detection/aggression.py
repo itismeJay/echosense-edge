@@ -133,6 +133,8 @@ class AggressionDetector:
         word_severity    = stt["severity"]
         categories       = stt["categories"]
         language         = stt.get("language", "unknown")
+        language_confidence = stt.get("language_confidence")
+        matched_terms    = stt.get("matched_terms", [])
         is_casual        = stt["is_casual"]
         has_hard         = len(hard_hits) > 0
 
@@ -223,6 +225,8 @@ class AggressionDetector:
                 confidence=confidence, transcribed_text=transcribed_text,
                 detected_words=detected_words, categories=categories,
                 hard_hits=hard_hits, soft_hits=soft_hits, language=language,
+                language_confidence=language_confidence,
+                matched_terms=matched_terms,
                 yamnet_class="(quiet track)", yamnet_score=0.0,
                 emotion=emotion, tone=tone, audio_np=audio_np,
             )
@@ -276,6 +280,8 @@ class AggressionDetector:
             confidence=confidence, transcribed_text=transcribed_text,
             detected_words=detected_words, categories=categories,
             hard_hits=hard_hits, soft_hits=soft_hits, language=language,
+            language_confidence=language_confidence,
+            matched_terms=matched_terms,
             yamnet_class=yamnet_class, yamnet_score=yamnet_score,
             emotion=emotion, tone=tone, audio_np=audio_np,
         )
@@ -330,6 +336,7 @@ class AggressionDetector:
             "uling kaayo ka", "baho ka", "bungi ka", "bungal ka",
             "fat ka", "mataba ka", "negro ka", "negra ka",
             "duling ka", "putot ka",
+            "pangit", "pangit ka",   # demo: fire on single utterance (casual-common)
         }
 
         single_high = any(
@@ -457,7 +464,7 @@ class AggressionDetector:
         gate = "repeated" if is_repeated else ("hard" if hard_hits else "medium")
 
         print(
-            f"[ALERT] BULLYING CONFIRMED | Track=B "
+            f"[ALERT] POSSIBLE BULLYING | Track=B "
             f"Severity={final_severity} Duration={duration:.1f}s "
             f"Gate={gate} Words={detected_words}"
         )
@@ -477,7 +484,9 @@ class AggressionDetector:
             "tone_data":         {},
             "waveform_snapshot": [],
             "has_profanity":     True,
-            "language":          stt_result.get("language", "tl"),
+            "language":          stt_result.get("language", "unknown"),
+            "language_confidence": stt_result.get("language_confidence"),
+            "matched_terms":     stt_result.get("matched_terms", []),
             "hard_hits":         hard_hits,
             "soft_hits":         soft_hits,
             "duration_gate":     gate,
@@ -602,7 +611,7 @@ class AggressionDetector:
         soft_hits = stt_result.get("soft_hits", [])
 
         print(
-            f"[ALERT] BULLYING CONFIRMED | Track=A"
+            f"[ALERT] POSSIBLE BULLYING | Track=A"
             f" Severity={final_sev}"
             f" YAMNet={yamnet_class}"
             f" Emotion={emotion}"
@@ -624,7 +633,9 @@ class AggressionDetector:
             "tone_data":         tone,
             "waveform_snapshot": get_waveform_snapshot(audio_np),
             "has_profanity":     True,
-            "language":          stt_result.get("language", "tl"),
+            "language":          stt_result.get("language", "unknown"),
+            "language_confidence": stt_result.get("language_confidence"),
+            "matched_terms":     stt_result.get("matched_terms", []),
             "hard_hits":         hard_hits,
             "soft_hits":         soft_hits,
             "duration_gate":     "hard" if hard_hits else "medium",
@@ -633,14 +644,15 @@ class AggressionDetector:
 
     def _fire(self, *, track, word_severity, duration, required_duration,
               duration_gate, confidence, transcribed_text, detected_words,
-              categories, hard_hits, soft_hits, language, yamnet_class,
-              yamnet_score, emotion, tone, audio_np):
+              categories, hard_hits, soft_hits, language,
+              language_confidence, matched_terms, yamnet_class, yamnet_score,
+              emotion, tone, audio_np):
         """Stamp the cooldown, log, and build the alert payload."""
         time_severity = get_time_severity(duration)
         severity = max([word_severity, time_severity], key=lambda s: SEVERITY_ORDER[s])
         self.last_alert_time = time.time()
 
-        print(f"[ALERT] BULLYING DETECTED | Track={track} Severity={severity} "
+        print(f"[ALERT] POSSIBLE BULLYING | Track={track} Severity={severity} "
               f"Confidence={confidence:.2f} Duration={duration:.1f}s "
               f"Gate={duration_gate} Emotion={emotion} Words={detected_words}")
 
@@ -659,6 +671,8 @@ class AggressionDetector:
             "hard_hits":         hard_hits,
             "soft_hits":         soft_hits,
             "language":          language,
+            "language_confidence": language_confidence,
+            "matched_terms":     matched_terms,
             "yamnet_class":      yamnet_class,
             "yamnet_score":      yamnet_score,
             "emotion":           emotion,

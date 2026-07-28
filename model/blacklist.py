@@ -2,6 +2,11 @@ import re
 from typing import List
 
 from rapidfuzz import fuzz
+from model.monitored_terms import (
+    build_matched_terms,
+    match_backend_terms,
+    normalize_text,
+)
 
 # Fuzzy-match acceptance thresholds. Fuzzy matching only helps for longer words
 # where a Whisper mis-spelling is unambiguous; on short words a 1-character
@@ -241,6 +246,10 @@ HARD_TRIGGERS = {
     "itom kaayo ka", "uling kaayo ka", "negro ka", "negra ka",
     "duling ka", "bungi ka", "bungal ka",
     "baho ka", "baho mo",
+    # NOTE: "pangit" is casual-common ("pangit ang panahon") — promoting it to
+    # fire on a single utterance WILL cause some false alarms on normal talk.
+    # Kept here per demo request.
+    "pangit", "pangit ka",
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -851,10 +860,7 @@ def apply_phonetic_variants(text: str) -> str:
 
 
 def clean_text(text: str) -> str:
-    text = text.lower().strip()
-    text = re.sub(r"[^\w\s]", " ", text)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
+    return normalize_text(text)
 
 
 def get_word_severity(word: str) -> str:
@@ -879,6 +885,17 @@ def check_transcript(transcript: str) -> dict:
     soft_hits = _find_hits(SOFT_TRIGGERS, text, tokens)
     laughing  = _find_hits(LAUGHTER_MARKERS, text, tokens, fuzzy=False)
 
+    # Backend dictionary entries participate in detection without bypassing the
+    # existing context/acoustic safeguards. Entries already present in the local
+    # hard list retain that classification; new remote entries are soft evidence.
+    backend_matches = match_backend_terms(text)
+    for matched in backend_matches:
+        if matched.term in HARD_TRIGGERS:
+            if matched.term not in hard_hits:
+                hard_hits.append(matched.term)
+        elif matched.term not in soft_hits:
+            soft_hits.append(matched.term)
+
     # Safety: a term must never count as BOTH hard and soft (e.g. a word listed
     # in both sets), otherwise one hard word alone would trip the hard+soft rule.
     soft_hits = [w for w in soft_hits if w not in HARD_TRIGGERS]
@@ -894,7 +911,8 @@ def check_transcript(transcript: str) -> dict:
     # lone soft word can never alert on the quiet path.
     has_profanity = has_hard or has_soft
 
-    all_detected = list(set(hard_hits + soft_hits))
+    all_detected = list(dict.fromkeys(hard_hits + soft_hits))
+    matched_terms = build_matched_terms(text, all_detected)
 
     # Severity
     severity = "low"
@@ -929,6 +947,7 @@ def check_transcript(transcript: str) -> dict:
         "categories":     list(set(categories)),
         "word_count":     len(all_detected),
         "checked_text":   text,   # post-variant text actually matched (for [CHECK] log)
+        "matched_terms":  matched_terms,
     }
 
 
@@ -937,10 +956,8 @@ def check_transcript(transcript: str) -> dict:
 # now uses check_transcript() via model/whisper_stt.py, but these keep the old
 # module importable so nothing breaks if it is loaded.
 def contains_blacklisted_word(text: str) -> bool:
-    text_lower = text.lower()
-    return any(word in text_lower for word in ALL_BLACKLIST)
+    return check_transcript(text)["has_profanity"]
 
 
 def get_detected_words(text: str) -> List[str]:
-    text_lower = text.lower()
-    return [word for word in ALL_BLACKLIST if word in text_lower]
+    return check_transcript(text)["detected_words"]
