@@ -6,6 +6,23 @@
 # --- Core detection gates ---------------------------------------------------
 YAMNET_THRESHOLD        = 0.45   # Grade 6: lowered to 0.45 — catch moderate aggression signals in normal speech
 
+# --- Transcript quality gates -----------------------------------------------
+# Finalized classroom utterances are normally far below 120 tokens. The limit
+# bounds pathological decoder output without penalizing ordinary long sentences.
+TRANSCRIPT_MAX_TOKENS = 120
+# Two-word emphasis ("stop stop") and even a cautious third repetition remain
+# accepted; four consecutive identical tokens are treated as a decoding-risk
+# signal before any monitored term can reach acoustic analysis.
+TRANSCRIPT_MAX_REPEATED_TOKEN_RUN = 3
+# Ratio checks are unreliable on short speech, so they begin at eight tokens.
+TRANSCRIPT_MIN_TOKENS_FOR_UNIQUE_RATIO = 8
+# Fewer than 30% unique tokens in a sufficiently long utterance is suspicious.
+TRANSCRIPT_LOW_UNIQUE_RATIO = 0.30
+# Phrase-cycle and broad repetition checks begin only at six tokens, allowing
+# natural short emphasis while catching three exact repeats of a two-word phrase.
+TRANSCRIPT_MIN_TOKENS_FOR_PHRASE_CYCLE = 6
+TRANSCRIPT_REPETITION_RATIO_LIMIT = 0.70
+
 # --- Tiered duration gates — replaces the single DURATION_THRESHOLD ----------
 # Match how fast the system reacts to how serious the spoken word is.
 DURATION_THREAT         = 1.5

@@ -10,15 +10,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
-import re
 import threading
 import time
-import unicodedata
 from typing import Iterable, Mapping, Optional, Sequence
 
 import requests
 
 from config import API_URL
+from detection.transcript_quality import normalize_transcript, phrase_matches
 
 
 SUPPORTED_LANGUAGES = frozenset({"fil", "ceb", "en", "mixed", "unknown"})
@@ -109,31 +108,13 @@ _LANGUAGE_MARKERS = {
 
 
 def normalize_text(value: str) -> str:
-    """Normalize case, Unicode, whitespace, and punctuation safely.
+    """Backward-compatible alias for the centralized safe normalizer."""
 
-    Letters, numbers, and Unicode combining marks are preserved.  Other
-    characters become spaces so punctuation cannot glue two words together or
-    create substring matches.
-    """
-
-    normalized = unicodedata.normalize("NFKC", str(value or "")).lower()
-    characters = []
-    for character in normalized:
-        category = unicodedata.category(character)
-        if character.isalnum() or category.startswith("M"):
-            characters.append(character)
-        else:
-            characters.append(" ")
-    return re.sub(r"\s+", " ", "".join(characters)).strip()
+    return normalize_transcript(value)
 
 
-def _boundary_pattern(term: str) -> re.Pattern:
-    escaped = re.escape(term).replace(r"\ ", r"\s+")
-    return re.compile(r"(?<!\w)" + escaped + r"(?!\w)")
-
-
-def _matches(term: str, normalized_text: str) -> bool:
-    return bool(term and _boundary_pattern(term).search(normalized_text))
+def _matches(term: str, source_text: str) -> bool:
+    return phrase_matches(term, source_text)
 
 
 def normalize_language(value: object, *, backend: bool = False) -> str:
@@ -230,16 +211,19 @@ def get_backend_terms() -> tuple[MonitoredTerm, ...]:
 
 
 def match_backend_terms(normalized_text: str) -> list[MonitoredTerm]:
-    text = normalize_text(normalized_text)
-    return [term for term in get_backend_terms() if _matches(term.term, text)]
+    return [
+        term
+        for term in get_backend_terms()
+        if _matches(term.term, normalized_text)
+    ]
 
 
 def _local_candidates(normalized_text: str, legacy_hits: Sequence[str]) -> list[MonitoredTerm]:
     candidates = []
     seen = set()
 
-    for language, terms in LOCAL_TERMS_BY_LANGUAGE.items():
-        for term in terms:
+    for language in sorted(LOCAL_TERMS_BY_LANGUAGE):
+        for term in sorted(LOCAL_TERMS_BY_LANGUAGE[language]):
             if _matches(term, normalized_text):
                 key = (term, language)
                 if key not in seen:
@@ -248,8 +232,7 @@ def _local_candidates(normalized_text: str, legacy_hits: Sequence[str]) -> list[
 
     for hit in legacy_hits or ():
         term = normalize_text(hit)
-        # If an explicitly organized local phrase matched exactly, do not add
-        # fuzzy legacy aliases for the same utterance as extra evidence.
+        # Ignore stale legacy evidence that does not exactly occur in this text.
         if candidates and not _matches(term, normalized_text):
             continue
         language = infer_term_language(term)
@@ -260,7 +243,14 @@ def _local_candidates(normalized_text: str, legacy_hits: Sequence[str]) -> list[
 
     # Prefer the most specific phrase over a local word contained by it.  Terms
     # carrying backend IDs are handled separately and are never discarded.
-    candidates.sort(key=lambda item: (-len(item.term.split()), -len(item.term)))
+    candidates.sort(
+        key=lambda item: (
+            -len(item.term.split()),
+            -len(item.term),
+            item.term,
+            item.language,
+        )
+    )
     preferred = []
     for candidate in candidates:
         if any(
@@ -273,12 +263,24 @@ def _local_candidates(normalized_text: str, legacy_hits: Sequence[str]) -> list[
     return preferred
 
 
-def build_matched_terms(normalized_text: str, legacy_hits: Sequence[str] = ()) -> list[dict]:
+def build_matched_terms(
+    normalized_text: str,
+    legacy_hits: Sequence[str] = (),
+    excluded_terms: Sequence[str] = (),
+) -> list[dict]:
     """Build de-duplicated evidence, preserving every real backend term ID."""
 
-    text = normalize_text(normalized_text)
-    backend_matches = match_backend_terms(text)
-    local_matches = _local_candidates(text, legacy_hits)
+    excluded = {normalize_text(term) for term in excluded_terms}
+    backend_matches = [
+        item
+        for item in match_backend_terms(normalized_text)
+        if item.term not in excluded
+    ]
+    local_matches = [
+        item
+        for item in _local_candidates(normalized_text, legacy_hits)
+        if item.term not in excluded
+    ]
 
     evidence = []
     seen = set()

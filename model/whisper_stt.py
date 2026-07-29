@@ -2,6 +2,7 @@ from RealtimeSTT import AudioToTextRecorder
 from model.blacklist import check_transcript
 from model.monitored_terms import classify_transcript_language
 from model.realtimestt_audio_adapter import RealtimeSTTAudioEventAdapter
+from detection.transcript_quality import assess_transcript_quality
 import threading
 import time
 
@@ -28,20 +29,34 @@ def _on_text(
     audio_event=None,
 ):
     global _latest_result
-    if not text or not text.strip():
-        return
+    original_text = str(text or "")
+    quality = assess_transcript_quality(original_text)
+    event_id = audio_event.event_id if audio_event is not None else "unavailable"
 
-    text_clean = text.strip().lower()
-    print(f"[STT] Heard: {text_clean}")
+    if quality.accepted:
+        print(
+            f"[TEXT_QUALITY] event={event_id} accepted=true "
+            f"tokens={quality.token_count} unique={quality.unique_token_count} "
+            f"repetition_ratio={quality.repetition_ratio:.2f}"
+        )
+        result = check_transcript(original_text)
+    else:
+        primary_reason = quality.reason_codes[0]
+        print(
+            f"[TEXT_QUALITY] event={event_id} accepted=false "
+            f"reason={primary_reason}"
+        )
+        result = _empty_result()
 
-    # FIX 2 — apply_phonetic_variants() is called EXACTLY ONCE, inside
-    # check_transcript(). It used to be called here too and again downstream,
-    # double-applying the rewrite and corrupting text. The corrected text is
-    # returned as result["checked_text"].
-    result = check_transcript(text_clean)
-    corrected = result.get("checked_text", text_clean)
-    result["transcribed_text"] = corrected
-    result["transcript"] = corrected
+    # The Whisper output remains unchanged for evidence/display. Matching uses
+    # normalized_text/checked_text separately and never overwrites this field.
+    result["transcribed_text"] = original_text
+    result["transcript"] = original_text
+    result["normalized_text"] = quality.normalized_text
+    result["transcript_quality"] = quality
+    result["quality_accepted"] = quality.accepted
+    result["quality_reason_codes"] = quality.reason_codes
+    result["quality_warnings"] = quality.warnings
     language, language_confidence = classify_transcript_language(
         whisper_language,
         whisper_language_confidence,
@@ -51,9 +66,19 @@ def _on_text(
     result["language_confidence"] = language_confidence
     result["audio_event"] = audio_event
     result["event_id"] = audio_event.event_id if audio_event is not None else None
-    result["all_words"] = corrected.split()
+    result["all_words"] = quality.normalized_text.split()
 
-    print(f"[CHECK] Hard: {result['hard_hits']} Soft: {result['soft_hits']}")
+    print(
+        f"[TERM_MATCH] event={event_id} "
+        f"candidates={result.get('match_candidate_count', 0)} "
+        f"accepted={result.get('match_accepted_count', 0)} "
+        f"suppressed={result.get('match_suppressed_count', 0)}"
+    )
+    for suppressed in result.get("suppressed_terms", []):
+        print(
+            f"[TERM_MATCH] event={event_id} suppressed "
+            f"reason={suppressed['reason']} term={suppressed['term']}"
+        )
     confidence_summary = (
         f"{language_confidence:.2f}"
         if language_confidence is not None
@@ -63,7 +88,7 @@ def _on_text(
 
     if result["has_profanity"]:
         print(
-            f"[STT] HIT: {result['detected_words']} "
+            f"[STT] event={event_id} monitored_terms={result['detected_words']} "
             f"| cat: {result['categories']} "
             f"| sev: {result['severity']}"
         )
@@ -197,6 +222,16 @@ def _empty_result() -> dict:
         "all_words": [],
         "word_count": 0,
         "checked_text": "",
+        "normalized_text": "",
+        "transcript_quality": None,
+        "quality_accepted": False,
+        "quality_reason_codes": (),
+        "quality_warnings": (),
+        "match_candidate_count": 0,
+        "match_accepted_count": 0,
+        "match_suppressed_count": 0,
+        "suppressed_terms": [],
+        "context_suppressed_all": False,
     }
 
 
@@ -214,24 +249,6 @@ def transcribe_and_check(audio_np=None) -> dict:
         _latest_result = None
 
     if result is None:
-        return _empty_result()
-
-    # FIX 7 — reject likely noise / Whisper hallucinations before they can alert.
-    words   = result.get("all_words") or result.get("transcribed_text", "").split()
-    has_hit = bool(result.get("hard_hits") or result.get("soft_hits"))
-
-    # Single-word transcriptions are usually noise — BUT let a single recognised
-    # trigger word through so the context gate can track REPETITION of it across
-    # utterances (a lone trigger still won't alert on its own; it must repeat or
-    # be paired). This is what makes "bobo" ... "bobo" fire on the 2nd time.
-    if len(words) < 2 and not has_hit:
-        return _empty_result()
-
-    # Hallucination signature: the same NON-trigger token echoed back
-    # ("thank you thank you", "hello hello hello"). Do NOT drop a repeated
-    # trigger ("bobo bobo", "pangit ka pangit ka") — that is the targeting
-    # signal we want to keep.
-    if not has_hit and len(set(words)) < len(words) / 2:
         return _empty_result()
 
     return result

@@ -1,73 +1,31 @@
-import re
 from typing import List
 
-from rapidfuzz import fuzz
+from detection.text_context import apply_harmless_context_rules
+from detection.transcript_quality import phrase_matches
 from model.monitored_terms import (
     build_matched_terms,
     match_backend_terms,
     normalize_text,
 )
 
-# Fuzzy-match acceptance thresholds. Fuzzy matching only helps for longer words
-# where a Whisper mis-spelling is unambiguous; on short words a 1-character
-# difference (atay≈patay, puto≈putot) is an innocent look-alike, not a typo, so
-# we require exact whole-word matching below FUZZY_MIN_LEN.
-FUZZY_MIN_LEN          = 6    # single words shorter than this are exact-match only
-FUZZY_THRESHOLD_WORD   = 86
-FUZZY_THRESHOLD_PHRASE = 88
-
-# Compiled word-boundary patterns, built lazily and cached per term.
-_PATTERNS: dict = {}
-
-
-def _boundary_pattern(term: str) -> "re.Pattern":
-    """Whole-word/phrase matcher. `term` is assumed already cleaned (lowercase,
-    no punctuation, single-spaced). Spaces become flexible whitespace so phrases
-    still match across normalized gaps."""
-    escaped = re.escape(term).replace(r"\ ", r"\s+")
-    return re.compile(r"(?<!\w)" + escaped + r"(?!\w)")
-
-
 def _exact_match(term: str, text: str) -> bool:
-    pat = _PATTERNS.get(term)
-    if pat is None:
-        pat = _boundary_pattern(term)
-        _PATTERNS[term] = pat
-    return pat.search(text) is not None
+    return phrase_matches(term, text)
 
 
 def word_matches(phrase: str, text: str) -> bool:
-    """Whole-word / phrase match (public API). Single words match on word
-    boundaries so ordinary words no longer trip a trigger by substring
-    ("patay" no longer matches "atay"); multi-word phrases match with
-    boundaries at the ends. Backed by the cached compiled patterns above."""
+    """Exact token/phrase match that cannot cross a strong text boundary."""
     return _exact_match(phrase, text)
 
 
-def _fuzzy_match(term: str, tokens: List[str]) -> bool:
-    parts = term.split()
-    n = len(parts)
-    if n == 1:
-        if len(term) < FUZZY_MIN_LEN:
-            return False  # too short for fuzzy — exact match already handled it
-        return any(fuzz.ratio(term, tok) >= FUZZY_THRESHOLD_WORD for tok in tokens)
-    # Multi-word phrase: slide an n-gram window of the same length over tokens.
-    for i in range(len(tokens) - n + 1):
-        window = " ".join(tokens[i:i + n])
-        if fuzz.ratio(term, window) >= FUZZY_THRESHOLD_PHRASE:
-            return True
-    return False
+def _find_hits(terms, text: str) -> List[str]:
+    """Return unique dictionary entries in deterministic specificity order."""
 
-
-def _find_hits(terms, text: str, tokens: List[str], fuzzy: bool = True) -> List[str]:
-    """Whole-word exact match first; optional fuzzy fallback for ASR mis-spellings.
-    Laughter markers pass fuzzy=False so a near-miss never wrongly suppresses an
-    alert."""
     hits = []
-    for term in terms:
+    for term in sorted(
+        terms,
+        key=lambda item: (-len(item.split()), -len(item), item),
+    ):
         if _exact_match(term, text):
-            hits.append(term)
-        elif fuzzy and _fuzzy_match(term, tokens):
             hits.append(term)
     return hits
 
@@ -181,14 +139,13 @@ HARD_TRIGGERS = {
     "bugo", "bolok", "bugog",
 
     # ── English bullying sentences (Grade 6) — added ─────────
-    # Contractions are stored apostrophe-free with a space ("you re ...") because
-    # clean_text() turns "you're" into "you re"; the "youre" -> "you re" phonetic
-    # variant normalizes the no-apostrophe spelling.
-    "you are so ugly", "you re so ugly",
-    "you are stupid", "you re stupid",
-    "you are dumb", "you re dumb",
-    "you are an idiot", "you re an idiot",
-    "you are fat", "you re fat",
+    # Both native-apostrophe and spaced ASR forms are explicit dictionary
+    # entries; normalization never manufactures one form from the other.
+    "you are so ugly", "you're so ugly", "you re so ugly",
+    "you are stupid", "you're stupid", "you re stupid",
+    "you are dumb", "you're dumb", "you re dumb",
+    "you are an idiot", "you're an idiot", "you re an idiot",
+    "you are fat", "you're fat", "you re fat",
     "you are ugly", "shut up",
     "nobody likes you", "no one likes you",
     "you are worthless", "you are useless",
@@ -409,7 +366,7 @@ SOFT_TRIGGERS = {
     "isugbo nako ka",           # i will report you
     "sumbong didto sa imong mama", # go cry to your mom
     "loser", "get lost", "go away",
-    "nobody cares", "you don t belong",
+    "nobody cares", "you don't belong", "you don t belong",
     "dili ka among barkada",    # not part of our group
 
     # ── Code-switch combo phrases ─────────────────────────────
@@ -439,7 +396,7 @@ SOFT_TRIGGERS = {
     # Casual English singles (ugly/stupid/dumb/idiot/...) were removed earlier as
     # false-alarm prone; re-added per request. Safe now because a lone soft word
     # only DETECTS — it cannot alert without a pair, repetition, or angry audio.
-    "ugly", "so ugly", "very ugly", "you re ugly",
+    "ugly", "so ugly", "very ugly", "you're ugly", "you re ugly",
     "stupid", "so stupid", "very stupid",
     "dumb", "so dumb", "idiot",
     "fatso", "fatty", "fat ass",
@@ -699,7 +656,6 @@ PHONETIC_VARIANTS = {
     "bolok":    "bulok",
     "buluk":    "bulok",
     "boluk":    "bulok",
-    "pang":     "pangit",
     "pangid":   "pangit",
     "panget":   "pangit",
     "tambok":   "tambok",
@@ -873,22 +829,17 @@ def get_word_severity(word: str) -> str:
 
 def check_transcript(transcript: str) -> dict:
     text = clean_text(transcript)
-    # Correct predictable Whisper mishearings BEFORE any matching, so canonical
-    # blacklist words are what we test against (see PHONETIC_VARIANTS).
-    text = apply_phonetic_variants(text)
-    tokens = text.split()
 
-    # Whole-word matching (+ fuzzy fallback for ASR mis-spellings) so ordinary
-    # words no longer trip a trigger by substring (e.g. "patay" no longer hits
-    # "atay"). Laughter uses exact-only to avoid wrongly suppressing alerts.
-    hard_hits = _find_hits(HARD_TRIGGERS, text, tokens)
-    soft_hits = _find_hits(SOFT_TRIGGERS, text, tokens)
-    laughing  = _find_hits(LAUGHTER_MARKERS, text, tokens, fuzzy=False)
+    # Match the original source so a phrase cannot be assembled across a strong
+    # punctuation boundary that disappeared from normalized display text.
+    hard_hits = _find_hits(HARD_TRIGGERS, transcript)
+    soft_hits = _find_hits(SOFT_TRIGGERS, transcript)
+    laughing = _find_hits(LAUGHTER_MARKERS, transcript)
 
     # Backend dictionary entries participate in detection without bypassing the
     # existing context/acoustic safeguards. Entries already present in the local
     # hard list retain that classification; new remote entries are soft evidence.
-    backend_matches = match_backend_terms(text)
+    backend_matches = match_backend_terms(transcript)
     for matched in backend_matches:
         if matched.term in HARD_TRIGGERS:
             if matched.term not in hard_hits:
@@ -899,6 +850,12 @@ def check_transcript(transcript: str) -> dict:
     # Safety: a term must never count as BOTH hard and soft (e.g. a word listed
     # in both sets), otherwise one hard word alone would trip the hard+soft rule.
     soft_hits = [w for w in soft_hits if w not in HARD_TRIGGERS]
+
+    candidate_terms = list(dict.fromkeys(hard_hits + soft_hits))
+    context_result = apply_harmless_context_rules(text, candidate_terms)
+    accepted_terms = set(context_result.accepted_terms)
+    hard_hits = [term for term in hard_hits if term in accepted_terms]
+    soft_hits = [term for term in soft_hits if term in accepted_terms]
 
     has_hard      = len(hard_hits) > 0
     has_soft      = len(soft_hits) >= 1
@@ -912,7 +869,15 @@ def check_transcript(transcript: str) -> dict:
     has_profanity = has_hard or has_soft
 
     all_detected = list(dict.fromkeys(hard_hits + soft_hits))
-    matched_terms = build_matched_terms(text, all_detected)
+    suppressed_terms = [
+        {"term": item.term, "reason": item.reason}
+        for item in context_result.suppressed_terms
+    ]
+    matched_terms = build_matched_terms(
+        transcript,
+        all_detected,
+        excluded_terms=[item["term"] for item in suppressed_terms],
+    )
 
     # Severity
     severity = "low"
@@ -944,10 +909,17 @@ def check_transcript(transcript: str) -> dict:
         "soft_hits":      soft_hits,
         "is_casual":      is_casual,
         "severity":       severity,
-        "categories":     list(set(categories)),
+        "categories":     list(dict.fromkeys(categories)),
         "word_count":     len(all_detected),
-        "checked_text":   text,   # post-variant text actually matched (for [CHECK] log)
+        "checked_text":   text,
         "matched_terms":  matched_terms,
+        "match_candidate_count": len(candidate_terms),
+        "match_accepted_count": len(all_detected),
+        "match_suppressed_count": len(suppressed_terms),
+        "suppressed_terms": suppressed_terms,
+        "context_suppressed_all": bool(
+            candidate_terms and not all_detected and suppressed_terms
+        ),
     }
 
 

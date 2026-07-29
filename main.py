@@ -84,6 +84,53 @@ def _network_status_thread(interval=60):
         print_network_banner(prefix="[NET-HEARTBEAT]")
 
 
+def process_transcription_result(result, detector, led, alert_sender=send_alert):
+    """Process one consumed STT result without performing any capture itself."""
+
+    if not result:
+        return False
+    if result.get("quality_accepted") is False:
+        return False
+    if result.get("context_suppressed_all"):
+        return False
+    if not result.get("has_profanity"):
+        return False
+
+    audio_event = result.get("audio_event")
+    alert = detector.process_with_audio(result, audio_event)
+    event_id = result.get("event_id") or "unavailable"
+    should_alert = bool(alert and alert.get("should_alert"))
+    print(f"[DECISION] event={event_id} alert={should_alert}")
+
+    if not should_alert:
+        return False
+
+    led.alert()
+    alert_sender(
+        severity=alert["severity"],
+        confidence=alert["confidence"],
+        duration=alert["duration"],
+        transcribed_text=alert.get("transcribed_text", ""),
+        detected_words=alert.get("detected_words", []),
+        categories=alert.get("categories", []),
+        yamnet_class=alert.get("yamnet_class", "NotRun"),
+        yamnet_score=alert.get("yamnet_score", 0.0),
+        yamnet_ran=alert.get("yamnet_ran", False),
+        event_id=alert.get("event_id"),
+        emotion=alert.get("emotion", "neutral"),
+        tone_data=alert.get("tone_data", {}),
+        waveform_snapshot=alert.get("waveform_snapshot", []),
+        language=alert.get("language", "unknown"),
+        language_confidence=alert.get("language_confidence"),
+        matched_terms=alert.get("matched_terms", []),
+        hard_hits=alert.get("hard_hits", []),
+        soft_hits=alert.get("soft_hits", []),
+        duration_gate=alert.get("duration_gate", ""),
+        required_duration=alert.get("required_duration", 0),
+    )
+    return True
+
+
 def main():
     from sender.http_client import push_log_line
     from sender.http_client import start_log_flush_thread
@@ -101,7 +148,7 @@ def main():
 
     print("=" * 50)
     print("  EchoSense Edge AI System")
-    print("  Acoustic Bullying Detection (5-layer)")
+    print("  Classroom Acoustic Risk Detection (5-layer)")
     print("  Davao del Norte State College")
     print("=" * 50)
 
@@ -147,40 +194,7 @@ def main():
     try:
         while True:
             result = transcribe_and_check()
-
-            if not result or not result.get("has_profanity"):
-                continue
-
-            audio_event = result.get("audio_event")
-            alert = detector.process_with_audio(result, audio_event)
-            event_id = result.get("event_id") or "unavailable"
-            should_alert = bool(alert and alert.get("should_alert"))
-            print(f"[DECISION] event={event_id} alert={should_alert}")
-
-            if alert and alert.get("should_alert"):
-                led.alert()
-                send_alert(
-                    severity=alert["severity"],
-                    confidence=alert["confidence"],
-                    duration=alert["duration"],
-                    transcribed_text=alert.get("transcribed_text", ""),
-                    detected_words=alert.get("detected_words", []),
-                    categories=alert.get("categories", []),
-                    yamnet_class=alert.get("yamnet_class", "NotRun"),
-                    yamnet_score=alert.get("yamnet_score", 0.0),
-                    yamnet_ran=alert.get("yamnet_ran", False),
-                    event_id=alert.get("event_id"),
-                    emotion=alert.get("emotion", "neutral"),
-                    tone_data=alert.get("tone_data", {}),
-                    waveform_snapshot=alert.get("waveform_snapshot", []),
-                    language=alert.get("language", "unknown"),
-                    language_confidence=alert.get("language_confidence"),
-                    matched_terms=alert.get("matched_terms", []),
-                    hard_hits=alert.get("hard_hits", []),
-                    soft_hits=alert.get("soft_hits", []),
-                    duration_gate=alert.get("duration_gate", ""),
-                    required_duration=alert.get("required_duration", 0),
-                )
+            process_transcription_result(result, detector, led)
 
     except KeyboardInterrupt:
         print("\n[STOP] EchoSense stopped.")

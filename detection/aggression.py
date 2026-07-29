@@ -101,7 +101,9 @@ def get_required_duration(
 
 
 class AggressionDetector:
-    """5-layer acoustic bullying detector. Operates on a rolling window of the
+    """Edge-based acoustic risk detector for unverified possible aggression.
+
+    Operates on a rolling window of the
     last few seconds of *voiced* audio (supplied by main.py).
 
     Layer order (cheapest discriminator first, so YAMNet/tone only run when a
@@ -173,8 +175,10 @@ class AggressionDetector:
             duration_seconds = len(audio_np) / SAMPLE_RATE
         duration = float(duration_seconds)
 
-        print(f"[STT] '{transcribed_text}' hard={hard_hits} soft={soft_hits} "
-              f"repeated={is_repeated} casual={is_casual}")
+        print(
+            f"[STT_EVIDENCE] hard={hard_hits} soft={soft_hits} "
+            f"repeated={is_repeated} casual={is_casual}"
+        )
         print(f"[TONE] RMS={rms:.0f} Var={variance:.0f} Emotion={emotion}")
 
         pending_track = "?"
@@ -186,7 +190,6 @@ class AggressionDetector:
             print(f"[NO ALERT] {reason}")
             if layers_passed >= 3:
                 log_near_miss({
-                    "transcript":     transcribed_text,
                     "detected_words": detected_words,
                     "layers_passed":  layers_passed,
                     "track":          pending_track,
@@ -207,7 +210,7 @@ class AggressionDetector:
         # 2+ soft words (RA 10627 'repeated / targeted' behavior).
         pending_track = "B"
         if self._should_fire_track_b(hard_hits, soft_hits, is_repeated, emotion, is_casual):
-            print("[TRACK B] Quiet bullying criteria met")
+            print("[TRACK B] Possible quiet-aggression criteria met")
             if is_repeated:
                 required_duration = DURATION_REPEATED_WORD     # 2.0s
                 duration_gate = "repeated"
@@ -408,6 +411,12 @@ class AggressionDetector:
         wall-clock span or required threshold for measured duration."""
         current_time = time.time()
 
+        if stt_result.get("quality_accepted") is False:
+            print("[NO ALERT] Low transcript quality")
+            return None
+        if stt_result.get("context_suppressed_all"):
+            print("[NO ALERT] context_suppressed")
+            return None
         if not stt_result.get("has_profanity"):
             return None
 
@@ -455,7 +464,7 @@ class AggressionDetector:
                   f"soft={soft_hits} repeated={is_repeated}")
             return None
 
-        print("[TRACK B] Quiet bullying detected")
+        print("[TRACK B] Possible quiet-aggression evidence detected")
 
         # ---------- LAYER 5: tiered duration + cooldown ----------
         required = get_required_duration(hard_hits, soft_hits, is_repeated)
@@ -485,7 +494,7 @@ class AggressionDetector:
         gate = "repeated" if is_repeated else ("hard" if hard_hits else "medium")
 
         print(
-            f"[ALERT] POSSIBLE BULLYING | Track=B "
+            f"[ALERT] UNVERIFIED POSSIBLE AGGRESSION | Track=B "
             f"Severity={final_severity} Duration={duration:.1f}s "
             f"Gate={gate} Words={detected_words}"
         )
@@ -531,6 +540,12 @@ class AggressionDetector:
         the quiet text path (Track B = process_text), which keeps its own strict
         gates (2+ soft / repetition) so a lone soft word never alerts quietly.
         """
+        if stt_result.get("quality_accepted") is False:
+            print("[NO ALERT] Low transcript quality")
+            return None
+        if stt_result.get("context_suppressed_all"):
+            print("[NO ALERT] context_suppressed")
+            return None
         if not stt_result.get("has_profanity"):
             return None
 
@@ -629,7 +644,7 @@ class AggressionDetector:
             )
 
             if audio_aggressive and (hard_hits or soft_hits):
-                print("[TRACK A] Loud bullying — audio+text")
+                print("[TRACK A] Possible loud-aggression audio+text evidence")
                 return self._build_track_a_alert(
                     stt_result=stt_result,
                     audio_event=audio_event,
@@ -695,7 +710,7 @@ class AggressionDetector:
         duration = audio_event.duration_ms / 1000.0
 
         print(
-            f"[ALERT] POSSIBLE BULLYING | Track=A"
+            f"[ALERT] UNVERIFIED POSSIBLE AGGRESSION | Track=A"
             f" Severity={final_sev}"
             f" YAMNet={yamnet_class}"
             f" Emotion={emotion}"
@@ -740,7 +755,7 @@ class AggressionDetector:
         severity = max([word_severity, time_severity], key=lambda s: SEVERITY_ORDER[s])
         self.last_alert_time = time.time()
 
-        print(f"[ALERT] POSSIBLE BULLYING | Track={track} Severity={severity} "
+        print(f"[ALERT] UNVERIFIED POSSIBLE AGGRESSION | Track={track} Severity={severity} "
               f"Confidence={confidence:.2f} Duration={duration:.1f}s "
               f"Gate={duration_gate} Emotion={emotion} Words={detected_words}")
 

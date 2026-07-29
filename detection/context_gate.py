@@ -70,7 +70,7 @@ class ContextGate:
             (has_hard or soft_ok)
         )
 
-        reason = "confirmed bullying context"
+        reason = "possible aggression context"
         if laughing_suppressed:
             reason = "laughter detected — likely kantiyawan, not bullying"
         elif not emotion_ok:
@@ -80,6 +80,7 @@ class ContextGate:
 
         return {
             "is_bullying_context": is_bullying,
+            "is_possible_aggression_context": is_bullying,
             "max_repetitions":     max_rep,
             "is_repeated":         is_repeated,
             "repetition_span":     repetition_span,

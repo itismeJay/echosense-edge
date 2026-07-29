@@ -7,7 +7,7 @@ States
 ------
     STARTUP     -> blink 3 times fast        (system loading)
     LISTENING   -> slow blink every 2 s       (mic active, background heartbeat)
-    ALERT FIRED -> blink rapidly 5 times      (bullying detected!)
+    ALERT FIRED -> blink rapidly 5 times      (unverified possible aggression)
     ERROR / off -> LED stays OFF
 
 Design notes
