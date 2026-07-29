@@ -3,6 +3,8 @@ from model.blacklist import check_transcript
 from model.monitored_terms import classify_transcript_language
 from model.realtimestt_audio_adapter import RealtimeSTTAudioEventAdapter
 from detection.transcript_quality import assess_transcript_quality
+from config import SHOW_TRANSCRIPT_TEXT
+import json
 import threading
 import time
 
@@ -21,6 +23,19 @@ _audio_event_adapter = RealtimeSTTAudioEventAdapter(sample_rate=16000)
 def _on_realtime_update(text: str):
     if text and text.strip():
         print(f"[LIVE] {text.strip()}")
+
+
+def _log_finalized_transcript(event_id, language, original_text):
+    """Optionally log one exact finalized transcript with safe line escaping."""
+
+    if not SHOW_TRANSCRIPT_TEXT:
+        return
+    encoded_text = json.dumps(str(original_text or ""), ensure_ascii=False)
+    print(
+        f"[TRANSCRIPT] event={event_id} "
+        f"language={language} text={encoded_text}"
+    )
+
 
 def _on_text(
     text: str,
@@ -67,6 +82,7 @@ def _on_text(
     result["audio_event"] = audio_event
     result["event_id"] = audio_event.event_id if audio_event is not None else None
     result["all_words"] = quality.normalized_text.split()
+    _log_finalized_transcript(event_id, language, original_text)
 
     print(
         f"[TERM_MATCH] event={event_id} "

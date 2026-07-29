@@ -13,6 +13,13 @@ from sender.http_client import (
 from model.yamnet_infer import load_yamnet, load_class_names
 from model.monitored_terms import start_dictionary_sync
 from audio.led_indicator import LEDIndicator
+from config import SHOW_TRANSCRIPT_TEXT
+
+
+def should_ship_runtime_log(line):
+    """Keep diagnostic transcript text local to the authorized edge console."""
+
+    return not str(line or "").startswith("[TRANSCRIPT]")
 
 
 def get_ip():
@@ -141,10 +148,18 @@ def main():
     def _log_print(*args, **kwargs):
         _orig_print(*args, **kwargs)
         line = " ".join(str(a) for a in args)
-        push_log_line(line)
+        if should_ship_runtime_log(line):
+            push_log_line(line)
 
     _builtins.print = _log_print
     start_log_flush_thread()
+
+    print(f"[CONFIG] show_transcript_text={str(SHOW_TRANSCRIPT_TEXT).lower()}")
+    if SHOW_TRANSCRIPT_TEXT:
+        print(
+            "[NOTICE] Exact finalized transcript logging is enabled "
+            "for authorized testing."
+        )
 
     print("=" * 50)
     print("  EchoSense Edge AI System")

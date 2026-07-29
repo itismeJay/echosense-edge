@@ -1,5 +1,43 @@
 # EchoSense Edge Device Configuration
 
+import os
+
+
+_TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
+_FALSE_VALUES = frozenset({"0", "false", "no", "off", ""})
+
+
+def parse_boolean(value, *, default=False):
+    """Parse a conservative boolean configuration value.
+
+    Unknown values fall back to ``default`` so a typo cannot accidentally
+    enable privacy-sensitive transcript logging.
+    """
+
+    if value is None:
+        return bool(default)
+    normalized = str(value).strip().lower()
+    if normalized in _TRUE_VALUES:
+        return True
+    if normalized in _FALSE_VALUES:
+        return False
+    return bool(default)
+
+
+def show_transcript_text_from_environment(environ=None):
+    """Return whether exact finalized transcript logging is enabled."""
+
+    source = os.environ if environ is None else environ
+    return parse_boolean(
+        source.get("ECHOSENSE_SHOW_TRANSCRIPT_TEXT"),
+        default=False,
+    )
+
+
+# Privacy-safe by default. Authorized diagnostics may enable this through the
+# service environment without changing alert decisions or backend transmission.
+SHOW_TRANSCRIPT_TEXT = show_transcript_text_from_environment()
+
 # Backend API
 API_URL = "https://echosense-backend-75h3.onrender.com"
 
