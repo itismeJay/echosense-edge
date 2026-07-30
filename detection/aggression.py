@@ -17,7 +17,13 @@ from detection.thresholds import (
     QUIET_BASE_CONFIDENCE,
     APPEARANCE_MIN_RMS,
     APPEARANCE_LOUD_RMS,
-    get_time_severity,
+)
+from detection.severity import (
+    HIGH,
+    MEDIUM,
+    SeverityDecision,
+    calculate_severity,
+    contains_urgent_directive,
 )
 from model.yamnet_infer import (
     is_aggressive_sound,
@@ -39,8 +45,7 @@ from audio.waveform import (
 )
 from sender.shadow_log import log_near_miss
 
-SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2}
-# Grade 6: bullying tone is often calm/upset/tense, not full anger.
+# Possible-aggression tone evidence may be calm/upset/tense, not full anger.
 # NOTE: classify_emotion() (model/tone_analyzer.py) currently only emits
 # angry/aggressive/distressed/upset/neutral/silent — "tense" and "fearful" are
 # listed here for forward-compat but are inert until tone_analyzer emits them.
@@ -57,13 +62,36 @@ def _distinct_hits(terms: list) -> list:
     genuinely different insults ("bobo gago") still count as two."""
     return [t for t in terms if not any(t != o and t in o for o in terms)]
 
-# Threat words demand the fastest reaction (DURATION_THREAT).
-THREAT_WORDS = {
-    "patyon tika", "patyon ka nako", "kill you",
-    "papatayin kita", "mamamatay ka",
-    "gusto kag sumbagay", "suwayi rag duol",
-    "sumbagay ta",
-}
+def _severity_for_result(
+    stt_result: dict,
+    *,
+    duration: float = 0.0,
+    repeated: bool = False,
+    acoustic_aggressive: bool = False,
+) -> SeverityDecision:
+    return calculate_severity(
+        stt_result.get("detected_words", []),
+        transcript=stt_result.get("transcribed_text", ""),
+        duration=duration,
+        repeated=repeated,
+        acoustic_aggressive=acoustic_aggressive,
+        laughter_present=bool(stt_result.get("is_casual")),
+    )
+
+
+def _log_severity(decision: SeverityDecision, event_id: str) -> None:
+    reasons = ",".join(decision.reasons) or "none"
+    supporting = ",".join(decision.supporting_evidence) or "none"
+    print(
+        f"[SEVERITY] event={event_id} level={decision.level} "
+        f"reasons={reasons} supporting={supporting}"
+    )
+
+
+def _laughter_suppresses(is_casual: bool, decision: SeverityDecision) -> bool:
+    """Allow laughter to suppress limited evidence, never a HIGH phrase."""
+
+    return bool(is_casual and decision.level != HIGH)
 
 
 def get_required_duration(
@@ -80,15 +108,15 @@ def get_required_duration(
     - 2+ soft words     = 3.0s (clear pattern)
     - Single soft only  = 5.0s (need sustained evidence)
     """
-    # Threats = near-immediate response
-    if any(w in THREAT_WORDS for w in hard_hits):
+    # Self-harm directives and threat-like phrases use the existing fastest gate.
+    if contains_urgent_directive(hard_hits):
         return DURATION_THREAT          # 1.5 seconds
 
     # Hard trigger = severe words, short duration needed
     if len(hard_hits) > 0:
         return DURATION_HARD_TRIGGER    # 2.0 seconds
 
-    # Repeated word = targeting confirmed by repetition
+    # Repetition is supporting observable evidence.
     if is_repeated:
         return DURATION_REPEATED_WORD   # 2.0 seconds
 
@@ -111,7 +139,7 @@ class AggressionDetector:
       1. Faster-Whisper STT + blacklist  → no profanity ⇒ stop
       2. YAMNet aggressive class ≥ 0.72   → fail ⇒ stop
       3. Tone RMS/variance + emotion ∈ {angry, aggressive, distressed} → fail ⇒ stop
-      4. ContextGate (laughter / repetition / hard vs soft) → not bullying ⇒ stop
+      4. ContextGate (laughter / repetition / hard vs soft) → insufficient ⇒ stop
       5. Tiered duration (per-tier required seconds) + cooldown (≥60s) → fail ⇒ stop
     All pass ⇒ build + return alert payload (else return None).
 
@@ -145,13 +173,13 @@ class AggressionDetector:
         hard_hits        = stt["hard_hits"]
         soft_hits        = stt["soft_hits"]
         transcribed_text = stt["transcribed_text"]
-        word_severity    = stt["severity"]
         categories       = stt["categories"]
         language         = stt.get("language", "unknown")
         language_confidence = stt.get("language_confidence")
         matched_terms    = stt.get("matched_terms", [])
         is_casual        = stt["is_casual"]
         has_hard         = len(hard_hits) > 0
+        term_severity = _severity_for_result(stt)
 
         # ---------- Repetition context (shared by both tracks) ----------
         ctx = self.context_gate.check(
@@ -161,6 +189,7 @@ class AggressionDetector:
             is_casual=is_casual,
             hard_hits=hard_hits,
             soft_hits=soft_hits,
+            severe_evidence=term_severity.level == HIGH,
         )
         is_repeated = ctx.get("is_repeated", False)
 
@@ -196,20 +225,33 @@ class AggressionDetector:
                     "emotion":        emotion,
                     "rms":            round(rms, 1),
                     "duration":       round(duration, 2),
-                    "severity":       word_severity,
+                    "severity":       term_severity.level,
                     "reason":         reason,
                 })
             return None
 
-        # ---------- Rule 5: laughter ALWAYS suppresses (any track) ----------
+        # Laughter is a narrow suppressor for limited evidence. It never cancels
+        # a centrally classified HIGH phrase.
+        if _laughter_suppresses(is_casual, term_severity):
+            return _near_miss(
+                1,
+                "Laughter/excitement marker with limited evidence — suppressed",
+            )
         if is_casual:
-            return _near_miss(1, "Laughter present — kantiyawan, suppressed (Rule 5)")
+            print("[CONTEXT] Laughter marker retained alongside HIGH evidence")
 
         # ================= TRACK B — quiet / relational bullying =================
         # No scream required. Fires on repetition, 2+ hard words, hard+angry, or
         # 2+ soft words (RA 10627 'repeated / targeted' behavior).
         pending_track = "B"
-        if self._should_fire_track_b(hard_hits, soft_hits, is_repeated, emotion, is_casual):
+        if self._should_fire_track_b(
+            hard_hits,
+            soft_hits,
+            is_repeated,
+            emotion,
+            is_casual,
+            term_severity,
+        ):
             print("[TRACK B] Possible quiet-aggression criteria met")
             if is_repeated:
                 required_duration = DURATION_REPEATED_WORD     # 2.0s
@@ -236,7 +278,7 @@ class AggressionDetector:
                 + (0.10 if is_repeated else 0.0) + tone_boost,
             )
             return self._fire(
-                track="B", word_severity=word_severity, duration=duration,
+                track="B", duration=duration,
                 required_duration=required_duration, duration_gate=duration_gate,
                 confidence=confidence, transcribed_text=transcribed_text,
                 detected_words=detected_words, categories=categories,
@@ -245,6 +287,9 @@ class AggressionDetector:
                 matched_terms=matched_terms,
                 yamnet_class="(quiet track)", yamnet_score=0.0,
                 emotion=emotion, tone=tone, audio_np=audio_np,
+                is_repeated=is_repeated,
+                laughter_present=is_casual,
+                acoustic_aggressive=bool(tone["is_aggressive_tone"]),
             )
 
         # ================= TRACK A — loud / shouted aggression =================
@@ -291,7 +336,7 @@ class AggressionDetector:
 
         confidence = min(1.0, yamnet_score + PROFANITY_BOOST + tone_boost)
         return self._fire(
-            track="A", word_severity=word_severity, duration=duration,
+            track="A", duration=duration,
             required_duration=required_duration, duration_gate=duration_gate,
             confidence=confidence, transcribed_text=transcribed_text,
             detected_words=detected_words, categories=categories,
@@ -300,77 +345,37 @@ class AggressionDetector:
             matched_terms=matched_terms,
             yamnet_class=yamnet_class, yamnet_score=yamnet_score,
             emotion=emotion, tone=tone, audio_np=audio_np,
+            is_repeated=is_repeated,
+            laughter_present=is_casual,
+            acoustic_aggressive=True,
         )
 
-    def _should_fire_track_b(self, hard_hits, soft_hits, is_repeated, emotion, is_casual):
-        """Track B firing rules — TIGHTENED (FIX 6).
+    def _should_fire_track_b(
+        self,
+        hard_hits,
+        soft_hits,
+        is_repeated,
+        emotion,
+        is_casual,
+        term_severity: SeverityDecision,
+    ):
+        """Apply text-track firing gates without duplicating term severity lists."""
 
-        Fires when ONE of:
-          - real repetition of a detected word across separate utterances, OR
-          - 2+ hard triggers in the same utterance (directed insult), OR
-          - a hard + a soft trigger in the same utterance ("bobo ka pangit mo"), OR
-          - 1 hard + angry/aggressive tone (audio path only — tone is neutral on
-            the text-only path, so this rule is inert there).
-
-        NEVER fires on:
-          - a single hard word said ONCE (the biggest false-positive fix),
-          - 2+ soft words WITHOUT repetition,
-          - anything with laughter.
-
-        'is_repeated' must come from the context gate tracking DIFFERENT
-        utterances over time — not the same stale result read twice (fixed in
-        whisper_stt.transcribe_and_check via consume-once)."""
-        # Grade 6 fix — single high-severity word fires immediately without
-        # needing repetition. These words are unambiguous bullying even said
-        # quietly once. Good students do not say these words. Alert teacher
-        # immediately (RA 10627 — even one incident = bullying). Soft words
-        # still need repetition/pairing.
-        HIGH_SEVERITY_WORDS = {
-            # Bisaya hard
-            "yawa", "bogo", "bugok", "buang",
-            "giatay", "piste", "putang ina",
-            "patyon tika", "patyon ka nako",
-            "bungoan tika", "suntukan ta",
-            "away ta", "sampalan tika",
-            # Tagalog hard
-            "putangina", "pakyu", "tang ina",
-            "tangina", "papatayin kita",
-            "mamamatay ka",
-            # English hard
-            "kill yourself", "go kill yourself",
-            "kill you",
-            # Academic hard (very common Grade 6)
-            "bobo", "tanga", "gago", "ulol",
-            "inutil", "retard", "buang",
-            "wala kang kwenta",
-            "nobody likes you",
-            "you are worthless",
-            # Appearance/body — direct physical attacks (Grade 6). Each targets
-            # a specific feature of a child; alert immediately even if quiet.
-            "tambok ka", "baboy ka", "murag baboy", "murag baboy ka",
-            "dakog ilong", "pango ka", "pandak ka", "itom kaayo ka",
-            "uling kaayo ka", "baho ka", "bungi ka", "bungal ka",
-            "fat ka", "mataba ka", "negro ka", "negra ka",
-            "duling ka", "putot ka",
-            "pangit", "pangit ka",   # demo: fire on single utterance (casual-common)
-        }
-
-        single_high = any(
-            w.lower() in HIGH_SEVERITY_WORDS
-            for w in (hard_hits or [])
-        )
-
-        if single_high and not is_casual:
-            print(
-                f"[TRACK B] Single high-severity "
-                f"word → immediate alert"
-            )
+        # HIGH observable text evidence is retained even when laughter or
+        # excitement markers occur in the same event.
+        if term_severity.level == HIGH:
+            print("[TRACK B] HIGH monitored evidence → immediate review path")
             return True
 
-        # Laughter always suppresses.
+        # Laughter remains a narrow suppressor for LOW/MEDIUM evidence.
         if is_casual:
             return False
-        # Real, cross-utterance repetition = targeting (RA 10627).
+
+        # A direct/hard MEDIUM term retains existing single-event behavior.
+        if term_severity.level == MEDIUM and hard_hits:
+            return True
+
+        # Real repetition across separate utterances is supporting evidence.
         if is_repeated:
             return True
         # Two or more DISTINCT hard triggers together = directed insult.
@@ -384,7 +389,7 @@ class AggressionDetector:
         # One hard trigger + angry tone (audio path only; neutral on text path).
         if len(hard_hits) >= 1 and emotion in ANGRY_EMOTIONS:
             return True
-        # Single hard word once, OR 2+ soft without repetition = NOT bullying.
+        # Other limited evidence does not create an alert on this path.
         return False
 
     def process_text(
@@ -403,7 +408,7 @@ class AggressionDetector:
           L1 STT + blacklist (already done upstream)
           L2 tone proxy   — no audio, so reject soft-only/non-repeated as casual
           L3 context gate — REAL cross-utterance repetition only (consume-once)
-          L4 laughter     — kantiyawan always suppresses
+          L4 context      — laughter suppresses limited, never HIGH, evidence
           L5 duration     — synchronized event duration + cooldown
 
         The current event's sample count is the only observed audio duration.
@@ -423,19 +428,20 @@ class AggressionDetector:
         hard_hits        = stt_result.get("hard_hits", [])
         soft_hits        = stt_result.get("soft_hits", [])
         transcribed_text = stt_result.get("transcribed_text", "")
-        word_severity    = stt_result.get("severity", "low")
         categories       = stt_result.get("categories", [])
         detected_words   = stt_result.get("detected_words", [])
         is_casual        = stt_result.get("is_casual", False)
+        term_severity = _severity_for_result(stt_result)
         if audio_event is None:
             audio_event = stt_result.get("audio_event")
 
-        # ---------- LAYER 4: laughter / casual ALWAYS suppresses ----------
-        # Checked before the context gate so a joke ("bobo haha") is never
-        # recorded as a bullying instance and can never build fake repetition.
-        if is_casual:
-            print("[NO ALERT] Laughter/casual present — kantiyawan (Layer 4)")
+        # Laughter remains a narrow exclusion for limited evidence, but cannot
+        # cancel a HIGH self-harm, threat-like, or severe harassment phrase.
+        if _laughter_suppresses(is_casual, term_severity):
+            print("[NO ALERT] Laughter/excitement with limited evidence")
             return None
+        if is_casual:
+            print("[CONTEXT] Laughter marker does not suppress HIGH evidence")
 
         # ---------- LAYER 3: context gate — REAL repetition only ----------
         ctx = self.context_gate.check(
@@ -445,6 +451,7 @@ class AggressionDetector:
             is_casual=is_casual,
             hard_hits=hard_hits,
             soft_hits=soft_hits,
+            severe_evidence=term_severity.level == HIGH,
         )
         is_repeated = ctx.get("is_repeated", False)
 
@@ -459,6 +466,7 @@ class AggressionDetector:
         if not self._should_fire_track_b(
             hard_hits=hard_hits, soft_hits=soft_hits,
             is_repeated=is_repeated, emotion="neutral", is_casual=is_casual,
+            term_severity=term_severity,
         ):
             print(f"[TRACK B] Criteria not met — hard={hard_hits} "
                   f"soft={soft_hits} repeated={is_repeated}")
@@ -485,24 +493,26 @@ class AggressionDetector:
 
         self.last_alert_time = current_time
 
-        time_severity = get_time_severity(duration)
-        final_severity = max(
-            [word_severity, time_severity],
-            key=lambda s: SEVERITY_ORDER.get(s, 0)
+        severity_decision = _severity_for_result(
+            stt_result,
+            duration=duration,
+            repeated=is_repeated,
         )
+        _log_severity(severity_decision, audio_event.event_id)
 
         gate = "repeated" if is_repeated else ("hard" if hard_hits else "medium")
 
         print(
             f"[ALERT] UNVERIFIED POSSIBLE AGGRESSION | Track=B "
-            f"Severity={final_severity} Duration={duration:.1f}s "
+            f"Severity={severity_decision.level} Duration={duration:.1f}s "
             f"Gate={gate} Words={detected_words}"
         )
 
         return {
             "should_alert":      True,
             "track":             "B",
-            "severity":          final_severity,
+            "severity":          severity_decision.level,
+            "severity_evidence": severity_decision.evidence(),
             "confidence":        0.85,
             "duration":          round(duration, 2),
             "transcribed_text":  transcribed_text,
@@ -560,11 +570,13 @@ class AggressionDetector:
         soft_hits      = stt_result.get("soft_hits", [])
         detected_words = stt_result.get("detected_words", [])
         is_casual      = stt_result.get("is_casual", False)
+        term_severity = _severity_for_result(stt_result)
 
-        # Laughter always suppresses.
-        if is_casual:
-            print("[NO ALERT] Kantiyawan")
+        if _laughter_suppresses(is_casual, term_severity):
+            print("[NO ALERT] Laughter/excitement with limited evidence")
             return None
+        if is_casual:
+            print("[CONTEXT] Laughter marker does not suppress HIGH evidence")
 
         # Tone is computed once from the same finalized event submitted to STT.
         tone = emotion = None
@@ -581,8 +593,8 @@ class AggressionDetector:
 
             # ── APPEARANCE / BODY bullying — single utterance, audio-gated ──
             # For Grade 6, a directed appearance insult (baboy, tambok, taba,
-            # pango, itom, uling, pandak, bungi, baho, baduy …) is bullying even
-            # said ONCE — but only when the VOICE carries it. "Directed" = above
+            # pango, itom, uling, pandak, bungi, baho, baduy …) can contribute
+            # single-event evidence when the voice carries it. "Directed" = above
             # the too-quiet floor AND an angry/upset tone, OR clearly loud. Calm
             # normal talk (emotion=neutral) and near-silence never fire here; a
             # calm/quiet appearance word still needs repetition (Track B). Tone
@@ -697,9 +709,6 @@ class AggressionDetector:
         self.last_alert_time = current_time
         self.aggressive_start_time = None
 
-        word_sev = stt_result.get("severity", "low")
-        final_sev = max([word_sev, "medium"], key=lambda s: SEVERITY_ORDER.get(s, 0))
-
         confidence = min(
             yamnet_score + 0.15 + get_tone_confidence_boost(tone),
             1.0,
@@ -708,10 +717,16 @@ class AggressionDetector:
         hard_hits = stt_result.get("hard_hits", [])
         soft_hits = stt_result.get("soft_hits", [])
         duration = audio_event.duration_ms / 1000.0
+        severity_decision = _severity_for_result(
+            stt_result,
+            duration=duration,
+            acoustic_aggressive=True,
+        )
+        _log_severity(severity_decision, audio_event.event_id)
 
         print(
             f"[ALERT] UNVERIFIED POSSIBLE AGGRESSION | Track=A"
-            f" Severity={final_sev}"
+            f" Severity={severity_decision.level}"
             f" YAMNet={yamnet_class}"
             f" Emotion={emotion}"
             f" Words={stt_result.get('detected_words')}"
@@ -720,7 +735,8 @@ class AggressionDetector:
         return {
             "should_alert":      True,
             "track":             "A",
-            "severity":          final_sev,
+            "severity":          severity_decision.level,
+            "severity_evidence": severity_decision.evidence(),
             "confidence":        round(confidence, 3),
             "duration":          round(duration, 3),
             "event_id":          audio_event.event_id,
@@ -745,24 +761,34 @@ class AggressionDetector:
             "required_duration": 1.5,
         }
 
-    def _fire(self, *, track, word_severity, duration, required_duration,
+    def _fire(self, *, track, duration, required_duration,
               duration_gate, confidence, transcribed_text, detected_words,
               categories, hard_hits, soft_hits, language,
               language_confidence, matched_terms, yamnet_class, yamnet_score,
-              emotion, tone, audio_np):
+              emotion, tone, audio_np, is_repeated, laughter_present,
+              acoustic_aggressive):
         """Stamp the cooldown, log, and build the alert payload."""
-        time_severity = get_time_severity(duration)
-        severity = max([word_severity, time_severity], key=lambda s: SEVERITY_ORDER[s])
+        severity_decision = calculate_severity(
+            detected_words,
+            transcript=transcribed_text,
+            duration=duration,
+            repeated=is_repeated,
+            acoustic_aggressive=acoustic_aggressive,
+            laughter_present=laughter_present,
+        )
         self.last_alert_time = time.time()
+        _log_severity(severity_decision, "legacy-audio-event")
 
-        print(f"[ALERT] UNVERIFIED POSSIBLE AGGRESSION | Track={track} Severity={severity} "
+        print(f"[ALERT] UNVERIFIED POSSIBLE AGGRESSION | Track={track} "
+              f"Severity={severity_decision.level} "
               f"Confidence={confidence:.2f} Duration={duration:.1f}s "
               f"Gate={duration_gate} Emotion={emotion} Words={detected_words}")
 
         return {
             "should_alert":      True,
             "track":             track,
-            "severity":          severity,
+            "severity":          severity_decision.level,
+            "severity_evidence": severity_decision.evidence(),
             "confidence":        confidence,
             "duration":          round(duration, 2),
             "required_duration": required_duration,

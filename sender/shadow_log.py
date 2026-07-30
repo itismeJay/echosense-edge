@@ -1,7 +1,7 @@
 """Shadow logging for post-deployment tuning.
 
 Appends one JSON line per event to logs/shadow_log.jsonl:
-  - type "alert"     — an alert that fired (and was sent to the backend)
+  - type "alert"     — an alert that fired (delivery state is recorded separately)
   - type "near_miss" — profanity heard and 3+ stages passed, but no alert
 
 This lets us review what the system caught and missed (and tune thresholds)
@@ -25,7 +25,7 @@ def _write(record: dict) -> None:
 
 
 def log_alert(result: dict, sent=None) -> None:
-    """Log a fired alert (called from main.py after send_alert)."""
+    """Log a fired alert with its enqueue result when supplied."""
     tone = result.get("tone_data") or {}
     _write({
         "type":            "alert",
@@ -39,6 +39,8 @@ def log_alert(result: dict, sent=None) -> None:
         "severity":        result.get("severity"),
         "confidence":      round(float(result.get("confidence", 0.0)), 3),
         "fired":           True,
+        # Legacy field retained for existing log readers. Under the persistent
+        # outbox it reflects enqueue acknowledgement, not remote delivery.
         "sent_to_backend": sent,
     })
     print(f"[SHADOWLOG] alert track={result.get('track')} "

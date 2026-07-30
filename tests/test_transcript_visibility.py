@@ -257,6 +257,19 @@ class TranscriptVisibilityTests(unittest.TestCase):
             )
         )
 
+    def test_24_unsupported_language_and_script_are_not_accepted(self):
+        _event_value, result, output = self._render(
+            "Бабой.",
+            language="ru",
+            confidence=0.81,
+        )
+
+        self.assertIn("[LANGUAGE_GUARD] rejected", output)
+        self.assertIn('language=unknown text=""', output)
+        self.assertEqual(result["transcribed_text"], "")
+        self.assertFalse(result["quality_accepted"])
+        self.assertFalse(result["has_profanity"])
+
 
 if __name__ == "__main__":
     unittest.main()

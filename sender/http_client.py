@@ -1,10 +1,34 @@
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 import requests
 import time
 import threading
+import uuid
 from config import API_URL, LOCATION
+from detection.severity import normalize_severity
 
 _LANGUAGE_VALUES = {"fil", "ceb", "en", "mixed", "unknown"}
 _MATCHED_TERM_LANGUAGE_VALUES = {"fil", "ceb", "en"}
+DELIVERED = "DELIVERED"
+RETRYABLE = "RETRYABLE"
+PERMANENT = "PERMANENT"
+_RETRYABLE_HTTP_STATUSES = {408, 425, 429, 500, 502, 503, 504}
+
+
+@dataclass(frozen=True, slots=True)
+class DeliveryResult:
+    disposition: str
+    http_status: int | None = None
+    error_type: str | None = None
+    retry_after_seconds: float | None = None
+    duplicate_acknowledged: bool = False
+
+
+def _backend_severity(value):
+    """Translate the internal uppercase contract at the legacy API boundary."""
+
+    return normalize_severity(value).lower()
 
 
 def _optional_confidence(value):
@@ -104,7 +128,9 @@ def build_alert_payload(
         payload_yamnet_score = 0.0
     return {
         "event_id": str(event_id) if event_id else None,
-        "severity": str(severity),
+        # The edge uses LOW/MEDIUM/HIGH internally. Production currently stores
+        # lowercase values, so compatibility conversion is confined here.
+        "severity": _backend_severity(severity),
         "confidence": float(round(float(confidence), 4)),
         "duration": float(round(float(duration), 2)),
         "required_duration": float(required_duration) if required_duration is not None else None,
@@ -132,6 +158,133 @@ def build_alert_payload(
     }
 
 
+def _response_json(response):
+    try:
+        value = response.json()
+    except (TypeError, ValueError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def _retry_after_seconds(response, *, now=None):
+    value = str(response.headers.get("Retry-After") or "").strip()
+    if not value:
+        return None
+    try:
+        return max(0.0, float(value))
+    except ValueError:
+        pass
+    try:
+        retry_at = parsedate_to_datetime(value)
+        if retry_at.tzinfo is None:
+            retry_at = retry_at.replace(tzinfo=timezone.utc)
+        current = now or datetime.now(timezone.utc)
+        return max(
+            0.0,
+            (retry_at.astimezone(timezone.utc) - current).total_seconds(),
+        )
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def _is_duplicate_acknowledgement(response, payload) -> bool:
+    """Require a duplicate indicator and matching event_id for HTTP 409."""
+
+    data = _response_json(response)
+    if not data:
+        return False
+    expected_event_id = str(payload.get("event_id") or "")
+    existing = data.get("existing")
+    if not isinstance(existing, dict):
+        existing = {}
+    acknowledged_event_id = str(
+        data.get("event_id")
+        or existing.get("event_id")
+        or ""
+    )
+    indicator = " ".join(
+        str(data.get(key) or "")
+        for key in ("code", "status", "detail", "message")
+    ).lower()
+    is_duplicate = bool(
+        data.get("duplicate") is True
+        or "duplicate" in indicator
+        or "already exists" in indicator
+    )
+    return bool(
+        expected_event_id
+        and acknowledged_event_id == expected_event_id
+        and is_duplicate
+    )
+
+
+def deliver_alert_payload(
+    payload,
+    *,
+    api_url=API_URL,
+    timeout=10.0,
+    post=None,
+) -> DeliveryResult:
+    """Perform exactly one HTTP attempt and classify its acknowledgement."""
+
+    request_post = post or requests.post
+    try:
+        response = request_post(
+            f"{api_url}/alerts/",
+            json=payload,
+            timeout=timeout,
+        )
+    except requests.Timeout:
+        return DeliveryResult(RETRYABLE, error_type="timeout")
+    except requests.ConnectionError as exc:
+        name = type(exc).__name__.lower()
+        message = str(exc).lower()
+        if "name resolution" in message or "getaddrinfo" in message:
+            error_type = "dns_failure"
+        elif "refused" in message:
+            error_type = "connection_refused"
+        else:
+            error_type = name or "connection_error"
+        return DeliveryResult(RETRYABLE, error_type=error_type)
+    except requests.RequestException as exc:
+        return DeliveryResult(
+            RETRYABLE,
+            error_type=type(exc).__name__.lower(),
+        )
+
+    status = int(response.status_code)
+    if 200 <= status < 300:
+        return DeliveryResult(DELIVERED, http_status=status)
+    if status == 409 and _is_duplicate_acknowledgement(response, payload):
+        return DeliveryResult(
+            DELIVERED,
+            http_status=status,
+            duplicate_acknowledged=True,
+        )
+    if status in _RETRYABLE_HTTP_STATUSES or status >= 500:
+        return DeliveryResult(
+            RETRYABLE,
+            http_status=status,
+            error_type=f"http_{status}",
+            retry_after_seconds=(
+                _retry_after_seconds(response)
+                if status in {429, 503}
+                else None
+            ),
+        )
+    if 400 <= status < 500:
+        return DeliveryResult(
+            PERMANENT,
+            http_status=status,
+            error_type=f"http_{status}",
+        )
+    return DeliveryResult(
+        RETRYABLE,
+        http_status=status,
+        error_type=f"unexpected_http_{status}",
+    )
+
+
 def send_alert(severity, confidence, duration,
                transcribed_text="", detected_words=None,
                categories=None, language="unknown",
@@ -141,7 +294,14 @@ def send_alert(severity, confidence, duration,
                yamnet_ran=False,
                emotion="unknown", tone_data=None,
                waveform_snapshot=None, language_confidence=None,
-               matched_terms=None, event_id=None, retries=3):
+               matched_terms=None, event_id=None, retries=None):
+    """Persist one complete alert payload before background HTTP delivery.
+
+    The retained ``retries`` argument is ignored for call compatibility. Retry
+    state is durable and managed by the outbox worker.
+    """
+
+    stable_event_id = str(event_id or uuid.uuid4())
     payload = build_alert_payload(
         severity=severity,
         confidence=confidence,
@@ -162,22 +322,11 @@ def send_alert(severity, confidence, duration,
         emotion=emotion,
         tone_data=tone_data,
         waveform_snapshot=waveform_snapshot,
-        event_id=event_id,
+        event_id=stable_event_id,
     )
-    for attempt in range(retries):
-        try:
-            print(f"[SENDER] Sending alert... (attempt {attempt + 1})")
-            response = requests.post(f"{API_URL}/alerts/", json=payload, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                print(f"[SENDER] Alert sent! ID: {data.get('id')} Severity: {data.get('severity')}")
-                return True
-            else:
-                print(f"[SENDER] Failed! Status: {response.status_code}")
-        except Exception as e:
-            print(f"[SENDER] Error: {e}")
-            time.sleep(3)
-    return False
+    from sender.delivery import get_alert_delivery_service
+
+    return get_alert_delivery_service().enqueue_payload(payload)
 
 def _heartbeat_loop(interval, info_provider=None):
     while True:

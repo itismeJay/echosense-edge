@@ -1,5 +1,11 @@
 from typing import List
 
+from detection.severity import (
+    HIGH_SEVERITY_TERMS,
+    LOW_SEVERITY_TERMS,
+    MEDIUM_SEVERITY_TERMS,
+    calculate_severity,
+)
 from detection.text_context import apply_harmless_context_rules
 from detection.transcript_quality import phrase_matches
 from model.monitored_terms import (
@@ -190,8 +196,8 @@ HARD_TRIGGERS = {
     "nawong mo murag guba", "basag ang nawong mo",
 
     # ── Appearance/body shaming PROMOTED from SOFT → HARD ─────
-    # Direct physical attacks common in Grade 6 PH. Treated as bullying even
-    # said once. (Leftover SOFT copies are filtered out by check_transcript's
+    # Direct appearance/body harassment terms represented in the monitored data.
+    # (Leftover SOFT copies are filtered out by check_transcript's
     # "soft_hits not in HARD_TRIGGERS" guard, so no double-counting.)
     "tambok", "tambok ka", "tambok kaayo",
     "baboy ka", "murag baboy",
@@ -500,39 +506,11 @@ LAUGHTER_MARKERS = {
     "cge lang", "wala lang", "biro ra",
 }
 
-# ─────────────────────────────────────────────────────────────
-# SEVERITY MAPPING
-# ─────────────────────────────────────────────────────────────
-HIGH_SEVERITY_WORDS = {
-    "yawa", "giatay", "bilat", "kayat", "iyot",
-    "putangina", "putang ina", "tangina", "pakyu",
-    "patyon tika", "patyon ka nako", "kill you",
-    "puta", "anak ng puta", "pesteng yawa",
-    "gusto kag sumbagay", "monggi", "retard",
-    "papatayin kita", "go die", "uling", "murag uling",
-    "agta", "negra", "negro", "bungi",
-    "kulisap ang buhok", "mukha kang unggoy",
-}
-
-MEDIUM_SEVERITY_WORDS = {
-    "bogo", "bugok", "bulok", "gago", "bobo",
-    "tanga", "ulol", "way utok", "walang kwenta",
-    "wala kang kwenta", "walay gustong makig uban sa imo",
-    "isuka ka sa imuhang mama", "worthless", "inutil",
-    "bugits", "bogo kaayo", "bulok man ka",
-    "tambokikoy", "murag litson", "murag ungo",
-    "nawong mo murag ungo", "itom kaayo murag uling",
-    "dakog ulo walay laman", "ang pangit ng mukha mo",
-}
-
-LOW_SEVERITY_WORDS = {
-    "pangit", "tambok", "itom", "putot", "baho",
-    "pikon", "sumbong", "hilak nasad", "iiyak na yan",
-    "ugly", "fat", "crybaby", "loser", "freak",
-    "ampon", "luod kaayo ka", "dakog ilong",
-    "dakog dunggan", "pango", "niwang", "pandak",
-    "malaking ilong", "malaking tenga",
-}
+# Backward-compatible names for callers that imported the former local sets.
+# The term membership itself is authoritative in detection/severity.py.
+HIGH_SEVERITY_WORDS = HIGH_SEVERITY_TERMS
+MEDIUM_SEVERITY_WORDS = MEDIUM_SEVERITY_TERMS
+LOW_SEVERITY_WORDS = LOW_SEVERITY_TERMS
 
 # ─────────────────────────────────────────────────────────────
 # CATEGORY KEYWORD SETS (for classification)
@@ -606,10 +584,8 @@ ALL_BLACKLIST = HARD_TRIGGERS | SOFT_TRIGGERS
 
 # ─────────────────────────────────────────────────────────────
 # APPEARANCE / BODY "DIRECT" ROOTS
-# These are the cruel appearance/body insults that — for a Grade 6
-# classroom — count as bullying even when said ONCE, provided the
-# AUDIO confirms it was directed (raised / uneven voice), not calm
-# normal talk and not near-silence. The audio gate lives in
+# These are appearance/body terms that can contribute single-event evidence
+# when synchronized audio provides raised/uneven-voice support. The audio gate lives in
 # detection/aggression.py (process_with_audio). Matched as substrings
 # against the blacklist terms that were detected, so a root like
 # "baboy" covers "baboy ka", "murag baboy", "baboy ang ilong mo".
@@ -820,11 +796,7 @@ def clean_text(text: str) -> str:
 
 
 def get_word_severity(word: str) -> str:
-    if word in HIGH_SEVERITY_WORDS:
-        return "high"
-    if word in MEDIUM_SEVERITY_WORDS:
-        return "medium"
-    return "low"
+    return calculate_severity([word]).level
 
 
 def check_transcript(transcript: str) -> dict:
@@ -879,14 +851,11 @@ def check_transcript(transcript: str) -> dict:
         excluded_terms=[item["term"] for item in suppressed_terms],
     )
 
-    # Severity
-    severity = "low"
-    for w in all_detected:
-        if w in HIGH_SEVERITY_WORDS:
-            severity = "high"
-            break
-        elif w in MEDIUM_SEVERITY_WORDS and severity != "high":
-            severity = "medium"
+    severity_decision = calculate_severity(
+        all_detected,
+        transcript=transcript,
+        laughter_present=is_casual,
+    )
 
     # Categories
     categories = []
@@ -908,7 +877,8 @@ def check_transcript(transcript: str) -> dict:
         "hard_hits":      hard_hits,
         "soft_hits":      soft_hits,
         "is_casual":      is_casual,
-        "severity":       severity,
+        "severity":       severity_decision.level,
+        "severity_evidence": severity_decision.evidence(),
         "categories":     list(dict.fromkeys(categories)),
         "word_count":     len(all_detected),
         "checked_text":   text,

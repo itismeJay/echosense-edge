@@ -3,6 +3,14 @@
 # Production values for the Grade 6 Davao classroom deployment.
 # ============================================================================
 
+from detection.severity import (
+    SEVERITY_HIGH_DURATION,
+    SEVERITY_MEDIUM_DURATION,
+    max_severity as _max_severity,
+    severity_from_confidence,
+    severity_from_duration,
+)
+
 # --- Core detection gates ---------------------------------------------------
 YAMNET_THRESHOLD        = 0.45   # Grade 6: lowered to 0.45 — catch moderate aggression signals in normal speech
 
@@ -30,12 +38,12 @@ DURATION_THREAT         = 1.5
 # Teacher must be notified within ~2 seconds.
 
 DURATION_HARD_TRIGGER   = 1.5
-# Reason: severe words (yawa, bogo, bungi, uling, putangina) are unambiguous
-# bullying even if brief; 2s confirms it was intentional, not accidental.
+# Severe monitored terms use a shorter evidence-duration gate. This remains an
+# unverified indicator and does not establish intent.
 
 DURATION_REPEATED_WORD  = 1.5
-# Reason: same word said 2x in 30s = targeting confirmed (RA 10627 defines
-# bullying as REPEATED behavior). Repetition itself is the evidence — 2s confirms.
+# Repetition is supporting observable evidence; it does not identify a target or
+# confirm bullying.
 
 DURATION_MEDIUM_TRIGGER = 2.0
 # Reason: 2+ soft words together (pangit + tambok, pango + baho) need slightly
@@ -55,11 +63,6 @@ ALERT_COOLDOWN          = 15.0   # Grade 6: lowered to 15s — catch back-to-bac
 QUIET_RMS_FLOOR          = 150   # just confirm it is real speech, not a flatline
 QUIET_TRACK_MIN_DURATION = 3.0   # quiet evidence must be sustained longer than a shout
 QUIET_BASE_CONFIDENCE    = 0.60  # confidence floor for a quiet-track alert (no YAMNet scream score)
-
-# --- Severity by duration (used AFTER an alert fires) -----------------------
-SEVERITY_HIGH_DURATION   = 7.0   # 7+ seconds  = HIGH time severity
-SEVERITY_MEDIUM_DURATION = 4.0   # 4-7 seconds = MEDIUM time severity
-# below 4 seconds = LOW time severity
 
 # --- Prosodic tone thresholds (EMEET OfficeCore M0 Plus) --------------------
 TONE_RMS_THRESHOLD      = 100    # Grade 6: lowered to 100 — catch the quietest classroom voices after EMEET AGC
@@ -88,32 +91,19 @@ TONE_CONFIDENCE_BOOST_MED  = 0.05
 
 
 def get_severity(confidence: float) -> str:
-    if confidence >= 0.85:
-        return "high"
-    elif confidence >= 0.70:
-        return "medium"
-    else:
-        return "low"
+    """Compatibility wrapper for the centralized uppercase severity rules."""
+
+    return severity_from_confidence(confidence)
 
 
 def get_time_severity(duration: float) -> str:
-    """Time-based severity from how long the bullying was sustained.
-    HIGH >= 7.0s, MEDIUM >= 4.0s, else LOW."""
-    if duration >= SEVERITY_HIGH_DURATION:      # 7.0s
-        return "high"
-    if duration >= SEVERITY_MEDIUM_DURATION:    # 4.0s
-        return "medium"
-    return "low"
+    """Compatibility wrapper for the centralized duration severity rule."""
 
-
-_SEVERITY_RANK = {"low": 0, "medium": 1, "high": 2}
+    return severity_from_duration(duration)
 
 
 def max_severity(a: str, b: str) -> str:
-    """Return the more severe of two severity labels."""
-    if _SEVERITY_RANK.get(a, 0) >= _SEVERITY_RANK.get(b, 0):
-        return a
-    return b
+    return _max_severity(a, b)
 
 
 def get_final_severity(yamnet_confidence: float, has_profanity: bool) -> str:

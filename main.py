@@ -1,4 +1,6 @@
+import atexit
 import subprocess
+import signal
 import sys
 import time
 import threading
@@ -10,6 +12,7 @@ from sender.http_client import (
     check_backend_connection,
     start_heartbeat,
 )
+from sender.delivery import start_alert_delivery, stop_alert_delivery
 from model.yamnet_infer import load_yamnet, load_class_names
 from model.monitored_terms import start_dictionary_sync
 from audio.led_indicator import LEDIndicator
@@ -113,7 +116,7 @@ def process_transcription_result(result, detector, led, alert_sender=send_alert)
         return False
 
     led.alert()
-    alert_sender(
+    queued = alert_sender(
         severity=alert["severity"],
         confidence=alert["confidence"],
         duration=alert["duration"],
@@ -135,6 +138,7 @@ def process_transcription_result(result, detector, led, alert_sender=send_alert)
         duration_gate=alert.get("duration_gate", ""),
         required_duration=alert.get("required_duration", 0),
     )
+    print(f"[OUTBOX] enqueue result event={event_id} queued={bool(queued)}")
     return True
 
 
@@ -154,6 +158,13 @@ def main():
     _builtins.print = _log_print
     start_log_flush_thread()
 
+    def _stop_on_signal(signum, _frame):
+        print(f"[STOP] Shutdown signal received signal={signum}")
+        raise KeyboardInterrupt
+
+    signal.signal(signal.SIGTERM, _stop_on_signal)
+    signal.signal(signal.SIGINT, _stop_on_signal)
+
     print(f"[CONFIG] show_transcript_text={str(SHOW_TRANSCRIPT_TEXT).lower()}")
     if SHOW_TRANSCRIPT_TEXT:
         print(
@@ -169,6 +180,14 @@ def main():
 
     led = LEDIndicator()
     led.startup()
+
+    print("\n[INIT] Initializing persistent alert outbox...")
+    if not start_alert_delivery():
+        print(
+            "[OUTBOX] Worker was not started; enqueue operations will retry "
+            "database initialization and report failures explicitly."
+        )
+    atexit.register(stop_alert_delivery)
 
     print("\n[INIT] Checking backend connection...")
     check_backend_connection()
@@ -214,6 +233,7 @@ def main():
     except KeyboardInterrupt:
         print("\n[STOP] EchoSense stopped.")
     finally:
+        stop_alert_delivery()
         led.cleanup()
         sys.exit(0)
 

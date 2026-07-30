@@ -5,8 +5,8 @@ from collections import defaultdict
 class ContextGate:
     def __init__(self):
         self.word_history      = defaultdict(list)
-        self.REPETITION_WINDOW = 60.0   # seconds — Grade 6: widened to 60 for spaced-out repeated bullying
-        self.REPETITION_MIN    = 2      # same word 2x in 30s = bullying signal
+        self.REPETITION_WINDOW = 60.0   # seconds retained for spaced-out repeated evidence
+        self.REPETITION_MIN    = 2      # same monitored term twice is a repetition signal
 
     def check(
         self,
@@ -16,6 +16,7 @@ class ContextGate:
         is_casual:        bool,
         hard_hits:        list,
         soft_hits:        list,
+        severe_evidence:   bool = False,
     ) -> dict:
 
         now = time.time()
@@ -58,13 +59,17 @@ class ContextGate:
         # Soft triggers need 2+ OR repetition
         soft_ok = len(soft_hits) >= 2 or is_repeated
 
-        # Laughter suppressor
-        # If student is laughing after/during the word = kantiyawan, not bullying
-        # Exception: hard profanity + anger overrides even laughter
-        laughing_suppressed = is_casual and not (has_hard and emotion_ok)
+        # Laughter may suppress limited evidence, but it cannot cancel a
+        # centrally classified HIGH phrase. Hard text plus acoustic support also
+        # retains the pre-existing exception.
+        laughing_suppressed = (
+            is_casual
+            and not severe_evidence
+            and not (has_hard and emotion_ok)
+        )
 
-        # Final verdict
-        is_bullying = (
+        # This is only an unverified possible-aggression context signal.
+        is_possible_aggression = (
             not laughing_suppressed and
             emotion_ok and
             (has_hard or soft_ok)
@@ -72,15 +77,17 @@ class ContextGate:
 
         reason = "possible aggression context"
         if laughing_suppressed:
-            reason = "laughter detected — likely kantiyawan, not bullying"
+            reason = "laughter marker with limited supporting evidence"
         elif not emotion_ok:
             reason = f"emotion is {emotion} — not angry/aggressive/distressed"
         elif not (has_hard or soft_ok):
             reason = "only one soft trigger — need repetition or 2+ words"
 
         return {
-            "is_bullying_context": is_bullying,
-            "is_possible_aggression_context": is_bullying,
+            # Legacy key retained for compatibility; it carries the same
+            # unverified context signal and is not a confirmation.
+            "is_bullying_context": is_possible_aggression,
+            "is_possible_aggression_context": is_possible_aggression,
             "max_repetitions":     max_rep,
             "is_repeated":         is_repeated,
             "repetition_span":     repetition_span,

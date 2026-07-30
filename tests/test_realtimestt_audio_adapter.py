@@ -174,6 +174,76 @@ class RealtimeSTTAudioAdapterTests(unittest.TestCase):
             source,
         )
 
+    def test_unsupported_auto_language_retries_same_event_as_tagalog(self):
+        samples = np.full(16000, 0.2, dtype=np.float32)
+
+        class Recorder:
+            language = ""
+            detected_language = None
+            detected_language_probability = None
+
+            def __init__(self, adapter):
+                self.adapter = adapter
+                self.text_calls = 0
+                self.retry_calls = 0
+                self.retry_audio = None
+
+            def text(self):
+                self.text_calls += 1
+                self.adapter.on_transcription_start(samples)
+                self.detected_language = "ru"
+                self.detected_language_probability = 0.81
+                return "Бабой."
+
+            def perform_final_transcription(self, audio, use_prompt=True):
+                self.retry_calls += 1
+                self.retry_audio = audio
+                self.detected_language = self.language
+                self.detected_language_probability = 1.0
+                return "Baboy."
+
+        recorder = Recorder(self.adapter)
+        text, event, language, probability = _run_transcription_cycle(
+            recorder,
+            self.adapter,
+        )
+
+        self.assertEqual(text, "Baboy.")
+        self.assertEqual(language, "tl")
+        self.assertEqual(probability, 1.0)
+        self.assertEqual(recorder.text_calls, 1)
+        self.assertEqual(recorder.retry_calls, 1)
+        self.assertEqual(recorder.language, "")
+        self.assertIs(recorder.retry_audio, event.samples)
+
+    def test_retry_result_with_unsupported_script_is_rejected(self):
+        samples = np.full(8000, 0.2, dtype=np.float32)
+
+        class Recorder:
+            language = ""
+            detected_language = "ko"
+            detected_language_probability = 0.8
+
+            def text(self):
+                self_adapter.on_transcription_start(samples)
+                return "방일까?"
+
+            def perform_final_transcription(self, audio, use_prompt=True):
+                self.detected_language = "tl"
+                self.detected_language_probability = 1.0
+                return "방일까?"
+
+        self_adapter = self.adapter
+        text, event, language, probability = _run_transcription_cycle(
+            Recorder(),
+            self.adapter,
+        )
+
+        self.assertEqual(text, "")
+        self.assertIsNotNone(event)
+        self.assertIsNone(language)
+        self.assertIsNone(probability)
+
 
 if __name__ == "__main__":
     unittest.main()

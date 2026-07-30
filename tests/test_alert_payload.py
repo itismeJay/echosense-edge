@@ -184,20 +184,21 @@ class AlertPayloadTests(unittest.TestCase):
         payload = self._payload(matched_terms=[term, dict(term)])
         self.assertEqual(payload["matched_terms"], [term])
 
-    @patch("sender.http_client.requests.post")
-    def test_legacy_send_alert_call_and_retry_path_remain_functional(self, post):
-        post.return_value.status_code = 200
-        post.return_value.json.return_value = {"id": 99, "severity": "high"}
+    @patch("sender.delivery.get_alert_delivery_service")
+    def test_legacy_send_alert_call_is_durably_queued(self, get_service):
+        service = get_service.return_value
+        service.enqueue_payload.return_value = True
 
         self.assertTrue(send_alert("high", 0.9, 2.0))
-        posted = post.call_args.kwargs["json"]
-        self.assertEqual(posted["language"], "unknown")
-        self.assertIsNone(posted["language_confidence"])
-        self.assertEqual(posted["matched_terms"], [])
-        self.assertEqual(posted["yamnet_class"], "NotRun")
-        self.assertEqual(posted["yamnet_score"], 0.0)
-        self.assertFalse(posted["yamnet_ran"])
-        self.assertEqual(post.call_count, 1)
+        payload = service.enqueue_payload.call_args.args[0]
+        self.assertEqual(payload["language"], "unknown")
+        self.assertIsNone(payload["language_confidence"])
+        self.assertEqual(payload["matched_terms"], [])
+        self.assertEqual(payload["yamnet_class"], "NotRun")
+        self.assertEqual(payload["yamnet_score"], 0.0)
+        self.assertFalse(payload["yamnet_ran"])
+        self.assertTrue(payload["event_id"])
+        service.enqueue_payload.assert_called_once()
 
     def test_skipped_yamnet_uses_truthful_not_run_sentinel(self):
         payload = self._payload(

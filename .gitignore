@@ -12,6 +12,10 @@ yamnet_class_map.csv
 *.zip.*
 .env
 
+# Persistent runtime alert outbox (database, WAL, and shared-memory sidecars)
+data/*.sqlite3
+data/*.sqlite3-*
+
 # Runtime shadow log (tuning data, regenerated on each run)
 logs/echosense.log
 logs/shadow_log.jsonl

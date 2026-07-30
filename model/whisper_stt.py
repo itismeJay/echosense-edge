@@ -2,16 +2,21 @@ from RealtimeSTT import AudioToTextRecorder
 from model.blacklist import check_transcript
 from model.monitored_terms import classify_transcript_language
 from model.realtimestt_audio_adapter import RealtimeSTTAudioEventAdapter
+from detection.severity import LOW
 from detection.transcript_quality import assess_transcript_quality
 from config import SHOW_TRANSCRIPT_TEXT
 import json
 import threading
 import time
+import unicodedata
 
 # FIX 2 — We deliberately do NOT pass an initial_prompt to Whisper. Priming it
 # with a profanity word-list made it hallucinate those exact words out of
 # background noise (rooster/dog/keyboard/music) — the single biggest false-alarm
 # source. Detection is handled downstream by the blacklist, not by biasing STT.
+
+_SUPPORTED_WHISPER_LANGUAGES = frozenset({"en", "tl", "fil", "ceb"})
+_REGIONAL_RETRY_LANGUAGE = "tl"
 
 _recorder = None
 _latest_result = None
@@ -37,6 +42,70 @@ def _log_finalized_transcript(event_id, language, original_text):
     )
 
 
+def _uses_supported_latin_script(text: str) -> bool:
+    """Allow the Latin-script text used by English, Filipino, and Cebuano."""
+
+    for character in str(text or ""):
+        if not character.isalpha():
+            continue
+        if "LATIN" not in unicodedata.name(character, ""):
+            return False
+    return True
+
+
+def _is_supported_transcription(text: str, whisper_language) -> bool:
+    """Reject automatic decodes outside the deployment's language scope."""
+
+    language = str(whisper_language or "").strip().lower()
+    return (
+        language in _SUPPORTED_WHISPER_LANGUAGES
+        and _uses_supported_latin_script(text)
+    )
+
+
+def _retry_in_regional_language(recorder, audio_event):
+    """Re-decode one finalized event as Tagalog when auto-detect wanders.
+
+    Whisper has a Tagalog language token but no native Cebuano token. Tagalog
+    is therefore the safest regional decoding constraint for Filipino,
+    Cebuano/Bisaya, and ordinary classroom code-switching. Downstream monitored
+    terms still assign evidence to ``fil``, ``ceb``, or ``en``.
+    """
+
+    if audio_event is None or not hasattr(recorder, "perform_final_transcription"):
+        return "", None, None
+
+    missing = object()
+    previous_language = getattr(recorder, "language", missing)
+    try:
+        recorder.language = _REGIONAL_RETRY_LANGUAGE
+        text = recorder.perform_final_transcription(
+            audio_event.samples,
+            use_prompt=False,
+        )
+        language = getattr(recorder, "detected_language", None)
+        confidence = getattr(
+            recorder,
+            "detected_language_probability",
+            None,
+        )
+    except Exception as exc:
+        print(f"[LANGUAGE_GUARD] retry_failed={type(exc).__name__}")
+        return "", None, None
+    finally:
+        if previous_language is missing:
+            try:
+                del recorder.language
+            except AttributeError:
+                pass
+        else:
+            recorder.language = previous_language
+
+    if not _is_supported_transcription(text, language):
+        return "", None, None
+    return text, language, confidence
+
+
 def _on_text(
     text: str,
     whisper_language=None,
@@ -45,6 +114,25 @@ def _on_text(
 ):
     global _latest_result
     original_text = str(text or "")
+    normalized_whisper_language = str(
+        whisper_language or ""
+    ).strip().lower()
+    unsupported_final = (
+        not _uses_supported_latin_script(original_text)
+        or (
+            normalized_whisper_language
+            and normalized_whisper_language
+            not in _SUPPORTED_WHISPER_LANGUAGES
+        )
+    )
+    if original_text and unsupported_final:
+        print(
+            "[LANGUAGE_GUARD] rejected unsupported final transcription "
+            f"language={whisper_language or 'unknown'}"
+        )
+        original_text = ""
+        whisper_language = None
+        whisper_language_confidence = None
     quality = assess_transcript_quality(original_text)
     event_id = audio_event.event_id if audio_event is not None else "unavailable"
 
@@ -124,11 +212,29 @@ def _run_transcription_cycle(recorder, audio_event_adapter):
         raise
 
     audio_event = audio_event_adapter.consume_pending()
+    detected_language = getattr(recorder, "detected_language", None)
+    detected_language_probability = getattr(
+        recorder,
+        "detected_language_probability",
+        None,
+    )
+    if text and not _is_supported_transcription(text, detected_language):
+        print(
+            "[LANGUAGE_GUARD] "
+            f"unsupported={detected_language or 'unknown'} "
+            f"retry={_REGIONAL_RETRY_LANGUAGE}"
+        )
+        text, detected_language, detected_language_probability = (
+            _retry_in_regional_language(recorder, audio_event)
+        )
+        if not text:
+            print("[LANGUAGE_GUARD] rejected=true")
+
     return (
         text,
         audio_event,
-        getattr(recorder, "detected_language", None),
-        getattr(recorder, "detected_language_probability", None),
+        detected_language,
+        detected_language_probability,
     )
 
 
@@ -228,7 +334,13 @@ def _empty_result() -> dict:
         "hard_hits": [],
         "soft_hits": [],
         "is_casual": False,
-        "severity": "low",
+        "severity": LOW,
+        "severity_evidence": {
+            "level": LOW,
+            "reasons": ["no_monitored_term"],
+            "term_categories": {},
+            "supporting_evidence": [],
+        },
         "categories": [],
         "language": "unknown",
         "language_confidence": None,
