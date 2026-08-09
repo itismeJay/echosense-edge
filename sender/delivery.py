@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 import json
 import random
@@ -12,6 +12,8 @@ from typing import Callable
 
 from config import (
     API_URL,
+    ECHOSENSE_DEVICE_ID,
+    ECHOSENSE_DEVICE_KEY,
     OUTBOX_BACKOFF_MULTIPLIER,
     OUTBOX_BUSY_TIMEOUT_MS,
     OUTBOX_DATABASE_PATH,
@@ -27,6 +29,7 @@ from config import (
     OUTBOX_STALE_SENDING_SECONDS,
 )
 from sender.http_client import (
+    AUTHENTICATION as HTTP_AUTHENTICATION,
     DELIVERED as HTTP_DELIVERED,
     PERMANENT as HTTP_PERMANENT,
     RETRYABLE as HTTP_RETRYABLE,
@@ -46,6 +49,11 @@ class DeliverySettings:
     enabled: bool = OUTBOX_ENABLED
     database_path: str = OUTBOX_DATABASE_PATH
     api_url: str = API_URL
+    device_id: str = ECHOSENSE_DEVICE_ID
+    device_key: str = field(
+        default=ECHOSENSE_DEVICE_KEY,
+        repr=False,
+    )
     poll_interval_seconds: float = OUTBOX_POLL_INTERVAL_SECONDS
     request_timeout_seconds: float = OUTBOX_REQUEST_TIMEOUT_SECONDS
     initial_retry_delay_seconds: float = (
@@ -86,6 +94,8 @@ class OutboxDeliveryWorker:
                 payload,
                 api_url=self.settings.api_url,
                 timeout=self.settings.request_timeout_seconds,
+                device_id=self.settings.device_id,
+                device_key=self.settings.device_key,
             )
         )
         self._stop_event = threading.Event()
@@ -239,6 +249,24 @@ class OutboxDeliveryWorker:
                 f"[OUTBOX] permanent failure event={record.event_id} "
                 f"type={result.error_type or 'permanent_failure'} "
                 f"http={result.http_status}"
+            )
+            return
+
+        if result.disposition == HTTP_AUTHENTICATION:
+            delay = self.retry_delay_seconds(record.attempt_count)
+            next_attempt_at = self._clock() + timedelta(seconds=delay)
+            self.outbox.mark_retryable_failure(
+                record.id,
+                next_attempt_at=next_attempt_at,
+                error_type=result.error_type or "device_authentication_failure",
+                error="device authentication configuration requires review",
+                http_status=result.http_status,
+                now=self._clock(),
+            )
+            self._logger(
+                f"[OUTBOX] authentication retry scheduled event={record.event_id} "
+                f"type={result.error_type or 'device_authentication_failure'} "
+                f"delay_seconds={delay:.3f}"
             )
             return
 

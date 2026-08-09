@@ -65,13 +65,13 @@ Non-obvious behaviors that span multiple files:
 - **Profanity lists** (`model/blacklist.py`): English, Filipino, and Bisaya lists are merged into one flat `ALL_BLACKLIST` and matched by case-insensitive substring.
 - **Vosk models load at import time** (`model/vosk_detect.py`, top-level): importing this module eagerly constructs both the Filipino and English recognizers — slow and memory-hungry. Do not import it from scripts that don't need ASR.
 - **Severity buckets** (`detection/thresholds.py`): profanity adds `PROFANITY_BOOST` (0.15) to confidence. Severity is `high` ≥ 0.80, `medium` ≥ 0.60, else `low`.
-- **Alert payload** (`sender/http_client.py`): POSTs `{severity, confidence, duration, location}` to `{API_URL}/alerts` with 3 retries and a 3-second backoff between attempts.
+- **Alert payload** (`sender/payload_v2.py`, `sender/http_client.py`): a strict schema-v2 body is committed to the SQLite outbox before background delivery to `{API_URL}/alerts/`. Retries reuse its UUID as `Idempotency-Key`.
 
 ## Configuration caveats (`config.py`)
 
 - Paths are absolute and hard-coded to `/home/echosense/echosense-edge/...`. The project is not location-portable; moving it requires editing `config.py`.
-- `LOCATION` (`"Grade 6 Classroom"`) is read at runtime and included in every alert payload — edit it to change the reported sensor location.
-- Backend URL `https://echosense-backend-75h3.onrender.com` lives in a separate repo (not vendored here).
+- `LOCATION` is a deprecated compatibility constant and is not sent in schema-v2. The backend derives classroom and school from the authenticated device.
+- `ECHOSENSE_BACKEND_BASE_URL` is required and has no implicit production fallback.
 - `YAMNET_CONFIDENCE_THRESHOLD` and `DURATION_THRESHOLD` in `config.py` are **duplicates that the runtime does not read** — the authoritative copies are `YAMNET_THRESHOLD` and `DURATION_THRESHOLD` in `detection/thresholds.py`. If asked to tune thresholds, edit the ones in `detection/thresholds.py` (and flag the duplication).
 
 ## Known landmines

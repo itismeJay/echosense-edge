@@ -115,9 +115,9 @@ def process_transcription_result(result, detector, led, alert_sender=send_alert)
     if not should_alert:
         return False
 
-    led.alert()
     queued = alert_sender(
         severity=alert["severity"],
+        severity_evidence=alert.get("severity_evidence"),
         confidence=alert["confidence"],
         duration=alert["duration"],
         transcribed_text=alert.get("transcribed_text", ""),
@@ -137,8 +137,18 @@ def process_transcription_result(result, detector, led, alert_sender=send_alert)
         soft_hits=alert.get("soft_hits", []),
         duration_gate=alert.get("duration_gate", ""),
         required_duration=alert.get("required_duration", 0),
+        event_start_timestamp=(
+            audio_event.started_at if audio_event is not None else None
+        ),
+        event_end_timestamp=(
+            audio_event.ended_at if audio_event is not None else None
+        ),
+        trigger_type="KEYWORD",
     )
     print(f"[OUTBOX] enqueue result event={event_id} queued={bool(queued)}")
+    if not queued:
+        return False
+    led.alert()
     return True
 
 

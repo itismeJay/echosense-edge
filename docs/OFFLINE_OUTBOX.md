@@ -10,12 +10,13 @@ process or device restart.
 The flow is:
 
 1. Detection preserves the `AudioEvent.event_id`.
-2. `sender/http_client.py` builds the existing backend payload.
+2. `sender/payload_v2.py` validates and builds the strict schema-v2 body.
 3. `sender/outbox.py` transactionally inserts that payload.
 4. The detection loop continues after the local enqueue result.
 5. One `echosense-outbox-worker` thread claims due records.
 6. The worker makes one HTTP attempt and records the acknowledgement or failure.
-7. Retryable records retain the same serialized payload and `event_id`.
+7. Retryable records retain the same serialized payload, `event_id`, occurrence
+   timestamps, and evidence.
 
 The worker does not open a microphone, hold an `AudioEvent`, regenerate a
 transcript, recalculate severity, or store raw audio.
@@ -56,8 +57,8 @@ Statuses are:
 - `SENDING`: atomically leased by the worker.
 - `FAILED_RETRYABLE`: retained until `next_attempt_at`.
 - `FAILED_PERMANENT`: retained for operator review.
-- `DELIVERED`: a valid 2xx or confirmed idempotent-duplicate acknowledgement was
-  received.
+- `DELIVERED`: a valid 2xx acknowledgement was received. The current backend
+  returns the original alert with HTTP 200 for an identical idempotent replay.
 - `RESOLVED`: an operator reviewed a permanent failure; the row remains stored.
 
 Pending, retryable, permanent, and resolved rows are never removed by retention
@@ -68,20 +69,21 @@ cleanup. Only old `DELIVERED` rows are eligible.
 Delivered:
 
 - any 2xx acknowledgement
-- HTTP 409 only when the response explicitly identifies a duplicate and returns
-  the same `event_id`
 
 Retryable:
 
 - timeout, DNS failure, connection refusal, and other request/network errors
 - HTTP 408, 425, 429, 500, 502, 503, and 504
 - other server errors and unexpected non-client statuses
+- missing device credentials and HTTP 401/403 authentication failures; these
+  remain retained and use the same capped exponential backoff
 
 Permanent:
 
-- unconfirmed HTTP 409
-- HTTP 400 and other non-retryable 4xx responses, including authentication,
-  authorization, invalid endpoint, and unsupported-format responses
+- HTTP 409, which the current backend uses only when an `event_id` is reused by
+  another device or with a conflicting body
+- HTTP 400 and other non-retryable 4xx responses for invalid endpoints or
+  unsupported payloads
 - corrupt stored JSON or a stored `event_id` mismatch
 
 Response bodies and complete payloads are not written to routine delivery logs.
@@ -108,6 +110,8 @@ All settings are environment variables:
 
 | Variable | Default |
 |---|---:|
+| `ECHOSENSE_DEVICE_ID` | required; no default |
+| `ECHOSENSE_DEVICE_KEY` | required; no default |
 | `ECHOSENSE_OUTBOX_ENABLED` | `true` |
 | `ECHOSENSE_OUTBOX_DATABASE_PATH` | `data/alert_outbox.sqlite3` |
 | `ECHOSENSE_OUTBOX_POLL_INTERVAL_SECONDS` | `1` |
@@ -124,6 +128,27 @@ All settings are environment variables:
 
 Disabling the outbox also disables alert delivery; it does not restore the old
 blocking sender.
+
+Every alert HTTP attempt sends `X-EchoSense-Device-Id`,
+`X-EchoSense-Device-Key`, and `Idempotency-Key`. The idempotency value is the
+canonical payload `event_id`, so it remains identical across every retry.
+Credentials and headers are never included in payload JSON, SQLite rows,
+routine logs, health output, or operator-command output. See
+`docs/DEVICE_AUTHENTICATION.md` for secure provisioning and rotation.
+
+## Schema-v2 and privacy boundary
+
+The stored JSON is the final request body: `schema_version` is integer `2`,
+real text-initiated alerts use `trigger_type=KEYWORD`, severity is uppercase,
+and event start/end timestamps come from the finalized `AudioEvent`. The body
+contains one transcript field (`transcribed_text`), structured severity and
+supporting acoustic evidence, and an optional sparse amplitude waveform.
+
+The body does not contain a client-controlled location, classroom, or school.
+The backend derives assignment from the authenticated device. It also excludes
+legacy duplicate transcript, flat YAMNet/tone, hit-list, and duration-gate
+fields. Raw PCM, bytes, audio blobs, and raw-audio-shaped keys are rejected
+recursively before SQLite serialization and are never transmitted.
 
 ## Health and safe inspection
 
@@ -188,8 +213,10 @@ directory. Never reset the production outbox while pending records exist.
 - `database_locked` is normally temporary; check for an abandoned maintenance
   connection.
 - `storage_full` requires freeing local space without deleting pending records.
-- A persistent `FAILED_PERMANENT` row needs endpoint, credentials, or payload
-  review.
+- Repeated `device_credentials_missing` or `device_authentication_http_401/403`
+  errors require device configuration or key review. They retain the payload
+  as `FAILED_RETRYABLE` and back off to the configured maximum delay.
+- A persistent `FAILED_PERMANENT` row needs endpoint or payload review.
 - A worker stop timeout can leave `SENDING`; lease recovery handles it later.
 - SQLite corruption, storage-device failure, power loss, transcription errors,
   and backend failures remain possible operational limitations.

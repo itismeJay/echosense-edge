@@ -11,8 +11,14 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
+import re
 import sqlite3
 from typing import Callable, Iterator
+
+from sender.payload_v2 import (
+    AlertPayloadValidationError,
+    validate_alert_payload_v2,
+)
 
 
 PENDING = "PENDING"
@@ -34,13 +40,20 @@ SCHEMA_VERSION = 1
 _FORBIDDEN_AUDIO_KEYS = frozenset({
     "audio",
     "audio_bytes",
+    "audio_base64",
+    "audio_blob",
     "audio_data",
+    "audio_debug",
     "audio_samples",
     "pcm",
+    "pcm_samples",
     "raw_audio",
+    "raw_pcm",
     "raw_samples",
+    "recorded_audio",
     "wav",
     "wave_file",
+    "waveform_bytes",
 })
 
 
@@ -109,7 +122,11 @@ def parse_utc_timestamp(value: str | None) -> datetime | None:
 
 
 def _contains_raw_audio(value, *, key="") -> bool:
-    normalized_key = str(key).strip().lower()
+    normalized_key = re.sub(
+        r"[^a-z0-9]+",
+        "_",
+        str(key).strip().casefold(),
+    ).strip("_")
     if normalized_key in _FORBIDDEN_AUDIO_KEYS:
         return True
     if isinstance(value, dict):
@@ -286,6 +303,12 @@ class AlertOutbox:
     def _serialize_payload(self, payload: dict) -> tuple[str, str]:
         if not isinstance(payload, dict):
             raise OutboxSerializationError("payload must be a dictionary")
+        try:
+            validate_alert_payload_v2(payload)
+        except AlertPayloadValidationError as exc:
+            raise OutboxSerializationError(
+                "payload does not satisfy schema-v2"
+            ) from exc
         event_id = str(payload.get("event_id") or "").strip()
         if not event_id:
             raise OutboxSerializationError("event_id is required")
@@ -323,9 +346,17 @@ class AlertOutbox:
                 )
                 inserted = cursor.rowcount == 1
                 row = connection.execute(
-                    "SELECT id FROM alert_outbox WHERE event_id = ?",
+                    "SELECT id, payload_json FROM alert_outbox WHERE event_id = ?",
                     (event_id,),
                 ).fetchone()
+                if (
+                    row is not None
+                    and not inserted
+                    and row["payload_json"] != payload_json
+                ):
+                    raise OutboxSerializationError(
+                        "event_id is already associated with a different payload"
+                    )
                 connection.execute("COMMIT")
             except Exception:
                 connection.execute("ROLLBACK")

@@ -9,12 +9,14 @@ from unittest.mock import Mock
 
 import requests
 
+from tests.schema_v2_fixtures import event_id_for, schema_v2_payload
 from sender.delivery import (
     AlertDeliveryService,
     DeliverySettings,
     OutboxDeliveryWorker,
 )
 from sender.http_client import (
+    AUTHENTICATION as HTTP_AUTHENTICATION,
     DELIVERED as HTTP_DELIVERED,
     PERMANENT as HTTP_PERMANENT,
     RETRYABLE as HTTP_RETRYABLE,
@@ -57,24 +59,11 @@ class FakeResponse:
         return self._data
 
 
-def test_payload(event_id="outbox-test-event"):
-    transcript = "NON-PRODUCTION OUTBOX TEST — exact text.\n"
-    return {
-        "event_id": event_id,
-        "severity": "low",
-        "confidence": 0.5,
-        "duration": 1.25,
-        "transcript": transcript,
-        "transcribed_text": transcript,
-        "detected_words": [],
-        "categories": [],
-        "language": "en",
-        "matched_terms": [],
-        "yamnet_class": "NotRun",
-        "yamnet_score": 0.0,
-        "yamnet_ran": False,
-        "waveform_snapshot": [0, 1, 0],
-    }
+DEFAULT_EVENT_ID = event_id_for("outbox-test-event")
+
+
+def test_payload(event_id=DEFAULT_EVENT_ID):
+    return schema_v2_payload(event_id=event_id)
 
 
 class OutboxTestCase(unittest.TestCase):
@@ -140,17 +129,17 @@ class AlertOutboxStorageTests(OutboxTestCase):
             self.outbox.get_record(payload["event_id"]).payload_json
         )
         self.assertEqual(stored, payload)
-        self.assertEqual(stored["transcript"], payload["transcript"])
         self.assertEqual(
             stored["transcribed_text"],
             payload["transcribed_text"],
         )
 
     def test_event_id_is_preserved(self):
-        payload = test_payload("stable-event-id")
+        stable_event_id = event_id_for("stable-event-id")
+        payload = test_payload(stable_event_id)
         self.outbox.enqueue(payload)
 
-        record = self.outbox.get_record("stable-event-id")
+        record = self.outbox.get_record(stable_event_id)
         self.assertEqual(record.event_id, payload["event_id"])
         self.assertEqual(
             json.loads(record.payload_json)["event_id"],
@@ -166,6 +155,20 @@ class AlertOutboxStorageTests(OutboxTestCase):
         self.assertEqual(first.record_id, second.record_id)
         self.assertEqual(len(self.outbox.list_records()), 1)
 
+    def test_same_event_id_with_different_body_is_rejected(self):
+        first = test_payload()
+        conflicting = test_payload()
+        conflicting["transcribed_text"] = "different finalized transcript"
+        self.outbox.enqueue(first)
+
+        with self.assertRaises(OutboxSerializationError):
+            self.outbox.enqueue(conflicting)
+
+        stored = json.loads(
+            self.outbox.get_record(DEFAULT_EVENT_ID).payload_json
+        )
+        self.assertEqual(stored, first)
+
     def test_pending_record_survives_repository_reinitialization(self):
         self.outbox.enqueue(test_payload())
         reopened = AlertOutbox(
@@ -175,11 +178,12 @@ class AlertOutboxStorageTests(OutboxTestCase):
         )
         reopened.initialize()
 
-        record = reopened.get_record("outbox-test-event")
+        record = reopened.get_record(DEFAULT_EVENT_ID)
         self.assertEqual(record.status, PENDING)
 
     def test_pending_record_survives_simulated_process_restart(self):
-        payload = test_payload("restart-event")
+        restart_event_id = event_id_for("restart-event")
+        payload = test_payload(restart_event_id)
         self.outbox.enqueue(payload)
         del self.outbox
         restarted = AlertOutbox(
@@ -190,7 +194,7 @@ class AlertOutboxStorageTests(OutboxTestCase):
         restarted.initialize()
 
         self.assertEqual(
-            json.loads(restarted.get_record("restart-event").payload_json),
+            json.loads(restarted.get_record(restart_event_id).payload_json),
             payload,
         )
 
@@ -212,15 +216,22 @@ class AlertOutboxStorageTests(OutboxTestCase):
         )
 
     def test_raw_audio_field_is_not_serialized(self):
-        payload = test_payload()
-        payload["raw_audio"] = [0.1, 0.2]
-
-        with self.assertRaises(OutboxSerializationError):
-            self.outbox.enqueue(payload)
+        for private_content in (
+            {"raw_audio": [0.1, 0.2]},
+            {"tone_evidence": {"nested": {"raw_pcm": [1, 2]}}},
+            {"tone_evidence": {"nested": [{"wav": b"not-a-wave"}]}},
+        ):
+            with self.subTest(private_content=tuple(private_content)):
+                payload = test_payload()
+                payload.update(private_content)
+                with self.assertRaises(OutboxSerializationError):
+                    self.outbox.enqueue(payload)
         self.assertEqual(self.outbox.list_records(), [])
 
     def test_database_lock_is_reported_without_losing_existing_record(self):
-        self.outbox.enqueue(test_payload("existing-event"))
+        existing_event_id = event_id_for("existing-event")
+        locked_event_id = event_id_for("locked-event")
+        self.outbox.enqueue(test_payload(existing_event_id))
         lock = sqlite3.connect(
             str(self.database_path),
             timeout=0.1,
@@ -230,12 +241,12 @@ class AlertOutboxStorageTests(OutboxTestCase):
         lock.execute("BEGIN IMMEDIATE")
         try:
             with self.assertRaises(OutboxStorageError):
-                self.outbox.enqueue(test_payload("locked-event"))
+                self.outbox.enqueue(test_payload(locked_event_id))
         finally:
             lock.execute("ROLLBACK")
 
-        self.assertIsNotNone(self.outbox.get_record("existing-event"))
-        self.assertIsNone(self.outbox.get_record("locked-event"))
+        self.assertIsNotNone(self.outbox.get_record(existing_event_id))
+        self.assertIsNone(self.outbox.get_record(locked_event_id))
 
     def test_database_write_failure_is_reported_by_service(self):
         invalid_parent = Path(self.temp_directory.name) / "not-a-directory"
@@ -268,7 +279,7 @@ class AlertOutboxStorageTests(OutboxTestCase):
         )
         connection.execute(
             "INSERT INTO alert_outbox(event_id, payload_json) VALUES (?, ?)",
-            ("old-event", json.dumps(test_payload("old-event"))),
+            ("old-event", json.dumps(test_payload(event_id_for("old-event")))),
         )
         connection.commit()
         connection.close()
@@ -296,6 +307,8 @@ class DeliveryClassificationTests(unittest.TestCase):
             test_payload(),
             api_url="http://safe.test",
             timeout=0.1,
+            device_id="classroom-test-pi",
+            device_key="synthetic-device-key",
             post=post,
         )
 
@@ -340,24 +353,20 @@ class DeliveryClassificationTests(unittest.TestCase):
         self.assertEqual(result.disposition, HTTP_RETRYABLE)
         self.assertEqual(result.error_type, "dns_failure")
 
-    def test_http_400_is_permanent(self):
-        result = self.deliver(FakeResponse(400))
-        self.assertEqual(result.disposition, HTTP_PERMANENT)
+    def test_invalid_payload_400_and_422_are_permanent(self):
+        for status in (400, 422):
+            with self.subTest(status=status):
+                result = self.deliver(FakeResponse(status))
+                self.assertEqual(result.disposition, HTTP_PERMANENT)
 
-    def test_confirmed_duplicate_409_is_delivered(self):
-        result = self.deliver(
-            FakeResponse(
-                409,
-                {
-                    "duplicate": True,
-                    "event_id": "outbox-test-event",
-                },
-            )
-        )
-        self.assertEqual(result.disposition, HTTP_DELIVERED)
-        self.assertTrue(result.duplicate_acknowledged)
+    def test_http_401_and_403_are_authentication_failures(self):
+        for status in (401, 403):
+            with self.subTest(status=status):
+                result = self.deliver(FakeResponse(status))
+                self.assertEqual(result.disposition, HTTP_AUTHENTICATION)
+                self.assertEqual(result.http_status, status)
 
-    def test_unconfirmed_409_is_permanent(self):
+    def test_backend_conflict_409_is_permanent(self):
         result = self.deliver(
             FakeResponse(409, {"detail": "conflict"})
         )
@@ -375,14 +384,14 @@ class OutboxWorkerTests(OutboxTestCase):
         )
 
         self.assertEqual(worker.run_once(), 1)
-        record = self.outbox.get_record("outbox-test-event")
+        record = self.outbox.get_record(DEFAULT_EVENT_ID)
         self.assertEqual(record.status, DELIVERED)
         self.assertEqual(record.attempt_count, 1)
 
     def test_retryable_statuses_schedule_retry(self):
         for status in (500, 503, 429):
             with self.subTest(status=status):
-                event_id = f"retry-{status}"
+                event_id = event_id_for(f"retry-{status}")
                 self.outbox.enqueue(test_payload(event_id))
                 worker = self.worker(
                     lambda _payload, code=status: DeliveryResult(
@@ -411,7 +420,7 @@ class OutboxWorkerTests(OutboxTestCase):
         )
         worker.run_once()
 
-        record = self.outbox.get_record("outbox-test-event")
+        record = self.outbox.get_record(DEFAULT_EVENT_ID)
         delay = (
             parse_utc_timestamp(record.next_attempt_at) - self.clock()
         ).total_seconds()
@@ -420,7 +429,7 @@ class OutboxWorkerTests(OutboxTestCase):
     def test_timeout_connection_and_dns_failures_schedule_retry(self):
         for error_type in ("timeout", "connection_refused", "dns_failure"):
             with self.subTest(error_type=error_type):
-                event_id = f"network-{error_type}"
+                event_id = event_id_for(f"network-{error_type}")
                 self.outbox.enqueue(test_payload(event_id))
                 worker = self.worker(
                     lambda _payload, kind=error_type: DeliveryResult(
@@ -444,7 +453,7 @@ class OutboxWorkerTests(OutboxTestCase):
         )
         worker.run_once()
 
-        record = self.outbox.get_record("outbox-test-event")
+        record = self.outbox.get_record(DEFAULT_EVENT_ID)
         self.assertEqual(record.status, FAILED_PERMANENT)
         self.assertIsNotNone(record.payload_json)
 
@@ -459,7 +468,7 @@ class OutboxWorkerTests(OutboxTestCase):
         )
         worker.run_once()
         self.assertEqual(
-            self.outbox.get_record("outbox-test-event").status,
+            self.outbox.get_record(DEFAULT_EVENT_ID).status,
             DELIVERED,
         )
 
@@ -475,7 +484,7 @@ class OutboxWorkerTests(OutboxTestCase):
         worker.run_once()
         worker.run_once()
 
-        self.assertEqual(calls, ["outbox-test-event"])
+        self.assertEqual(calls, [DEFAULT_EVENT_ID])
 
     def test_permanent_failure_is_not_automatically_retried(self):
         calls = []
@@ -490,7 +499,7 @@ class OutboxWorkerTests(OutboxTestCase):
         self.clock.advance(1000)
         worker.run_once()
 
-        self.assertEqual(calls, ["outbox-test-event"])
+        self.assertEqual(calls, [DEFAULT_EVENT_ID])
 
     def test_retryable_record_is_retried_after_next_attempt_at(self):
         results = [
@@ -512,7 +521,7 @@ class OutboxWorkerTests(OutboxTestCase):
 
         self.assertEqual(len(calls), 2)
         self.assertEqual(
-            self.outbox.get_record("outbox-test-event").status,
+            self.outbox.get_record(DEFAULT_EVENT_ID).status,
             DELIVERED,
         )
 
@@ -575,10 +584,10 @@ class OutboxWorkerTests(OutboxTestCase):
         )
         restarted_worker.run_once()
 
-        record = restarted_outbox.get_record("outbox-test-event")
+        record = restarted_outbox.get_record(DEFAULT_EVENT_ID)
         self.assertEqual(record.attempt_count, 2)
         self.assertEqual(record.last_error_type, "http_503")
-        self.assertEqual(record.event_id, "outbox-test-event")
+        self.assertEqual(record.event_id, DEFAULT_EVENT_ID)
 
     def test_corrupt_payload_is_retained_and_marked_for_review(self):
         self.outbox.enqueue(test_payload())
@@ -595,7 +604,7 @@ class OutboxWorkerTests(OutboxTestCase):
 
         worker.run_once()
 
-        record = self.outbox.get_record("outbox-test-event")
+        record = self.outbox.get_record(DEFAULT_EVENT_ID)
         self.assertEqual(record.status, FAILED_PERMANENT)
         self.assertEqual(record.last_error_type, "corrupt_payload")
         self.assertEqual(record.payload_json, "{corrupt")
@@ -609,7 +618,7 @@ class OutboxWorkerTests(OutboxTestCase):
         self.assertEqual(health["database_status"], "OK")
         self.assertEqual(health["pending_count"], 1)
         self.assertEqual(health["sending_count"], 0)
-        self.assertNotIn(payload["transcript"], serialized)
+        self.assertNotIn(payload["transcribed_text"], serialized)
         self.assertNotIn("payload_json", serialized)
 
     def test_worker_starts_once_and_stops_cleanly(self):
@@ -625,8 +634,14 @@ class OutboxWorkerTests(OutboxTestCase):
 
     def test_enqueue_wakes_background_worker_and_returns_before_delivery(self):
         delivery_started = Mock()
+        committed_before_delivery = []
 
-        def slow_delivery(_payload):
+        def slow_delivery(payload):
+            record = service.outbox.get_record(payload["event_id"])
+            committed_before_delivery.append(
+                record is not None
+                and json.loads(record.payload_json) == payload
+            )
             delivery_started()
             time.sleep(0.05)
             return DeliveryResult(HTTP_DELIVERED, http_status=200)
@@ -648,6 +663,7 @@ class OutboxWorkerTests(OutboxTestCase):
         while not delivery_started.called and time.monotonic() < deadline:
             time.sleep(0.01)
         self.assertTrue(delivery_started.called)
+        self.assertEqual(committed_before_delivery, [True])
         service.stop()
 
 

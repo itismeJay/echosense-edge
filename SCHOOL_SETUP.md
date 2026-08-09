@@ -1,15 +1,15 @@
 # EchoSense School Setup Guide
 
 ## Your Phone Hotspot Settings
-  Hotspot Name:     TECNOCAMON
-  Hotspot Password: 123456789
+  Hotspot Name:     <SCHOOL_HOTSPOT_NAME>
+  Hotspot Password: <SCHOOL_HOTSPOT_PASSWORD>
   (Keep these settings saved on your phone)
 
 ## Every Time At School
 
 ### Step 1 — Turn on hotspot
   Android: Settings → Hotspot → Turn ON
-  Make sure name is TECNOCAMON
+  Make sure the configured school hotspot is selected
 
 ### Step 2 — Plug in Pi
   Connect Pi power cable to outlet
@@ -20,7 +20,7 @@
   - Slow heartbeat pulse = connected and listening ✅
 
 ### Step 4 — SSH into Pi (if needed)
-  Connect your laptop to TECNOCAMON hotspot
+  Connect your laptop to the school hotspot
   Then run ONE of these:
 
   Option A (easier):
@@ -36,7 +36,7 @@
 
   You should see:
     [WIFI] Connected!
-    [WIFI] Network:  TECNOCAMON
+    [WIFI] Network:  YOUR_WIFI_SSID
     [WIFI] IP:       192.168.x.x
     [MAIN] Listening...
 
@@ -45,8 +45,8 @@
   Pi status should show: 🟢 Online
 
 ## If Pi Does Not Connect
-  1. Make sure hotspot name is exactly: TECNOCAMON
-  2. Make sure password is: 123456789
+  1. Make sure hotspot name matches: YOUR_WIFI_SSID
+  2. Make sure the saved password matches: YOUR_WIFI_PASSWORD
   3. Turn hotspot OFF then ON again
   4. Wait 30 more seconds
   5. Check Pi LED — if OFF, Pi has no power
@@ -61,19 +61,12 @@
   Restart if needed:
     sudo systemctl restart echosense.service
 
-  Manual test alert:
-    curl -s -X POST https://echosense-backend-75h3.onrender.com/alerts/ \
-      -H "Content-Type: application/json" \
-      -d '{"severity":"high","confidence":0.94,"duration":3.0,
-      "location":"Grade 6 Classroom",
-      "transcribed_text":"yawa ka bogo kaayo",
-      "detected_words":["yawa","bogo kaayo"],
-      "yamnet_class":"Screaming","yamnet_score":0.83,
-      "emotion":"angry","rms":820.0,"energy_variance":6200.5,
-      "zero_crossing_rate":0.14,"peak_to_average":4.2,
-      "waveform_snapshot":[120,340,890,450,230],
-      "categories":["academic_shaming"],
-      "language":"ceb","hard_hits":["yawa"],"soft_hits":[]}'
+  Check the durable outbox without sending an alert:
+    echosense-env/bin/python3 -m sender.outbox_admin health
+
+  Do not bypass the outbox with a direct curl request. Run a harmless
+  controlled ingestion test only after backend deployment and explicit
+  approval.
 
 ## Network Notes (this Pi)
   This Pi runs Raspberry Pi OS Bookworm and uses **NetworkManager**
@@ -84,8 +77,8 @@
     nmcli connection show
     nmcli device wifi list
 
-  TECNOCAMON is saved with autoconnect priority 10 (home WiFi is 0),
-  so the Pi prefers the hotspot whenever it is in range.
+  Configure the school hotspot with the intended autoconnect priority so the
+  Pi prefers it whenever it is in range.
 
   Reload WiFi config without rebooting:
     sudo nmcli connection reload

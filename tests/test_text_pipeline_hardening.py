@@ -262,6 +262,22 @@ class TextPipelineHardeningTests(unittest.TestCase):
         led.alert.assert_called_once()
         sender.assert_called_once()
 
+    def test_37b_enqueue_failure_does_not_report_success_or_light_led(self):
+        result = _stt_result("Bobo ka.", _event())
+        detector = Mock()
+        detector.process_with_audio.return_value = _alert_for(result)
+        led = Mock()
+        sender = Mock(return_value=False)
+
+        queued = process_transcription_result(result, detector, led, sender)
+
+        self.assertFalse(queued)
+        sender.assert_called_once()
+        led.alert.assert_not_called()
+        with patch("sender.http_client.requests.post") as post:
+            process_transcription_result(result, detector, led, sender)
+        post.assert_not_called()
+
     def test_38_original_transcript_reaches_payload_unchanged(self):
         original = "Bobo KA!\n"
         result = _stt_result(original, _event())

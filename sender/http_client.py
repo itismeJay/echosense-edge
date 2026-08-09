@@ -1,18 +1,28 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
+import math
 import requests
 import time
 import threading
 import uuid
-from config import API_URL, LOCATION
-from detection.severity import normalize_severity
+from urllib.parse import urlsplit
+from config import (
+    API_URL,
+    ECHOSENSE_DEVICE_ID,
+    ECHOSENSE_DEVICE_KEY,
+)
+from sender.payload_v2 import (
+    AlertPayloadValidationError,
+    build_alert_payload_v2,
+    normalize_event_id,
+    validate_alert_payload_v2,
+)
 
-_LANGUAGE_VALUES = {"fil", "ceb", "en", "mixed", "unknown"}
-_MATCHED_TERM_LANGUAGE_VALUES = {"fil", "ceb", "en"}
 DELIVERED = "DELIVERED"
 RETRYABLE = "RETRYABLE"
 PERMANENT = "PERMANENT"
+AUTHENTICATION = "AUTHENTICATION"
 _RETRYABLE_HTTP_STATUSES = {408, 425, 429, 500, 502, 503, 504}
 
 
@@ -23,147 +33,6 @@ class DeliveryResult:
     error_type: str | None = None
     retry_after_seconds: float | None = None
     duplicate_acknowledged: bool = False
-
-
-def _backend_severity(value):
-    """Translate the internal uppercase contract at the legacy API boundary."""
-
-    return normalize_severity(value).lower()
-
-
-def _optional_confidence(value):
-    if value is None or isinstance(value, bool):
-        return None
-    try:
-        value = float(value)
-    except (TypeError, ValueError):
-        return None
-    if not 0.0 < value <= 1.0:
-        return None
-    return round(value, 4)
-
-
-def _clean_matched_terms(matched_terms):
-    cleaned = []
-    seen = set()
-    for item in matched_terms or []:
-        if not isinstance(item, dict):
-            continue
-        term = str(item.get("term") or "").strip()
-        source_language = str(item.get("language") or "").strip().lower()
-        language = (
-            source_language
-            if source_language in _MATCHED_TERM_LANGUAGE_VALUES
-            else None
-        )
-        match_type = str(item.get("match_type") or "").strip().lower()
-        if not term or len(term) > 100:
-            continue
-        if match_type not in {"word", "phrase"}:
-            match_type = "phrase" if len(term.split()) > 1 else "word"
-
-        term_id = item.get("term_id")
-        if (
-            isinstance(term_id, bool)
-            or not isinstance(term_id, int)
-            or term_id <= 0
-        ):
-            term_id = None
-        key = (
-            ("id", term_id)
-            if term_id is not None
-            else ("text", term.lower(), language, match_type)
-        )
-        if key in seen:
-            continue
-
-        evidence = {
-            "term": term,
-            "language": language,
-            "match_type": match_type,
-        }
-        if term_id is not None:
-            evidence["term_id"] = term_id
-        cleaned.append(evidence)
-        seen.add(key)
-    return cleaned
-
-
-def build_alert_payload(
-    severity,
-    confidence,
-    duration,
-    transcribed_text="",
-    detected_words=None,
-    categories=None,
-    language="unknown",
-    hard_hits=None,
-    soft_hits=None,
-    required_duration=None,
-    duration_gate=None,
-    yamnet_class="Unknown",
-    yamnet_score=0.0,
-    yamnet_ran=False,
-    emotion="unknown",
-    tone_data=None,
-    waveform_snapshot=None,
-    language_confidence=None,
-    matched_terms=None,
-    event_id=None,
-):
-    """Build the production payload while retaining every legacy field."""
-
-    language = str(language or "unknown").lower()
-    if language not in _LANGUAGE_VALUES:
-        language = "unknown"
-    transcript = str(transcribed_text or "")
-    yamnet_ran = bool(yamnet_ran)
-    if yamnet_ran:
-        payload_yamnet_class = str(yamnet_class or "Unknown")
-        payload_yamnet_score = float(round(float(yamnet_score), 4))
-    else:
-        # Backend null support is not established. This explicit sentinel means
-        # "not measured"; it is never interpreted as a real YAMNet score.
-        payload_yamnet_class = "NotRun"
-        payload_yamnet_score = 0.0
-    return {
-        "event_id": str(event_id) if event_id else None,
-        # The edge uses LOW/MEDIUM/HIGH internally. Production currently stores
-        # lowercase values, so compatibility conversion is confined here.
-        "severity": _backend_severity(severity),
-        "confidence": float(round(float(confidence), 4)),
-        "duration": float(round(float(duration), 2)),
-        "required_duration": float(required_duration) if required_duration is not None else None,
-        "duration_gate": duration_gate,
-        "location": LOCATION,
-        # New contract name plus the legacy field still consumed by production.
-        "transcript": transcript,
-        "transcribed_text": transcript,
-        "detected_words": detected_words or [],
-        "categories": categories or [],
-        "language": language,
-        "language_confidence": _optional_confidence(language_confidence),
-        "matched_terms": _clean_matched_terms(matched_terms),
-        "hard_hits": hard_hits or [],
-        "soft_hits": soft_hits or [],
-        "yamnet_class": payload_yamnet_class,
-        "yamnet_score": payload_yamnet_score,
-        "yamnet_ran": yamnet_ran,
-        "emotion": emotion,
-        "rms": round(float(tone_data.get("rms", 0)), 2) if tone_data else 0,
-        "energy_variance": round(float(tone_data.get("energy_variance", 0)), 2) if tone_data else 0,
-        "zero_crossing_rate": round(float(tone_data.get("zero_crossing_rate", 0)), 4) if tone_data else 0,
-        "peak_to_average": round(float(tone_data.get("peak_to_average", 0)), 2) if tone_data else 0,
-        "waveform_snapshot": waveform_snapshot or [],
-    }
-
-
-def _response_json(response):
-    try:
-        value = response.json()
-    except (TypeError, ValueError):
-        return None
-    return value if isinstance(value, dict) else None
 
 
 def _retry_after_seconds(response, *, now=None):
@@ -187,35 +56,12 @@ def _retry_after_seconds(response, *, now=None):
         return None
 
 
-def _is_duplicate_acknowledgement(response, payload) -> bool:
-    """Require a duplicate indicator and matching event_id for HTTP 409."""
-
-    data = _response_json(response)
-    if not data:
+def _valid_backend_url(value: object) -> bool:
+    try:
+        parsed = urlsplit(str(value or "").strip())
+    except ValueError:
         return False
-    expected_event_id = str(payload.get("event_id") or "")
-    existing = data.get("existing")
-    if not isinstance(existing, dict):
-        existing = {}
-    acknowledged_event_id = str(
-        data.get("event_id")
-        or existing.get("event_id")
-        or ""
-    )
-    indicator = " ".join(
-        str(data.get(key) or "")
-        for key in ("code", "status", "detail", "message")
-    ).lower()
-    is_duplicate = bool(
-        data.get("duplicate") is True
-        or "duplicate" in indicator
-        or "already exists" in indicator
-    )
-    return bool(
-        expected_event_id
-        and acknowledged_event_id == expected_event_id
-        and is_duplicate
-    )
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
 
 
 def deliver_alert_payload(
@@ -223,16 +69,63 @@ def deliver_alert_payload(
     *,
     api_url=API_URL,
     timeout=10.0,
+    device_id=ECHOSENSE_DEVICE_ID,
+    device_key=ECHOSENSE_DEVICE_KEY,
     post=None,
 ) -> DeliveryResult:
     """Perform exactly one HTTP attempt and classify its acknowledgement."""
+
+    normalized_device_id = str(device_id or "").strip()
+    normalized_device_key = str(device_key or "").strip()
+    if (
+        not normalized_device_id
+        or len(normalized_device_id) > 100
+        or not normalized_device_key
+        or len(normalized_device_key) > 256
+    ):
+        return DeliveryResult(
+            AUTHENTICATION,
+            error_type="device_credentials_missing",
+        )
+    if not _valid_backend_url(api_url):
+        return DeliveryResult(
+            RETRYABLE,
+            error_type="backend_url_invalid",
+        )
+    try:
+        request_timeout = float(timeout)
+    except (TypeError, ValueError):
+        request_timeout = 0.0
+    if not math.isfinite(request_timeout) or request_timeout <= 0.0:
+        return DeliveryResult(
+            RETRYABLE,
+            error_type="request_timeout_invalid",
+        )
+    try:
+        validate_alert_payload_v2(payload)
+        stable_event_id = normalize_event_id(payload.get("event_id"))
+    except (AttributeError, AlertPayloadValidationError):
+        return DeliveryResult(
+            PERMANENT,
+            error_type="invalid_schema_v2_payload",
+        )
+    if payload.get("device_identifier") != normalized_device_id:
+        return DeliveryResult(
+            AUTHENTICATION,
+            error_type="device_identity_mismatch",
+        )
 
     request_post = post or requests.post
     try:
         response = request_post(
             f"{api_url}/alerts/",
             json=payload,
-            timeout=timeout,
+            headers={
+                "X-EchoSense-Device-Id": device_id,
+                "X-EchoSense-Device-Key": device_key,
+                "Idempotency-Key": stable_event_id,
+            },
+            timeout=request_timeout,
         )
     except requests.Timeout:
         return DeliveryResult(RETRYABLE, error_type="timeout")
@@ -255,11 +148,11 @@ def deliver_alert_payload(
     status = int(response.status_code)
     if 200 <= status < 300:
         return DeliveryResult(DELIVERED, http_status=status)
-    if status == 409 and _is_duplicate_acknowledgement(response, payload):
+    if status in {401, 403}:
         return DeliveryResult(
-            DELIVERED,
+            AUTHENTICATION,
             http_status=status,
-            duplicate_acknowledged=True,
+            error_type=f"device_authentication_http_{status}",
         )
     if status in _RETRYABLE_HTTP_STATUSES or status >= 500:
         return DeliveryResult(
@@ -294,7 +187,12 @@ def send_alert(severity, confidence, duration,
                yamnet_ran=False,
                emotion="unknown", tone_data=None,
                waveform_snapshot=None, language_confidence=None,
-               matched_terms=None, event_id=None, retries=None):
+               matched_terms=None, event_id=None, retries=None,
+               severity_evidence=None,
+               event_start_timestamp=None,
+               event_end_timestamp=None,
+               trigger_type="KEYWORD",
+               device_identifier=ECHOSENSE_DEVICE_ID):
     """Persist one complete alert payload before background HTTP delivery.
 
     The retained ``retries`` argument is ignored for call compatibility. Retry
@@ -302,28 +200,44 @@ def send_alert(severity, confidence, duration,
     """
 
     stable_event_id = str(event_id or uuid.uuid4())
-    payload = build_alert_payload(
-        severity=severity,
-        confidence=confidence,
-        duration=duration,
-        transcribed_text=transcribed_text,
-        detected_words=detected_words,
-        categories=categories,
-        language=language,
-        language_confidence=language_confidence,
-        matched_terms=matched_terms,
-        hard_hits=hard_hits,
-        soft_hits=soft_hits,
-        required_duration=required_duration,
-        duration_gate=duration_gate,
-        yamnet_class=yamnet_class,
-        yamnet_score=yamnet_score,
-        yamnet_ran=yamnet_ran,
-        emotion=emotion,
-        tone_data=tone_data,
-        waveform_snapshot=waveform_snapshot,
-        event_id=stable_event_id,
-    )
+    try:
+        ended_at = event_end_timestamp or datetime.now(timezone.utc)
+        started_at = event_start_timestamp
+        if started_at is None:
+            duration_seconds = float(duration)
+            if not math.isfinite(duration_seconds) or duration_seconds < 0.0:
+                raise AlertPayloadValidationError(
+                    "duration must be finite and non-negative"
+                )
+            started_at = ended_at - timedelta(seconds=duration_seconds)
+        payload = build_alert_payload_v2(
+            event_id=stable_event_id,
+            trigger_type=trigger_type,
+            severity=severity,
+            event_start_timestamp=started_at,
+            event_end_timestamp=ended_at,
+            device_identifier=device_identifier,
+            transcribed_text=transcribed_text,
+            detected_words=detected_words,
+            confidence=confidence,
+            language=language,
+            language_confidence=language_confidence,
+            matched_terms=matched_terms,
+            severity_evidence=severity_evidence,
+            yamnet_class=yamnet_class,
+            yamnet_score=yamnet_score,
+            yamnet_ran=yamnet_ran,
+            emotion=emotion,
+            tone_data=tone_data,
+            waveform_snapshot=waveform_snapshot,
+        )
+    except (AlertPayloadValidationError, TypeError, ValueError, OverflowError) as exc:
+        error_type = type(exc).__name__
+        print(
+            "[OUTBOX] alert not durably queued "
+            f"event=invalid payload_error_type={error_type}"
+        )
+        return False
     from sender.delivery import get_alert_delivery_service
 
     return get_alert_delivery_service().enqueue_payload(payload)

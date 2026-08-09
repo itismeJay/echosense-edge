@@ -40,7 +40,30 @@ def show_transcript_text_from_environment(environ=None):
 SHOW_TRANSCRIPT_TEXT = show_transcript_text_from_environment()
 
 # Backend API
-API_URL = "https://echosense-backend-75h3.onrender.com"
+def backend_base_url_from_environment(environ=None):
+    """Load the explicit backend target without a production fallback."""
+
+    source = os.environ if environ is None else environ
+    return str(
+        source.get("ECHOSENSE_BACKEND_BASE_URL") or ""
+    ).strip().rstrip("/")
+
+
+API_URL = backend_base_url_from_environment()
+
+
+def device_credentials_from_environment(environ=None):
+    """Load edge credentials without logging or persisting either value."""
+
+    source = os.environ if environ is None else environ
+    device_id = str(source.get("ECHOSENSE_DEVICE_ID") or "").strip()
+    device_key = str(source.get("ECHOSENSE_DEVICE_KEY") or "").strip()
+    return device_id, device_key
+
+
+ECHOSENSE_DEVICE_ID, ECHOSENSE_DEVICE_KEY = (
+    device_credentials_from_environment()
+)
 
 
 def _environment_float(name, default, *, minimum=None):
@@ -152,7 +175,8 @@ YAMNET_CLASSES_PATH = "/home/echosense/echosense-edge/yamnet_class_map.csv"
 VOSK_FILIPINO_MODEL = "/home/echosense/echosense-edge/vosk-model-tl-ph-generic-0.6"
 VOSK_ENGLISH_MODEL = "/home/echosense/echosense-edge/vosk-model-small-en-us-0.15"
 
-# Sensor location (included in every alert payload)
+# Deprecated compatibility label. Schema-v2 delivery never sends this value;
+# the backend derives classroom and school from the authenticated device.
 LOCATION = "Grade 6 Classroom"
 
 # NOTE: Detection thresholds live in detection/thresholds.py (the authoritative

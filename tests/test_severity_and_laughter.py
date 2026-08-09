@@ -8,7 +8,7 @@ from detection.aggression import AggressionDetector
 from detection.severity import HIGH, LOW, MEDIUM, calculate_severity
 from model import whisper_stt
 from model.blacklist import check_transcript
-from sender.http_client import build_alert_payload
+from tests.schema_v2_fixtures import schema_v2_payload
 
 
 def _event(seconds=1.5):
@@ -189,14 +189,18 @@ class SeverityAndLaughterRegressionTests(unittest.TestCase):
         self.assertEqual(alert["severity"], HIGH)
         self.assertEqual(alert["transcribed_text"], text)
 
-    def test_uppercase_internal_severity_converts_only_at_api_boundary(self):
-        payload = build_alert_payload(
+    def test_uppercase_internal_severity_is_preserved_at_api_boundary(self):
+        payload = schema_v2_payload(
             severity=HIGH,
-            confidence=0.9,
-            duration=1.5,
+            severity_evidence={
+                "level": HIGH,
+                "reasons": ["synthetic"],
+                "term_categories": {},
+                "supporting_evidence": [],
+            },
         )
 
-        self.assertEqual(payload["severity"], "high")
+        self.assertEqual(payload["severity"], HIGH)
 
 
 if __name__ == "__main__":
