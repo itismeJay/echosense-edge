@@ -1,21 +1,11 @@
-import atexit
 import subprocess
 import signal
-import sys
 import time
 import threading
 
-from model.whisper_stt import get_recorder, transcribe_and_check
-from detection.aggression import AggressionDetector
 from sender.http_client import (
     send_alert,
-    check_backend_connection,
-    start_heartbeat,
 )
-from sender.delivery import start_alert_delivery, stop_alert_delivery
-from model.yamnet_infer import load_yamnet, load_class_names
-from model.monitored_terms import start_dictionary_sync
-from audio.led_indicator import LEDIndicator
 from config import SHOW_TRANSCRIPT_TEXT
 
 
@@ -153,6 +143,7 @@ def process_transcription_result(result, detector, led, alert_sender=send_alert)
 
 
 def main():
+    from runtime import EdgeRuntime
     from sender.http_client import push_log_line
     from sender.http_client import start_log_flush_thread
     import builtins as _builtins
@@ -168,9 +159,11 @@ def main():
     _builtins.print = _log_print
     start_log_flush_thread()
 
+    stop_event = threading.Event()
+
     def _stop_on_signal(signum, _frame):
         print(f"[STOP] Shutdown signal received signal={signum}")
-        raise KeyboardInterrupt
+        stop_event.set()
 
     signal.signal(signal.SIGTERM, _stop_on_signal)
     signal.signal(signal.SIGINT, _stop_on_signal)
@@ -188,65 +181,35 @@ def main():
     print("  Davao del Norte State College")
     print("=" * 50)
 
-    led = LEDIndicator()
-    led.startup()
-
-    print("\n[INIT] Initializing persistent alert outbox...")
-    if not start_alert_delivery():
-        print(
-            "[OUTBOX] Worker was not started; enqueue operations will retry "
-            "database initialization and report failures explicitly."
-        )
-    atexit.register(stop_alert_delivery)
-
-    print("\n[INIT] Checking backend connection...")
-    check_backend_connection()
-    start_dictionary_sync()
-    start_heartbeat(
-        interval=60,
-        info_provider=lambda: {
+    runtime = EdgeRuntime(
+        stop_event=stop_event,
+        network_info_provider=lambda: {
             "ip": get_ip(),
             "ssid": get_ssid(),
             "mac": get_mac(),
             "hostname": "raspberrypi",
         },
     )
-
     print_network_banner()
     # Re-print the live IP/SSID every 60s so the current hotspot address is
     # always discoverable in the log (the boot line goes stale on a WiFi switch).
     threading.Thread(target=_network_status_thread, args=(60,), daemon=True).start()
 
-    print("[INIT] Loading YAMNet model...")
-    interpreter = load_yamnet()
-    class_names = load_class_names()
-    print("[INIT] YAMNet loaded!")
-
-    print("[INIT] Loading RealtimeSTT...")
-    get_recorder()
-
-    detector = AggressionDetector(
-        interpreter=interpreter,
-        class_names=class_names,
-    )
-
-    led.listening_start()
-    print("\n[HEARTBEAT] Started")
-    print("\n[MAIN] Listening...")
+    print("\n[MAIN] Starting one-source AFTER detection runtime...")
     print("[INIT] Press Ctrl+C to stop\n")
-
+    exit_code = 0
     try:
-        while True:
-            result = transcribe_and_check()
-            process_transcription_result(result, detector, led)
-
+        runtime.run()
     except KeyboardInterrupt:
+        stop_event.set()
         print("\n[STOP] EchoSense stopped.")
+    except Exception as exc:
+        exit_code = 1
+        print(f"[FATAL] runtime_error={type(exc).__name__}")
     finally:
-        stop_alert_delivery()
-        led.cleanup()
-        sys.exit(0)
+        runtime.stop()
+    return exit_code
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

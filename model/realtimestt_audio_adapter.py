@@ -16,8 +16,15 @@ class RealtimeSTTAudioEventAdapter:
     upgrades must run the adapter contract tests before deployment.
     """
 
-    def __init__(self, sample_rate: int = 16000):
+    def __init__(self, sample_rate: int = 16000, *, max_samples=None):
         self._sample_rate = sample_rate
+        if max_samples is None:
+            from config import DETECTION_RUNTIME
+
+            max_samples = DETECTION_RUNTIME.max_stt_utterance_samples
+        self._max_samples = int(max_samples)
+        if self._max_samples <= 0:
+            raise ValueError("max_samples must be positive")
         self._lock = threading.Lock()
         self._pending_event = None
 
@@ -41,6 +48,7 @@ class RealtimeSTTAudioEventAdapter:
             event = AudioEvent.from_float32_samples(
                 audio,
                 sample_rate=self._sample_rate,
+                max_samples=self._max_samples,
             )
         except (TypeError, ValueError) as exc:
             self.clear_pending()

@@ -192,6 +192,7 @@ def send_alert(severity, confidence, duration,
                event_start_timestamp=None,
                event_end_timestamp=None,
                trigger_type="KEYWORD",
+               acoustic_evidence_role="supporting_only",
                device_identifier=ECHOSENSE_DEVICE_ID):
     """Persist one complete alert payload before background HTTP delivery.
 
@@ -230,6 +231,7 @@ def send_alert(severity, confidence, duration,
             emotion=emotion,
             tone_data=tone_data,
             waveform_snapshot=waveform_snapshot,
+            acoustic_evidence_role=acoustic_evidence_role,
         )
     except (AlertPayloadValidationError, TypeError, ValueError, OverflowError) as exc:
         error_type = type(exc).__name__

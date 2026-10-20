@@ -59,8 +59,15 @@ class AudioEvent:
         *,
         sample_rate: int = 16000,
         ended_at: datetime | None = None,
+        max_samples: int | None = None,
     ) -> "AudioEvent":
-        """Validate and immediately copy finalized RealtimeSTT audio."""
+        """Copy a bounded tail of finalized RealtimeSTT audio.
+
+        The most recent samples are retained because transcript semantics do
+        not require full raw PCM, while the tail best aligns with the final
+        words and incident context. The returned array never shares memory
+        with the potentially much larger third-party callback array.
+        """
         if sample_rate <= 0:
             raise ValueError("sample_rate must be positive")
         if not isinstance(samples, np.ndarray):
@@ -72,8 +79,21 @@ class AudioEvent:
         if not np.issubdtype(samples.dtype, np.number):
             raise TypeError("samples must have a numeric dtype")
 
+        if max_samples is None:
+            # Import lazily so this low-level value object has no configuration
+            # initialization side effect until its factory is used.
+            from config import DETECTION_RUNTIME
+
+            max_samples = DETECTION_RUNTIME.max_stt_utterance_samples
+        if isinstance(max_samples, bool) or not isinstance(max_samples, int):
+            raise TypeError("max_samples must be an integer")
+        if max_samples <= 0:
+            raise ValueError("max_samples must be positive")
+
+        retained = samples[-max_samples:]
+
         copied_samples = np.array(
-            samples,
+            retained,
             dtype=np.float32,
             order="C",
             copy=True,

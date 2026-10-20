@@ -5,7 +5,7 @@ faster-whisper
 # RealtimeSTT handles mic capture + WebRTC/Silero VAD + faster-whisper streaming
 # (replaces audio/capture.py + audio/vad.py for the live path). silero-vad ships
 # the VAD model locally so RealtimeSTT never falls back to interactive torch.hub.
-RealtimeSTT
+RealtimeSTT==1.0.2
 silero-vad
 noisereduce
 rapidfuzz

@@ -40,10 +40,7 @@ class TranscriptNormalizationTests(unittest.TestCase):
     def test_05_original_transcript_is_preserved(self):
         original = "  Pangit KA!\n"
         whisper_stt._on_text(original)
-        with whisper_stt._result_lock:
-            result = whisper_stt._latest_result
-            whisper_stt._latest_result = None
-        whisper_stt._new_result_event.clear()
+        result = whisper_stt.consume_transcription_result()
 
         self.assertEqual(result["transcribed_text"], original)
         self.assertEqual(result["transcript"], original)

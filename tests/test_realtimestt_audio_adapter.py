@@ -1,6 +1,7 @@
 import inspect
+import importlib.metadata
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import numpy as np
 from RealtimeSTT.core.transcription_api import transcribe as realtimestt_transcribe
@@ -8,6 +9,7 @@ from RealtimeSTT.core.transcription_api import transcribe as realtimestt_transcr
 from model.realtimestt_audio_adapter import RealtimeSTTAudioEventAdapter
 from model import whisper_stt
 from model.whisper_stt import _run_transcription_cycle
+from model.whisper_stt import RealtimeSTTRecordingLimiter
 
 
 class _FakeRecorder:
@@ -144,10 +146,7 @@ class RealtimeSTTAudioAdapterTests(unittest.TestCase):
         ):
             whisper_stt._on_text(text, language, probability, event)
 
-        with whisper_stt._result_lock:
-            result = whisper_stt._latest_result
-            whisper_stt._latest_result = None
-        whisper_stt._new_result_event.clear()
+        result = whisper_stt.consume_transcription_result()
 
         self.assertIs(result["audio_event"], event)
         self.assertEqual(result["event_id"], event.event_id)
@@ -173,6 +172,50 @@ class RealtimeSTTAudioAdapterTests(unittest.TestCase):
             "recorder.perform_final_transcription(audio_copy)",
             source,
         )
+
+    def test_realtimestt_dependency_and_manual_feed_api_are_reproducible(self):
+        from RealtimeSTT import AudioToTextRecorder
+
+        self.assertEqual(importlib.metadata.version("RealtimeSTT"), "1.0.2")
+        constructor = inspect.signature(AudioToTextRecorder)
+        self.assertIn("use_microphone", constructor.parameters)
+        self.assertTrue(hasattr(AudioToTextRecorder, "feed_audio"))
+        self.assertTrue(hasattr(AudioToTextRecorder, "abort"))
+        self.assertTrue(hasattr(AudioToTextRecorder, "shutdown"))
+        self.assertTrue(hasattr(AudioToTextRecorder, "stop"))
+
+    def test_public_stop_watchdog_limits_active_recording(self):
+        timers = []
+
+        class FakeTimer:
+            def __init__(self, interval, callback):
+                self.interval = interval
+                self.callback = callback
+                self.daemon = False
+                self.cancelled = False
+                timers.append(self)
+
+            def start(self):
+                return None
+
+            def cancel(self):
+                self.cancelled = True
+
+        recorder = Mock()
+        limiter = RealtimeSTTRecordingLimiter(
+            15.0,
+            timer_factory=FakeTimer,
+        )
+        limiter.bind(recorder)
+        limiter.on_recording_start()
+        self.assertEqual(timers[0].interval, 15.0)
+        timers[0].callback()
+        recorder.stop.assert_called_once_with()
+        limiter.shutdown()
+        for value in (0, -1, float("nan"), float("inf")):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    RealtimeSTTRecordingLimiter(value)
 
     def test_unsupported_auto_language_retries_same_event_as_tagalog(self):
         samples = np.full(16000, 0.2, dtype=np.float32)

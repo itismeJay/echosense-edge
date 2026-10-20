@@ -313,10 +313,22 @@ def _clean_matched_terms(matched_terms) -> list[dict]:
     return cleaned
 
 
-def _acoustic_evidence(yamnet_ran, yamnet_class, yamnet_score) -> dict:
+def _evidence_role(value) -> str:
+    role = str(value or "").strip().lower()
+    if role not in {"primary_trigger", "supporting_only"}:
+        raise AlertPayloadValidationError("acoustic evidence role is invalid")
+    return role
+
+
+def _acoustic_evidence(
+    yamnet_ran,
+    yamnet_class,
+    yamnet_score,
+    role="supporting_only",
+) -> dict:
     ran = bool(yamnet_ran)
     evidence = {
-        "role": "supporting_only",
+        "role": _evidence_role(role),
         "yamnet": {"ran": ran},
     }
     if ran:
@@ -340,7 +352,11 @@ def _acoustic_evidence(yamnet_ran, yamnet_class, yamnet_score) -> dict:
     return evidence
 
 
-def _tone_evidence(emotion, tone_data) -> dict | None:
+def _tone_evidence(
+    emotion,
+    tone_data,
+    role="supporting_only",
+) -> dict | None:
     measurements = {}
     source = tone_data or {}
     if not isinstance(source, dict):
@@ -354,7 +370,7 @@ def _tone_evidence(emotion, tone_data) -> dict | None:
     label = str(emotion or "").strip()
     if not measurements and label.casefold() in {"", "unknown"}:
         return None
-    evidence = {"role": "supporting_only"}
+    evidence = {"role": _evidence_role(role)}
     if label and label.casefold() != "unknown":
         if len(label) > 100:
             raise AlertPayloadValidationError("emotion exceeds 100 characters")
@@ -410,6 +426,7 @@ def build_alert_payload_v2(
     emotion="unknown",
     tone_data=None,
     waveform_snapshot=None,
+    acoustic_evidence_role="supporting_only",
 ) -> dict:
     """Return one deterministic, backend-compatible schema-v2 body."""
 
@@ -468,6 +485,7 @@ def build_alert_payload_v2(
             yamnet_ran,
             yamnet_class,
             yamnet_score,
+            acoustic_evidence_role,
         ),
         "transcription_status": (
             "complete" if str(transcribed_text or "").strip() else "unavailable"
@@ -507,7 +525,11 @@ def build_alert_payload_v2(
             ),
             4,
         )
-    tone_evidence = _tone_evidence(emotion, tone_data)
+    tone_evidence = _tone_evidence(
+        emotion,
+        tone_data,
+        acoustic_evidence_role,
+    )
     if tone_evidence is not None:
         payload["tone_evidence"] = tone_evidence
     supporting = set(evidence["supporting_evidence"])

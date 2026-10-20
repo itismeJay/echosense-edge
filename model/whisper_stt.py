@@ -1,14 +1,17 @@
-from RealtimeSTT import AudioToTextRecorder
+import json
+import math
+import queue
+import threading
+import unicodedata
+
+from audio.audio_event import float32_samples_to_int16
+from config import DETECTION_RUNTIME, SHOW_TRANSCRIPT_TEXT
+from detection.severity import LOW
+from detection.transcript_quality import assess_transcript_quality
 from model.blacklist import check_transcript
 from model.monitored_terms import classify_transcript_language
 from model.realtimestt_audio_adapter import RealtimeSTTAudioEventAdapter
-from detection.severity import LOW
-from detection.transcript_quality import assess_transcript_quality
-from config import SHOW_TRANSCRIPT_TEXT
-import json
-import threading
-import time
-import unicodedata
+from model.result_queue import BoundedResultQueue
 
 # FIX 2 — We deliberately do NOT pass an initial_prompt to Whisper. Priming it
 # with a profanity word-list made it hallucinate those exact words out of
@@ -19,11 +22,82 @@ _SUPPORTED_WHISPER_LANGUAGES = frozenset({"en", "tl", "fil", "ceb"})
 _REGIONAL_RETRY_LANGUAGE = "tl"
 
 _recorder = None
-_latest_result = None
-_result_lock = threading.Lock()
-_new_result_event = threading.Event()
+_recorder_thread = None
+_recorder_error = None
+_recorder_stop_event = threading.Event()
 _recorder_ready = threading.Event()
-_audio_event_adapter = RealtimeSTTAudioEventAdapter(sample_rate=16000)
+_audio_event_adapter = RealtimeSTTAudioEventAdapter(
+    sample_rate=16000,
+    max_samples=DETECTION_RUNTIME.max_stt_utterance_samples,
+)
+_result_queue = BoundedResultQueue(
+    DETECTION_RUNTIME.stt_result_queue_size,
+    max_audio_samples=DETECTION_RUNTIME.max_stt_utterance_samples,
+)
+_recording_limiter = None
+
+
+class RealtimeSTTRecordingLimiter:
+    """Best-effort public-API stop watchdog for RealtimeSTT recordings.
+
+    RealtimeSTT 1.0.2 has no maximum-recording constructor setting. Its
+    documented recording callbacks and ``stop()`` method are used here to
+    prevent an active recording from continuing indefinitely. The strict
+    EchoSense-owned bound remains the sample cap applied to every AudioEvent.
+    """
+
+    def __init__(self, max_seconds, *, timer_factory=threading.Timer):
+        self.max_seconds = float(max_seconds)
+        if not math.isfinite(self.max_seconds) or self.max_seconds <= 0:
+            raise ValueError("max_seconds must be finite and positive")
+        self._timer_factory = timer_factory
+        self._lock = threading.Lock()
+        self._recorder = None
+        self._timer = None
+
+    def bind(self, recorder):
+        with self._lock:
+            self._recorder = recorder
+
+    def on_recording_start(self):
+        with self._lock:
+            if self._timer is not None:
+                self._timer.cancel()
+            timer = self._timer_factory(
+                self.max_seconds,
+                self._stop_due_to_limit,
+            )
+            timer.daemon = True
+            self._timer = timer
+            timer.start()
+
+    def on_recording_stop(self):
+        with self._lock:
+            timer = self._timer
+            self._timer = None
+        if timer is not None:
+            timer.cancel()
+
+    def _stop_due_to_limit(self):
+        with self._lock:
+            recorder = self._recorder
+            self._timer = None
+        if recorder is None:
+            return
+        print(
+            "[STT] recording_duration_limit_reached=true "
+            f"max_seconds={self.max_seconds:g}"
+        )
+        try:
+            recorder.stop()
+        except Exception as exc:
+            print(f"[STT] recording_stop_error={type(exc).__name__}")
+
+    def shutdown(self):
+        self.on_recording_stop()
+        with self._lock:
+            self._recorder = None
+
 
 def _on_realtime_update(text: str):
     if text and text.strip():
@@ -112,7 +186,6 @@ def _on_text(
     whisper_language_confidence=None,
     audio_event=None,
 ):
-    global _latest_result
     original_text = str(text or "")
     normalized_whisper_language = str(
         whisper_language or ""
@@ -197,9 +270,7 @@ def _on_text(
             f"| sev: {result['severity']}"
         )
 
-    with _result_lock:
-        _latest_result = result
-    _new_result_event.set()
+    _result_queue.put(result)
 
 
 def _run_transcription_cycle(recorder, audio_event_adapter):
@@ -239,52 +310,50 @@ def _run_transcription_cycle(recorder, audio_event_adapter):
 
 
 def _recorder_loop():
-    global _recorder
-    print("[STT] Loading RealtimeSTT with Whisper base...")
-    _recorder = AudioToTextRecorder(
-        # --- Final (accurate) transcription model ---------------------------
-        model="base",            # int8 base = best speed/accuracy balance on the Pi
-        # Want better Bisaya / code-switch accuracy? Comment the line above and
-        # uncomment the one below — ~2x slower on the Pi, latency may rise to 3-5s:
-        # model="small",
-        device="cpu",            # the Pi has no GPU; default was 'cuda'
-        compute_type="int8",     # was defaulting to float32 (slow). int8 = 2-4x faster
-        beam_size=1,             # was 5; greedy decode is much faster, minor accuracy cost
-        batch_size=0,            # plain WhisperModel (no batching) — matches the old pipeline
-        # No forced language: faster-whisper auto-detects supported languages.
-        # Whisper has Tagalog ("tl") and English tokens but no native Cebuano
-        # token, so downstream monitored-term evidence handles ceb/mixed labels.
-        spinner=False,
-        # VAD tuned for QUIET, high-pitched Grade 6 voices at ~1 m. These are
-        # deliberately permissive so short/soft words (bobo, pangit, dakog
-        # ilong) are not missed. min_length_of_recording=0.3 is the key lever
-        # for catching short words. False alarms are held back DOWNSTREAM
-        # instead (consume-once + tightened Track B: a lone word never alerts;
-        # it must repeat or be paired).
-        # NOTE: in RealtimeSTT, silero_sensitivity is "more sensitive at higher
-        # values" — if quiet speech is still missed, RAISE this, don't lower it.
-        silero_sensitivity=0.6,
-        webrtc_sensitivity=1,
-        post_speech_silence_duration=0.6,
-        min_length_of_recording=0.5,
-        min_gap_between_recordings=0.1,
-        on_transcription_start=_audio_event_adapter.on_transcription_start,
-        # FIX 2 — initial_prompt removed (was priming profanity hallucinations).
-        # --- Live word-by-word preview ([LIVE] lines) — DISABLED on the Pi ---
-        # Running a 2nd (realtime) Whisper model alongside the base model
-        # saturates the Pi CPU -> "audio queue exceeds latency limit, discarding
-        # chunks" -> the model is fed broken audio and loops ("pangit ka, pangit
-        # ka..."). Single model only. Re-enable these on a more powerful host:
-        # enable_realtime_transcription=True,
-        # realtime_model_type="tiny",
-        # beam_size_realtime=1,
-        # realtime_processing_pause=0.2,
-        # initial_prompt_realtime=WHISPER_INITIAL_PROMPT,
-        # on_realtime_transcription_update=_on_realtime_update,
-    )
-    print("[STT] Ready.")
+    global _recorder, _recorder_error, _recording_limiter
+    try:
+        from RealtimeSTT import AudioToTextRecorder
+
+        print("[STT] Loading RealtimeSTT with Whisper base...")
+        _recording_limiter = RealtimeSTTRecordingLimiter(
+            DETECTION_RUNTIME.max_stt_utterance_seconds
+        )
+        _recorder = AudioToTextRecorder(
+            # --- Final (accurate) transcription model -----------------------
+            model="base",
+            device="cpu",
+            compute_type="int8",
+            beam_size=1,
+            batch_size=0,
+            # No forced language: faster-whisper auto-detects supported
+            # languages. Whisper has Tagalog and English tokens but no native
+            # Cebuano token; downstream term evidence handles ceb/mixed labels.
+            spinner=False,
+            # EchoSense owns the only physical microphone and feeds this
+            # recorder. This verified RealtimeSTT 1.0.2 mode avoids a second
+            # PortAudio reader.
+            use_microphone=False,
+            # VAD remains permissive for short/quiet classroom utterances.
+            silero_sensitivity=0.6,
+            webrtc_sensitivity=1,
+            post_speech_silence_duration=0.6,
+            min_length_of_recording=0.5,
+            min_gap_between_recordings=0.1,
+            on_recording_start=_recording_limiter.on_recording_start,
+            on_recording_stop=_recording_limiter.on_recording_stop,
+            on_transcription_start=_audio_event_adapter.on_transcription_start,
+            # initial_prompt intentionally omitted to avoid term-list priming.
+            # Realtime transcription remains disabled so only one Whisper model
+            # competes for Pi CPU.
+        )
+        _recording_limiter.bind(_recorder)
+    except Exception as exc:
+        _recorder_error = exc
+        _recorder_ready.set()
+        return
+    print("[STT] Ready external_feed=true physical_reader=false")
     _recorder_ready.set()
-    while True:
+    while not _recorder_stop_event.is_set():
         try:
             # Use the synchronous result so language metadata and text come from
             # the same transcription. RealtimeSTT's callback form starts a new
@@ -313,17 +382,58 @@ def _recorder_loop():
                 detected_language_probability,
                 audio_event,
             )
-        except Exception as e:
-            print(f"[STT] Error: {e}")
-            time.sleep(1)
+        except Exception as exc:
+            if _recorder_stop_event.is_set():
+                break
+            print(f"[STT] Error: {type(exc).__name__}")
+            _recorder_stop_event.wait(1.0)
 
 def get_recorder():
-    global _recorder
+    global _recorder_thread, _recorder_error
     if _recorder is None:
-        t = threading.Thread(target=_recorder_loop, daemon=True)
-        t.start()
-        _recorder_ready.wait(timeout=60)
+        _recorder_error = None
+        _recorder_stop_event.clear()
+        _recorder_ready.clear()
+        _recorder_thread = threading.Thread(
+            target=_recorder_loop,
+            name="realtimestt-transcription",
+        )
+        _recorder_thread.start()
+        if not _recorder_ready.wait(timeout=60):
+            raise RuntimeError("RealtimeSTT initialization timed out")
+        if _recorder_error is not None:
+            raise RuntimeError(
+                f"RealtimeSTT initialization failed: {type(_recorder_error).__name__}"
+            ) from _recorder_error
     return _recorder
+
+
+def stop_recorder():
+    """Stop RealtimeSTT and its owned workers without touching a microphone."""
+
+    global _recorder, _recorder_thread, _recorder_error, _recording_limiter
+    _recorder_stop_event.set()
+    if _recording_limiter is not None:
+        _recording_limiter.shutdown()
+    recorder = _recorder
+    if recorder is not None:
+        try:
+            recorder.abort()
+        except Exception:
+            pass
+        try:
+            recorder.shutdown()
+        except Exception as exc:
+            print(f"[STT] shutdown_error={type(exc).__name__}")
+    if _recorder_thread is not None:
+        _recorder_thread.join(timeout=10.0)
+    _recorder = None
+    _recorder_thread = None
+    _recorder_error = None
+    _recording_limiter = None
+    _recorder_ready.clear()
+    clear_transcription_results()
+    print("[STT] stopped")
 
 def _empty_result() -> dict:
     return {
@@ -365,21 +475,91 @@ def _empty_result() -> dict:
 
 def transcribe_and_check(audio_np=None) -> dict:
     get_recorder()
-    _new_result_event.wait(timeout=1.0)
-    _new_result_event.clear()
-
-    # FIX 1 — consume-once. Read AND clear the latest result so the same
-    # utterance can never be processed twice. This is what stops the 60s re-fire
-    # loop and the fake "repetition" that fired on a single word said once.
-    global _latest_result
-    with _result_lock:
-        result = _latest_result
-        _latest_result = None
-
-    if result is None:
+    try:
+        return _result_queue.get(timeout=1.0)
+    except queue.Empty:
         return _empty_result()
 
-    return result
+
+def consume_transcription_result(timeout=0.0):
+    """Consume one completed result in FIFO order without starting hardware."""
+
+    try:
+        return _result_queue.get(timeout=timeout)
+    except queue.Empty:
+        return None
+
+
+def clear_transcription_results():
+    _result_queue.clear()
+
+
+class RealtimeSTTFeedWorker:
+    """Bounded bridge from canonical frames into RealtimeSTT manual input."""
+
+    def __init__(
+        self,
+        frame_queue,
+        *,
+        recorder_provider=get_recorder,
+        max_internal_chunks=None,
+    ):
+        self.frame_queue = frame_queue
+        self.recorder_provider = recorder_provider
+        self.max_internal_chunks = int(
+            max_internal_chunks
+            or DETECTION_RUNTIME.stt_internal_audio_chunks
+        )
+        if self.max_internal_chunks <= 0:
+            raise ValueError("max_internal_chunks must be positive")
+        self._stop_event = threading.Event()
+        self._thread = None
+        self.overflow_count = 0
+        self.error = None
+
+    def start(self):
+        if self._thread is not None and self._thread.is_alive():
+            return
+        self._stop_event.clear()
+        self.error = None
+        self._thread = threading.Thread(
+            target=self._run,
+            name="realtimestt-audio-feed",
+        )
+        self._thread.start()
+
+    def _run(self):
+        try:
+            recorder = self.recorder_provider()
+            while not self._stop_event.is_set():
+                try:
+                    frame = self.frame_queue.get(timeout=0.2)
+                except queue.Empty:
+                    continue
+                internal_queue = getattr(recorder, "audio_queue", None)
+                if (
+                    internal_queue is not None
+                    and internal_queue.qsize() >= self.max_internal_chunks
+                ):
+                    self.overflow_count += 1
+                    if self.overflow_count == 1 or self.overflow_count % 100 == 0:
+                        print(
+                            f"[STT_AUDIO_QUEUE] overflow_count={self.overflow_count} "
+                            "policy=drop_newest"
+                        )
+                    continue
+                pcm_bytes = float32_samples_to_int16(frame.samples).tobytes()
+                recorder.feed_audio(pcm_bytes, original_sample_rate=16000)
+        except Exception as exc:
+            self.error = exc
+            self._stop_event.set()
+            print(f"[STT] feed_worker_error={type(exc).__name__}")
+
+    def stop(self):
+        self._stop_event.set()
+        if self._thread is not None:
+            self._thread.join(timeout=5.0)
+        self._thread = None
 
 def get_model():
     return get_recorder()
