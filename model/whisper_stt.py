@@ -1,22 +1,29 @@
+from collections import deque
 import json
 import math
 import queue
 import threading
 import unicodedata
 
+import numpy as np
+
 from audio.audio_event import float32_samples_to_int16
 from config import DETECTION_RUNTIME, SHOW_TRANSCRIPT_TEXT
 from detection.severity import LOW
 from detection.transcript_quality import assess_transcript_quality
 from model.blacklist import check_transcript
-from model.monitored_terms import classify_transcript_language
+from model.monitored_terms import classify_transcript_language, get_backend_terms
 from model.realtimestt_audio_adapter import RealtimeSTTAudioEventAdapter
 from model.result_queue import BoundedResultQueue
 
-# FIX 2 — We deliberately do NOT pass an initial_prompt to Whisper. Priming it
-# with a profanity word-list made it hallucinate those exact words out of
-# background noise (rooster/dog/keyboard/music) — the single biggest false-alarm
-# source. Detection is handled downstream by the blacklist, not by biasing STT.
+# Whisper initial_prompt: a short, comma-separated list of the monitored terms
+# from the synced backend dictionary, to bias recognition toward them.
+# Historical note: an earlier long profanity-list prompt made Whisper
+# hallucinate those words out of background noise. The prompt is therefore kept
+# short, audio is noise-reduced before Whisper (see NoiseReducer), and quality
+# gates plus context rules still run on every transcript.
+WHISPER_PROMPT_MAX_TERMS = 24
+WHISPER_PROMPT_MAX_CHARACTERS = 200
 
 _SUPPORTED_WHISPER_LANGUAGES = frozenset({"en", "tl", "fil", "ceb"})
 _REGIONAL_RETRY_LANGUAGE = "tl"
@@ -97,6 +104,105 @@ class RealtimeSTTRecordingLimiter:
         self.on_recording_stop()
         with self._lock:
             self._recorder = None
+
+
+def build_initial_prompt(terms=None):
+    """Return a short comma-separated term list, or None if none are synced."""
+
+    if terms is None:
+        terms = [item.term for item in get_backend_terms()]
+    prompt_terms = []
+    length = 0
+    for term in dict.fromkeys(str(t).strip() for t in terms if str(t).strip()):
+        added = len(term) + (2 if prompt_terms else 0)
+        if (
+            len(prompt_terms) >= WHISPER_PROMPT_MAX_TERMS
+            or length + added > WHISPER_PROMPT_MAX_CHARACTERS
+        ):
+            break
+        prompt_terms.append(term)
+        length += added
+    return ", ".join(prompt_terms) or None
+
+
+class NoiseReducer:
+    """Spectral-gating noise reduction applied before audio reaches Whisper.
+
+    Audio is processed in short blocks. The noise profile is the quietest few
+    recent blocks, which tracks the classroom's stationary background without
+    treating speech as noise. Without noisereduce installed, audio passes
+    through unchanged and that is logged once.
+    """
+
+    def __init__(
+        self,
+        *,
+        sample_rate=16000,
+        block_samples=8000,
+        history_blocks=20,
+        profile_blocks=4,
+        prop_decrease=0.75,
+        reduce_function=None,
+        enabled=True,
+    ):
+        self.sample_rate = int(sample_rate)
+        self.block_samples = int(block_samples)
+        self.profile_blocks = int(profile_blocks)
+        self.prop_decrease = float(prop_decrease)
+        self._pending = np.empty(0, dtype=np.float32)
+        self._history = deque(maxlen=int(history_blocks))
+        self._reduce = reduce_function
+        if self._reduce is None and enabled:
+            try:
+                import noisereduce
+
+                self._reduce = noisereduce.reduce_noise
+            except Exception as exc:
+                print(
+                    "[STT_NOISE] noisereduce_unavailable="
+                    f"{type(exc).__name__} passthrough=true"
+                )
+        self.enabled = bool(enabled and self._reduce is not None)
+
+    def process(self, samples):
+        """Accept float32 samples; return zero or more processed blocks.
+
+        When reduction is disabled, frames pass through immediately unbuffered.
+        """
+
+        if not self.enabled:
+            return [np.asarray(samples, dtype=np.float32)]
+        self._pending = np.concatenate(
+            (self._pending, np.asarray(samples, dtype=np.float32))
+        )
+        blocks = []
+        while self._pending.size >= self.block_samples:
+            block = self._pending[:self.block_samples]
+            self._pending = self._pending[self.block_samples:]
+            blocks.append(self._process_block(block))
+        return blocks
+
+    def _process_block(self, block):
+        rms = float(np.sqrt(np.mean(block ** 2)))
+        self._history.append((rms, block))
+        if len(self._history) < self.profile_blocks:
+            return block
+        quietest = sorted(self._history, key=lambda item: item[0])
+        noise = np.concatenate(
+            [item[1] for item in quietest[:self.profile_blocks]]
+        )
+        try:
+            reduced = self._reduce(
+                y=block,
+                sr=self.sample_rate,
+                y_noise=noise,
+                stationary=True,
+                prop_decrease=self.prop_decrease,
+            )
+        except Exception as exc:
+            print(f"[STT_NOISE] reduce_failed={type(exc).__name__}")
+            return block
+        return np.clip(np.asarray(reduced, dtype=np.float32), -1.0, 1.0)
 
 
 def _on_realtime_update(text: str):
@@ -315,6 +421,11 @@ def _recorder_loop():
         from RealtimeSTT import AudioToTextRecorder
 
         print("[STT] Loading RealtimeSTT with Whisper base...")
+        initial_prompt = build_initial_prompt()
+        print(
+            "[STT] initial_prompt_terms="
+            f"{len(initial_prompt.split(', ')) if initial_prompt else 0}"
+        )
         _recording_limiter = RealtimeSTTRecordingLimiter(
             DETECTION_RUNTIME.max_stt_utterance_seconds
         )
@@ -342,9 +453,10 @@ def _recorder_loop():
             on_recording_start=_recording_limiter.on_recording_start,
             on_recording_stop=_recording_limiter.on_recording_stop,
             on_transcription_start=_audio_event_adapter.on_transcription_start,
-            # initial_prompt intentionally omitted to avoid term-list priming.
-            # Realtime transcription remains disabled so only one Whisper model
-            # competes for Pi CPU.
+            # Short monitored-term list from the synced dictionary (see
+            # build_initial_prompt). Realtime transcription remains disabled so
+            # only one Whisper model competes for Pi CPU.
+            initial_prompt=initial_prompt,
         )
         _recording_limiter.bind(_recorder)
     except Exception as exc:
@@ -503,6 +615,7 @@ class RealtimeSTTFeedWorker:
         *,
         recorder_provider=get_recorder,
         max_internal_chunks=None,
+        noise_reducer=None,
     ):
         self.frame_queue = frame_queue
         self.recorder_provider = recorder_provider
@@ -512,6 +625,7 @@ class RealtimeSTTFeedWorker:
         )
         if self.max_internal_chunks <= 0:
             raise ValueError("max_internal_chunks must be positive")
+        self.noise_reducer = noise_reducer
         self._stop_event = threading.Event()
         self._thread = None
         self.overflow_count = 0
@@ -548,8 +662,11 @@ class RealtimeSTTFeedWorker:
                             "policy=drop_newest"
                         )
                     continue
-                pcm_bytes = float32_samples_to_int16(frame.samples).tobytes()
-                recorder.feed_audio(pcm_bytes, original_sample_rate=16000)
+                if self.noise_reducer is None:
+                    self.noise_reducer = NoiseReducer()
+                for block in self.noise_reducer.process(frame.samples):
+                    pcm_bytes = float32_samples_to_int16(block).tobytes()
+                    recorder.feed_audio(pcm_bytes, original_sample_rate=16000)
         except Exception as exc:
             self.error = exc
             self._stop_event.set()

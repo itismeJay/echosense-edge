@@ -126,12 +126,12 @@ class TranscriptPrivacyAfterTests(unittest.TestCase):
         for text, at in (
             ("What page are we on?", 1),
             ("pangit ka", 2),
-            ("Please open your books.", 3),
-            ("bobo ka", 4),
-            ("pangit ka", 4.5),
+            ("Please open your books.", 2.5),
+            ("bobo ka", 3),
+            ("pangit ka", 3.5),
         ):
             self.coordinator.submit_text(self._text(text, at))
-        payload, serialized = self._finish(7.5)
+        payload, serialized = self._finish(6)
         self.assertEqual(payload["transcribed_text"], "pangit ka\nbobo ka")
         self.assertNotIn("what page", serialized.casefold())
         self.assertNotIn("open your books", serialized.casefold())

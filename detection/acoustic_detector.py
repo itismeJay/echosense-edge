@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from datetime import datetime, timedelta, timezone
 import math
 import queue
@@ -11,9 +12,90 @@ import numpy as np
 
 from audio.shared_source import AudioFrame, BoundedFrameQueue, CANONICAL_SAMPLE_RATE
 from detection.evidence import AcousticEvidence
-from detection.thresholds import YAMNET_THRESHOLD
+from detection.thresholds import TONE_RMS_THRESHOLD, YAMNET_THRESHOLD
 from model.tone_analyzer import analyze_tone_float32
 from model.yamnet_infer import is_aggressive_sound, run_yamnet_float32
+
+
+class NoiseFloorTracker:
+    """Rolling, robust estimate of how loud the room normally is.
+
+    The floor is a mid percentile of recent window RMS values, so brief shouts
+    barely move it while a room that stays louder raises it. A window counts as
+    "aggressive tone" only when its RMS reaches the adaptive threshold
+    ``max(minimum_threshold, floor * multiplier)``. Until the startup
+    calibration period has elapsed no window can be tone-aggressive.
+    """
+
+    def __init__(
+        self,
+        *,
+        window_seconds=60.0,
+        percentile=60.0,
+        multiplier=2.5,
+        minimum_threshold=TONE_RMS_THRESHOLD,
+        calibration_seconds=15.0,
+        log_interval_seconds=30.0,
+    ):
+        self.window_seconds = float(window_seconds)
+        self.percentile = float(percentile)
+        self.multiplier = float(multiplier)
+        self.minimum_threshold = float(minimum_threshold)
+        self.calibration_seconds = float(calibration_seconds)
+        self.log_interval_seconds = float(log_interval_seconds)
+        self._observations = deque()
+        self._started_at = None
+        self._last_log_at = None
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(
+            window_seconds=config.noise_floor_window_seconds,
+            percentile=config.noise_floor_percentile,
+            multiplier=config.tone_floor_multiplier,
+            calibration_seconds=config.calibration_seconds,
+            log_interval_seconds=config.noise_floor_log_interval_seconds,
+        )
+
+    def is_calibrated(self, now):
+        if self._started_at is None:
+            return self.calibration_seconds <= 0
+        return now - self._started_at >= self.calibration_seconds
+
+    @property
+    def floor(self):
+        if not self._observations:
+            return None
+        return float(np.percentile(
+            [rms for _end, rms in self._observations],
+            self.percentile,
+        ))
+
+    @property
+    def threshold(self):
+        floor = self.floor
+        if floor is None:
+            return self.minimum_threshold
+        return max(self.minimum_threshold, floor * self.multiplier)
+
+    def observe(self, rms, *, monotonic_start, monotonic_end):
+        if self._started_at is None:
+            self._started_at = float(monotonic_start)
+        self._observations.append((float(monotonic_end), float(rms)))
+        cutoff = monotonic_end - self.window_seconds
+        while self._observations and self._observations[0][0] < cutoff:
+            self._observations.popleft()
+        if (
+            self._last_log_at is None
+            or monotonic_end - self._last_log_at >= self.log_interval_seconds
+        ):
+            self._last_log_at = float(monotonic_end)
+            print(
+                f"[NOISE_FLOOR] floor_rms={self.floor:.1f} "
+                f"tone_threshold_rms={self.threshold:.1f} "
+                f"windows={len(self._observations)} "
+                f"calibrated={str(self.is_calibrated(monotonic_end)).lower()}"
+            )
 
 
 class AcousticDetector:
@@ -27,7 +109,9 @@ class AcousticDetector:
         yamnet_runner=None,
         yamnet_threshold=YAMNET_THRESHOLD,
         unavailable_reason="model_not_loaded",
+        noise_floor=None,
     ):
+        self.noise_floor = noise_floor or NoiseFloorTracker()
         self.interpreter = interpreter
         self.class_names = tuple(class_names or ())
         self.yamnet_threshold = float(yamnet_threshold)
@@ -69,7 +153,18 @@ class AcousticDetector:
             raise TypeError("acoustic windows must be mono float32")
         if canonical.size == 0:
             raise ValueError("acoustic windows must not be empty")
-        tone = analyze_tone_float32(canonical, CANONICAL_SAMPLE_RATE)
+        tone_threshold = self.noise_floor.threshold
+        calibrating = not self.noise_floor.is_calibrated(float(monotonic_end))
+        tone = analyze_tone_float32(
+            canonical,
+            CANONICAL_SAMPLE_RATE,
+            rms_threshold=tone_threshold,
+        )
+        self.noise_floor.observe(
+            tone["rms"],
+            monotonic_start=float(monotonic_start),
+            monotonic_end=float(monotonic_end),
+        )
         yamnet_ran = False
         yamnet_label = "NotRun"
         yamnet_score = 0.0
@@ -110,7 +205,10 @@ class AcousticDetector:
         else:
             reasons.append(f"yamnet_unavailable:{self.unavailable_reason}")
 
-        tone_aggressive = bool(tone["is_aggressive_tone"])
+        reasons.append(f"tone_rms_threshold:{tone_threshold:.1f}")
+        tone_aggressive = bool(tone["is_aggressive_tone"]) and not calibrating
+        if calibrating:
+            reasons.append("noise_floor_calibrating")
         if tone_aggressive:
             reasons.append("qualifying:multi_feature_aggressive_tone")
         qualifies = bool(yamnet_aggressive or tone_aggressive)

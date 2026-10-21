@@ -12,7 +12,7 @@ from audio.shared_source import (
     RollingAudioBuffer,
     select_input_device,
 )
-from model.whisper_stt import RealtimeSTTFeedWorker, _recorder_loop
+from model.whisper_stt import NoiseReducer, RealtimeSTTFeedWorker, _recorder_loop
 
 
 class SharedAudioAfterTests(unittest.TestCase):
@@ -101,6 +101,7 @@ class SharedAudioAfterTests(unittest.TestCase):
             frames,
             recorder_provider=lambda: recorder,
             max_internal_chunks=1,
+            noise_reducer=NoiseReducer(enabled=False),
         )
         worker.start()
         frames.put(AudioFrame.canonical(

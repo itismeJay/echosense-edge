@@ -5,7 +5,11 @@ from unittest.mock import Mock, patch
 import numpy as np
 
 from audio.shared_source import AudioFrame, BoundedFrameQueue
-from detection.acoustic_detector import AcousticDetector, AcousticDetectorWorker
+from detection.acoustic_detector import (
+    AcousticDetector,
+    AcousticDetectorWorker,
+    NoiseFloorTracker,
+)
 from detection.evidence import AcousticEvidence
 from model.yamnet_infer import is_aggressive_sound, load_yamnet_bundle
 
@@ -118,7 +122,10 @@ class AcousticDetectorAfterTests(unittest.TestCase):
                     AcousticDetector(yamnet_threshold=threshold)
 
     def test_existing_multi_feature_tone_can_open_in_degraded_mode(self):
-        detector = AcousticDetector(unavailable_reason="model_file_missing")
+        detector = AcousticDetector(
+            unavailable_reason="model_file_missing",
+            noise_floor=NoiseFloorTracker(calibration_seconds=0.0),
+        )
         evidence = self.analyze(detector, tone(aggressive=True, rms=500))
         self.assertFalse(evidence.yamnet_ran)
         self.assertTrue(evidence.tone_aggressive)

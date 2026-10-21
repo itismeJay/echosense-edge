@@ -7,15 +7,16 @@ from detection.thresholds import (
 )
 
 
-def analyze_tone_float32(samples, sample_rate=16000):
+def analyze_tone_float32(samples, sample_rate=16000, rms_threshold=None):
     """Preserve calibrated int16 thresholds for normalized event samples."""
     return analyze_tone(
         float32_samples_to_int16(samples),
         sample_rate=sample_rate,
+        rms_threshold=rms_threshold,
     )
 
 
-def analyze_tone(audio_np, sample_rate=16000):
+def analyze_tone(audio_np, sample_rate=16000, rms_threshold=None):
     """
     Analyzes the acoustic tone of audio to determine if it sounds aggressive.
     Uses prosodic features — no words needed, pure sound analysis.
@@ -26,6 +27,9 @@ def analyze_tone(audio_np, sample_rate=16000):
     - zero_crossing_rate: voice tension indicator (higher = more tense)
     - peak_to_average: how much the voice spikes (higher = more aggressive)
     - is_aggressive_tone: True if the combination indicates aggressive speech
+
+    ``rms_threshold`` overrides the static loudness gate, e.g. with an
+    adaptive room-relative threshold. The variance/ZCR checks are unchanged.
     """
     audio_float = audio_np.astype(np.float32)
 
@@ -54,8 +58,13 @@ def analyze_tone(audio_np, sample_rate=16000):
 
     # AGGRESSIVE TONE = loud AND uneven/tense AND high ZCR.
     # Thresholds from detection/thresholds.py, calibrated for EMEET M0 Plus.
+    loudness_ok = (
+        rms > TONE_RMS_THRESHOLD
+        if rms_threshold is None
+        else rms >= float(rms_threshold)
+    )
     is_aggressive = bool(
-        rms > TONE_RMS_THRESHOLD and
+        loudness_ok and
         energy_variance > TONE_VARIANCE_THRESHOLD and
         zcr > TONE_ZCR_THRESHOLD
     )

@@ -16,9 +16,9 @@ class AfterConfigurationTests(unittest.TestCase):
     def test_timing_defaults_match_development_starting_values(self):
         values = DetectionRuntimeConfig()
         self.assertEqual(values.pre_trigger_seconds, 2.0)
-        self.assertEqual(values.post_trigger_seconds, 5.0)
-        self.assertEqual(values.event_extension_seconds, 3.0)
-        self.assertEqual(values.max_event_seconds, 15.0)
+        self.assertEqual(values.post_trigger_seconds, 3.0)
+        self.assertEqual(values.event_extension_seconds, 2.0)
+        self.assertEqual(values.max_event_seconds, 8.0)
         self.assertEqual(values.cooldown_seconds, 15.0)
         self.assertEqual(values.max_stt_utterance_seconds, 15.0)
         self.assertEqual(values.max_stt_utterance_samples, 240_000)

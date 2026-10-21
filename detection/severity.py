@@ -143,6 +143,7 @@ LOW_SEVERITY_TERMS = LOW_RISK_MONITORED_TERMS
 
 _DIRECT_TARGET_TOKENS = frozenset({
     "ka",
+    "kaw",
     "mo",
     "ikaw",
     "imo",
@@ -151,7 +152,36 @@ _DIRECT_TARGET_TOKENS = frozenset({
     "you",
     "your",
     "you're",
+    "youre",
+    "ur",
+    "u",
     "classmate",
+})
+
+# Context rules that keep mild/medium terms at LOW. They never apply to
+# threat-like, self-harm, or severe terms.
+_SELF_DIRECTED_TOKENS = frozenset({
+    "ko", "ako", "akoa", "nako", "i'm", "im", "me", "myself",
+})
+_SELF_DIRECTED_SEQUENCES = (("i", "am"),)
+_NEGATION_TOKENS = frozenset({
+    "huwag", "wag", "ayaw", "don't", "dont", "bawal",
+})
+_NEGATION_SEQUENCES = (
+    ("do", "not"),
+    ("hindi", "dapat"),
+    ("stop", "saying"),
+)
+_OBJECT_ARTICLES = frozenset({"yung", "ang", "ning", "kining", "kanang", "the"})
+# Things, not people. Deliberately an allowlist: an unknown noun (possibly a
+# classmate's name) is never treated as an object.
+_OBJECT_NOUNS = frozenset({
+    "game", "games", "question", "questions", "test", "tests", "thing",
+    "things", "quiz", "exam", "homework", "assignment", "project", "lesson",
+    "movie", "show", "song", "video", "joke", "rule", "rules", "idea",
+    "phone", "computer", "app", "wifi", "internet", "signal", "book",
+    "laro", "tanong", "pagsusulit", "sagot", "aralin", "takdang",
+    "dula", "pangutana", "libro", "kanta",
 })
 _WORD_PATTERN = re.compile(r"[^\W_]+(?:'[^\W_]+)?", re.UNICODE)
 
@@ -202,6 +232,69 @@ def has_direct_target_evidence(transcript: object) -> bool:
     return bool(tokens & _DIRECT_TARGET_TOKENS)
 
 
+def _tokens(text: object) -> tuple[str, ...]:
+    normalized = str(text or "").lower().replace("\u2019", "'")
+    return tuple(_WORD_PATTERN.findall(normalized))
+
+
+def _sequence_positions(tokens, sequence):
+    length = len(sequence)
+    return [
+        index
+        for index in range(len(tokens) - length + 1)
+        if tokens[index:index + length] == sequence
+    ]
+
+
+def _term_positions(tokens, terms):
+    positions = []
+    for term in terms:
+        positions.extend(_sequence_positions(tokens, tuple(_tokens(term))))
+    return sorted(positions)
+
+
+def _max_term_occurrences(tokens, terms) -> int:
+    return max(
+        (len(_sequence_positions(tokens, tuple(_tokens(term)))) for term in terms),
+        default=0,
+    )
+
+
+def _context_downgrade(tokens, terms) -> str | None:
+    """Explain why mild/medium terms are not directed at a person, if so."""
+
+    positions = _term_positions(tokens, terms)
+    if not positions:
+        return None
+    first = positions[0]
+    if any(token in _NEGATION_TOKENS for token in tokens[:first]) or any(
+        index < first
+        for sequence in _NEGATION_SEQUENCES
+        for index in _sequence_positions(tokens, sequence)
+    ):
+        return "negated_or_instructional"
+    if set(tokens) & _DIRECT_TARGET_TOKENS:
+        return None
+    if set(tokens) & _SELF_DIRECTED_TOKENS or any(
+        _sequence_positions(tokens, sequence)
+        for sequence in _SELF_DIRECTED_SEQUENCES
+    ):
+        return "self_directed"
+    for term in terms:
+        term_tokens = tuple(_tokens(term))
+        for index in _sequence_positions(tokens, term_tokens):
+            after = tokens[index + len(term_tokens):index + len(term_tokens) + 2]
+            if after[:1] and after[0] in _OBJECT_NOUNS:
+                return "about_object"
+            if (
+                len(after) == 2
+                and after[0] in _OBJECT_ARTICLES
+                and after[1] in _OBJECT_NOUNS
+            ):
+                return "about_object"
+    return None
+
+
 def _promote(level: str) -> str:
     if level == LOW:
         return MEDIUM
@@ -216,6 +309,7 @@ class SeverityDecision:
     reasons: tuple[str, ...]
     term_categories: dict[str, tuple[str, ...]]
     supporting_evidence: tuple[str, ...]
+    context_downgrade: str | None = None
 
     def evidence(self) -> dict:
         return {
@@ -237,8 +331,15 @@ def calculate_severity(
     repeated: bool = False,
     acoustic_aggressive: bool = False,
     laughter_present: bool = False,
+    strong_acoustic: bool = False,
 ) -> SeverityDecision:
-    """Calculate severity from observable text, duration, and acoustic evidence."""
+    """Calculate severity from observable text, duration, and acoustic evidence.
+
+    Mild/medium terms reach MEDIUM only with direct-target evidence, and stay
+    LOW when self-directed, about a thing, negated/instructional, or playful.
+    Severe, threat-like, and self-harm terms are never downgraded. Every
+    up/downgrade is recorded in ``reasons``.
+    """
 
     terms = tuple(dict.fromkeys(
         term
@@ -270,14 +371,15 @@ def calculate_severity(
 
     reasons: list[str] = []
     supporting: list[str] = []
-    if any(
+    severe = any(
         category in categories
         for category in (
             "self_harm_directive",
             "threat_like_phrase",
             "severe_direct_harassment",
         )
-    ):
+    )
+    if severe:
         level = HIGH
         reasons.extend(
             f"term_category:{category}"
@@ -299,23 +401,45 @@ def calculate_severity(
             else "no_monitored_term"
         )
 
+    tokens = _tokens(transcript)
+    if terms and _max_term_occurrences(tokens, terms) >= 2:
+        repeated = True
+        supporting.append("repeated_within_utterance")
+
     direct_target = has_direct_target_evidence(transcript)
     if direct_target:
         supporting.append("direct_target_pattern")
-        if terms and level == LOW:
-            level = MEDIUM
-            reasons.append("promoted_by:direct_target_pattern")
+
+    context = None if severe or not terms else _context_downgrade(tokens, terms)
+    if context:
+        if level != LOW:
+            reasons.append(f"downgraded_to_low:{context}")
+        else:
+            reasons.append(f"held_low:{context}")
+        level = LOW
+    elif terms and not severe:
+        playful = laughter_present and not strong_acoustic and not repeated
+        if level == MEDIUM and not direct_target:
+            level = LOW
+            reasons.append("downgraded_to_low:no_direct_target")
+        elif level == LOW and direct_target:
+            if playful:
+                reasons.append("held_low:playful_context")
+            else:
+                level = MEDIUM
+                reasons.append("promoted_by:direct_target_pattern")
 
     if repeated:
         supporting.append("repeated_monitored_evidence")
-        promoted = _promote(level)
-        if promoted != level:
-            level = promoted
-            reasons.append("promoted_by:repetition")
+        if not context:
+            promoted = _promote(level)
+            if promoted != level:
+                level = promoted
+                reasons.append("promoted_by:repetition")
 
     if acoustic_aggressive:
         supporting.append("aggressive_acoustic_evidence")
-        if terms and level == LOW:
+        if terms and level == LOW and not context:
             level = MEDIUM
             reasons.append("promoted_by:acoustic_evidence")
 
@@ -333,6 +457,7 @@ def calculate_severity(
         reasons=tuple(dict.fromkeys(reasons)),
         term_categories=categories,
         supporting_evidence=tuple(dict.fromkeys(supporting)),
+        context_downgrade=context,
     )
 
 

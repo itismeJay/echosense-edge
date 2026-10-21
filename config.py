@@ -102,6 +102,9 @@ def _source_int(source, name, default):
         raise ValueError(f"{name} must be an integer") from exc
 
 
+ACOUSTIC_ONLY_ALERT_MODES = ("on", "low_only", "off")
+
+
 @dataclass(frozen=True, slots=True)
 class DetectionRuntimeConfig:
     """Validated bounds and timing for the shared AFTER detection runtime."""
@@ -110,9 +113,12 @@ class DetectionRuntimeConfig:
     channels: int = 1
     frame_samples: int = 1_040
     pre_trigger_seconds: float = 2.0
-    post_trigger_seconds: float = 5.0
-    event_extension_seconds: float = 3.0
-    max_event_seconds: float = 15.0
+    # Incident close window: an incident finalizes once no qualifying evidence
+    # has arrived for this long (ECHOSENSE_INCIDENT_WINDOW_SECONDS).
+    post_trigger_seconds: float = 3.0
+    # Only text (or time-linked strong acoustic) evidence extends an incident.
+    event_extension_seconds: float = 2.0
+    max_event_seconds: float = 8.0
     cooldown_seconds: float = 15.0
     audio_queue_frames: int = 64
     stt_result_queue_size: int = 32
@@ -124,6 +130,22 @@ class DetectionRuntimeConfig:
     yamnet_window_samples: int = 15_600
     yamnet_hop_samples: int = 7_800
     waveform_points: int = 40
+    # Adaptive acoustic noise floor. Elementary classrooms are loud all the
+    # time, so "aggressive tone" is judged relative to the room, not absolute.
+    noise_floor_window_seconds: float = 60.0
+    noise_floor_percentile: float = 60.0
+    tone_floor_multiplier: float = 2.5
+    calibration_seconds: float = 15.0
+    noise_floor_log_interval_seconds: float = 30.0
+    # Text/acoustic fusion. Only acoustic windows within this many seconds of
+    # a text observation may change that text's severity.
+    corroboration_window_seconds: float = 1.5
+    strong_yamnet_score: float = 0.65
+    strong_tone_ratio: float = 0.40
+    strong_tone_min_seconds: float = 1.0
+    # Acoustic-only incidents: "on", "low_only", or "off".
+    acoustic_only_alerts: str = "low_only"
+    acoustic_only_medium_min_seconds: float = 3.0
 
     def __post_init__(self):
         if self.sample_rate != 16_000:
@@ -182,6 +204,29 @@ class DetectionRuntimeConfig:
             raise ValueError("yamnet_hop_samples cannot exceed its window")
         if self.yamnet_window_samples != 15_600:
             raise ValueError("YAMNet window must be exactly 15600 samples")
+        bounded = {
+            "noise_floor_window_seconds": (1.0, 3_600.0),
+            "noise_floor_percentile": (50.0, 70.0),
+            "tone_floor_multiplier": (1.0, 20.0),
+            "calibration_seconds": (0.0, 300.0),
+            "noise_floor_log_interval_seconds": (1.0, 3_600.0),
+            "corroboration_window_seconds": (0.0, 30.0),
+            "strong_yamnet_score": (0.0, 1.0),
+            "strong_tone_ratio": (0.0, 1.0),
+            "strong_tone_min_seconds": (0.0, 60.0),
+            "acoustic_only_medium_min_seconds": (0.0, 60.0),
+        }
+        for name, (minimum, maximum) in bounded.items():
+            value = float(getattr(self, name))
+            if not math.isfinite(value) or not minimum <= value <= maximum:
+                raise ValueError(
+                    f"{name} must be between {minimum:g} and {maximum:g}"
+                )
+        if self.acoustic_only_alerts not in ACOUSTIC_ONLY_ALERT_MODES:
+            raise ValueError(
+                "acoustic_only_alerts must be one of "
+                + ", ".join(ACOUSTIC_ONLY_ALERT_MODES)
+            )
 
     @property
     def max_stt_utterance_samples(self):
@@ -202,18 +247,23 @@ def detection_runtime_config_from_environment(environ=None):
     """Build one validated runtime configuration from ECHOSENSE_* values."""
 
     source = os.environ if environ is None else environ
+    # ECHOSENSE_INCIDENT_WINDOW_SECONDS is the close window after an incident
+    # opens; the older ECHOSENSE_POST_TRIGGER_SECONDS still wins when set.
+    incident_window = _source_float(
+        source, "ECHOSENSE_INCIDENT_WINDOW_SECONDS", 3.0
+    )
     return DetectionRuntimeConfig(
         pre_trigger_seconds=_source_float(
             source, "ECHOSENSE_PRE_TRIGGER_SECONDS", 2.0
         ),
         post_trigger_seconds=_source_float(
-            source, "ECHOSENSE_POST_TRIGGER_SECONDS", 5.0
+            source, "ECHOSENSE_POST_TRIGGER_SECONDS", incident_window
         ),
         event_extension_seconds=_source_float(
-            source, "ECHOSENSE_EVENT_EXTENSION_SECONDS", 3.0
+            source, "ECHOSENSE_EVENT_EXTENSION_SECONDS", 2.0
         ),
         max_event_seconds=_source_float(
-            source, "ECHOSENSE_MAX_EVENT_SECONDS", 15.0
+            source, "ECHOSENSE_MAX_EVENT_SECONDS", 8.0
         ),
         cooldown_seconds=_source_float(
             source, "ECHOSENSE_EVENT_COOLDOWN_SECONDS", 15.0
@@ -242,6 +292,24 @@ def detection_runtime_config_from_environment(environ=None):
         waveform_points=_source_int(
             source, "ECHOSENSE_WAVEFORM_POINTS", 40
         ),
+        noise_floor_window_seconds=_source_float(
+            source, "ECHOSENSE_NOISE_FLOOR_WINDOW_SECONDS", 60.0
+        ),
+        tone_floor_multiplier=_source_float(
+            source, "ECHOSENSE_TONE_FLOOR_MULTIPLIER", 2.5
+        ),
+        calibration_seconds=_source_float(
+            source, "ECHOSENSE_CALIBRATION_SECONDS", 15.0
+        ),
+        corroboration_window_seconds=_source_float(
+            source, "ECHOSENSE_CORROBORATION_WINDOW_SECONDS", 1.5
+        ),
+        strong_tone_ratio=_source_float(
+            source, "ECHOSENSE_STRONG_TONE_RATIO", 0.40
+        ),
+        acoustic_only_alerts=str(
+            source.get("ECHOSENSE_ACOUSTIC_ONLY_ALERTS", "low_only")
+        ).strip().lower(),
     )
 
 

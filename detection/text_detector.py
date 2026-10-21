@@ -89,6 +89,11 @@ class TextDetector:
         if wall is None and audio_event is not None:
             wall = getattr(audio_event, "ended_at", None)
         wall = (wall or self._wall_clock()).astimezone(timezone.utc)
+        spoken_started_at = getattr(audio_event, "started_at", None)
+        if spoken_started_at is not None:
+            spoken_started_at = spoken_started_at.astimezone(timezone.utc)
+            if spoken_started_at > wall:
+                spoken_started_at = None
         transcript = str(result.get("transcribed_text", result.get("transcript", "")))
         normalized = str(result.get("normalized_text") or "")
         quality = result.get("transcript_quality")
@@ -204,6 +209,7 @@ class TextDetector:
             reasons=tuple(dict.fromkeys(reasons)),
             laughter_present=laughter,
             qualifies_to_open=qualifies,
+            spoken_started_at=spoken_started_at,
         )
         self.evidence_count += 1
         print(

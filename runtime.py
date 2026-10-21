@@ -12,7 +12,11 @@ from config import (
     MICROPHONE_STRICT,
     PREFERRED_MICROPHONE_NAME,
 )
-from detection.acoustic_detector import AcousticDetector, AcousticDetectorWorker
+from detection.acoustic_detector import (
+    AcousticDetector,
+    AcousticDetectorWorker,
+    NoiseFloorTracker,
+)
 from detection.coordinator import CoordinatorAudioWorker, EventCoordinator
 from detection.text_detector import TextDetector, TextDetectorWorker
 from model.monitored_terms import start_dictionary_sync
@@ -106,6 +110,7 @@ class EdgeRuntime:
             interpreter=yamnet.interpreter,
             class_names=yamnet.class_names,
             unavailable_reason=yamnet.reason,
+            noise_floor=NoiseFloorTracker.from_config(self.config),
         )
         self.workers = [
             RealtimeSTTFeedWorker(

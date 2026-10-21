@@ -2,7 +2,7 @@
 
 import unittest
 
-from detection.severity import HIGH, MEDIUM, calculate_severity
+from detection.severity import HIGH, LOW, MEDIUM, calculate_severity
 from detection.transcript_quality import assess_transcript_quality
 from model.blacklist import check_transcript, word_matches
 
@@ -12,13 +12,16 @@ class AfterTextCharacterizationTests(unittest.TestCase):
         result = check_transcript("bobo")
         self.assertTrue(result["has_profanity"])
         self.assertIn("bobo", result["hard_hits"])
-        self.assertEqual(result["severity"], MEDIUM)
+        # Without direct-target evidence a medium term stays LOW.
+        self.assertEqual(result["severity"], LOW)
+        self.assertEqual(check_transcript("bobo ka")["severity"], MEDIUM)
 
     def test_tanga_is_qualifying_monitored_text(self):
         result = check_transcript("tanga")
         self.assertTrue(result["has_profanity"])
         self.assertIn("tanga", result["hard_hits"])
-        self.assertEqual(result["severity"], MEDIUM)
+        self.assertEqual(result["severity"], LOW)
+        self.assertEqual(check_transcript("tanga ka")["severity"], MEDIUM)
 
     def test_bare_pangit_is_suppressed_without_target(self):
         result = check_transcript("pangit")
@@ -40,7 +43,11 @@ class AfterTextCharacterizationTests(unittest.TestCase):
         self.assertFalse(word_matches("bobo", "kabobohan"))
 
     def test_repetition_promotes_existing_text_evidence(self):
-        decision = calculate_severity(["bobo"], repeated=True)
+        decision = calculate_severity(
+            ["bobo"],
+            transcript="bobo ka",
+            repeated=True,
+        )
         self.assertEqual(decision.level, HIGH)
         self.assertIn("promoted_by:repetition", decision.reasons)
 

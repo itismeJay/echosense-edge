@@ -57,9 +57,16 @@ class TextEvidence:
     reasons: tuple[str, ...]
     laughter_present: bool
     qualifies_to_open: bool
+    # Wall-clock start of the spoken utterance, when known. observed_at is the
+    # utterance end; together they bound when the words were actually said.
+    spoken_started_at: datetime | None = None
 
     def __post_init__(self):
         _aware(self.observed_at, "observed_at")
+        if self.spoken_started_at is not None:
+            _aware(self.spoken_started_at, "spoken_started_at")
+            if self.spoken_started_at > self.observed_at:
+                raise ValueError("spoken_started_at must not follow observed_at")
         _finite(self.observed_monotonic, "observed_monotonic")
         if self.baseline_severity not in SEVERITY_LEVELS:
             raise ValueError("baseline_severity is invalid")

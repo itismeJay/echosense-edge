@@ -2,16 +2,22 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
+from datetime import timedelta
 
+from config import DetectionRuntimeConfig
 from detection.evidence import AcousticEvidence, TextEvidence
 from detection.severity import (
     HIGH,
     LOW,
     MEDIUM,
+    SEVERITY_ORDER,
     calculate_severity,
 )
-from detection.thresholds import YAMNET_THRESHOLD
+
+
+_DEFAULT_CONFIG = DetectionRuntimeConfig()
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,18 +27,142 @@ class EventFusionDecision:
     term_categories: dict[str, tuple[str, ...]]
     supporting_evidence: tuple[str, ...]
     confidence: float
+    # False when policy says this incident must not be sent at all.
+    deliver: bool = True
 
 
-def _strong_acoustic(evidence):
-    qualifying = [item for item in evidence if item.qualifies_to_open]
-    strong_yamnet = any(
-        item.yamnet_aggressive
-        and item.yamnet_score >= max(0.65, YAMNET_THRESHOLD + 0.15)
-        for item in qualifying
+def is_time_linked(text: TextEvidence, acoustic: AcousticEvidence, window_seconds):
+    """True when the acoustic window overlaps the utterance +/- the window.
+
+    Wall-clock times are used because text is observed only after Whisper
+    finishes; its monotonic timestamp is transcription time, not speech time.
+    """
+
+    window = timedelta(seconds=float(window_seconds))
+    spoken_start = text.spoken_started_at or text.observed_at
+    return (
+        acoustic.interval_started_at <= text.observed_at + window
+        and acoustic.interval_ended_at >= spoken_start - window
     )
-    multi_feature_repeated = sum(item.tone_aggressive for item in qualifying) >= 2
-    sustained_duration = sum(item.duration_seconds for item in qualifying) >= 1.5
-    return bool(strong_yamnet or (multi_feature_repeated and sustained_duration))
+
+
+def linked_acoustic(text_items, acoustic_items, window_seconds):
+    return [
+        acoustic
+        for acoustic in acoustic_items
+        if any(
+            is_time_linked(text, acoustic, window_seconds)
+            for text in text_items
+        )
+    ]
+
+
+def _covered_seconds(windows):
+    """Length of the union of window intervals (windows overlap by design)."""
+
+    total = 0.0
+    current_start = current_end = None
+    for item in sorted(windows, key=lambda w: w.monotonic_start):
+        if current_end is None or item.monotonic_start > current_end:
+            if current_end is not None:
+                total += current_end - current_start
+            current_start, current_end = item.monotonic_start, item.monotonic_end
+        else:
+            current_end = max(current_end, item.monotonic_end)
+    if current_end is not None:
+        total += current_end - current_start
+    return total
+
+
+def strong_acoustic(windows, config=_DEFAULT_CONFIG):
+    """Strong = a confident YAMNet aggressive class, or a sustained share of
+    tone-aggressive windows among all the windows considered."""
+
+    windows = list(windows)
+    if not windows:
+        return False
+    if any(
+        item.yamnet_aggressive and item.yamnet_score >= config.strong_yamnet_score
+        for item in windows
+    ):
+        return True
+    tone = [item for item in windows if item.tone_aggressive]
+    return bool(
+        tone
+        and len(tone) / len(windows) >= config.strong_tone_ratio
+        and _covered_seconds(tone) >= config.strong_tone_min_seconds
+    )
+
+
+def _incident_repeated_terms(text_items):
+    counts = Counter(
+        term
+        for item in text_items
+        for term in dict.fromkeys(item.detected_terms)
+    )
+    return {term for term, count in counts.items() if count >= 2}
+
+
+def _fuse_text(text_item, acoustic_evidence, repeated_terms, config):
+    linked = linked_acoustic(
+        (text_item,),
+        acoustic_evidence,
+        config.corroboration_window_seconds,
+    )
+    linked_qualifying = [item for item in linked if item.qualifies_to_open]
+    strong = strong_acoustic(linked, config) if linked_qualifying else False
+    decision = calculate_severity(
+        text_item.detected_terms,
+        transcript=text_item.transcript,
+        repeated=bool(
+            text_item.repeated
+            or repeated_terms.intersection(text_item.detected_terms)
+        ),
+        laughter_present=text_item.laughter_present,
+        strong_acoustic=strong,
+    )
+    level = decision.level
+    reasons = list(decision.reasons)
+    supporting = list(decision.supporting_evidence)
+    if repeated_terms.intersection(text_item.detected_terms):
+        supporting.append("repeated_within_incident")
+    if linked_qualifying:
+        supporting.append("text_acoustic_corroboration")
+        if strong:
+            supporting.append("strong_or_sustained_acoustic_evidence")
+        if decision.context_downgrade:
+            reasons.append(
+                f"corroboration_ignored:{decision.context_downgrade}"
+            )
+        elif level == LOW:
+            level = MEDIUM
+            reasons.append("promoted_by:text_acoustic_corroboration")
+        elif level == MEDIUM and strong:
+            level = HIGH
+            reasons.append("promoted_by:strong_acoustic_corroboration")
+    return level, reasons, supporting, decision.term_categories, bool(linked_qualifying)
+
+
+def _fuse_acoustic_only(acoustic_evidence, config):
+    qualifying = [item for item in acoustic_evidence if item.qualifies_to_open]
+    strong = strong_acoustic(acoustic_evidence, config)
+    sustained = (
+        _covered_seconds(qualifying) >= config.acoustic_only_medium_min_seconds
+    )
+    mode = config.acoustic_only_alerts
+    reasons = [f"acoustic_only_policy:{mode}"]
+    if mode == "off":
+        reasons.append("suppressed:acoustic_only_alerts_off")
+        return LOW, reasons, strong, False
+    if mode == "on" and strong and sustained:
+        reasons.append("acoustic_only:strong_and_sustained")
+        return MEDIUM, reasons, strong, True
+    reasons.append(
+        "acoustic_only:capped_low"
+        if strong
+        else "acoustic_only:qualifying_observation"
+    )
+    return LOW, reasons, strong, True
 
 
 def fuse_event_evidence(
@@ -40,9 +170,15 @@ def fuse_event_evidence(
     acoustic_evidence: tuple[AcousticEvidence, ...],
     *,
     duration_seconds: float,
+    config: DetectionRuntimeConfig | None = None,
 ):
-    """Fuse observable evidence without treating loudness/duration as proof."""
+    """Fuse observable evidence without treating loudness/duration as proof.
 
+    Each text observation is scored on its own transcript, and only acoustic
+    windows time-linked to that observation may promote it.
+    """
+
+    config = config or _DEFAULT_CONFIG
     qualifying_text = [item for item in text_evidence if item.qualifies_to_open]
     qualifying_acoustic = [
         item for item in acoustic_evidence if item.qualifies_to_open
@@ -50,27 +186,37 @@ def fuse_event_evidence(
     if not qualifying_text and not qualifying_acoustic:
         raise ValueError("no qualifying detector evidence to fuse")
 
-    terms = tuple(dict.fromkeys(
-        term
-        for item in qualifying_text
-        for term in item.detected_terms
-    ))
-    transcript = " ".join(item.transcript for item in qualifying_text)
-    repeated = any(item.repeated for item in qualifying_text)
-    text_decision = calculate_severity(
-        terms,
-        transcript=transcript,
-        repeated=repeated,
-        acoustic_aggressive=False,
-        laughter_present=any(item.laughter_present for item in qualifying_text),
-    )
-    reasons = list(text_decision.reasons if qualifying_text else ())
-    supporting = list(
-        text_decision.supporting_evidence if qualifying_text else ()
-    )
-    categories = dict(text_decision.term_categories if qualifying_text else {})
-    level = text_decision.level if qualifying_text else LOW
-    strong_acoustic = _strong_acoustic(qualifying_acoustic)
+    reasons = []
+    supporting = []
+    categories = {}
+    deliver = True
+    corroborated = False
+    if qualifying_text:
+        level = LOW
+        repeated_terms = _incident_repeated_terms(qualifying_text)
+        for item in qualifying_text:
+            item_level, item_reasons, item_supporting, item_categories, linked = (
+                _fuse_text(item, acoustic_evidence, repeated_terms, config)
+            )
+            if SEVERITY_ORDER[item_level] > SEVERITY_ORDER[level]:
+                level = item_level
+            reasons.extend(item_reasons)
+            supporting.extend(item_supporting)
+            for category, terms in item_categories.items():
+                categories[category] = tuple(dict.fromkeys(
+                    categories.get(category, ()) + terms
+                ))
+            corroborated = corroborated or linked
+        if qualifying_acoustic and not corroborated:
+            supporting.append("unlinked_acoustic_evidence_ignored")
+    else:
+        level, acoustic_reasons, strong, deliver = _fuse_acoustic_only(
+            acoustic_evidence,
+            config,
+        )
+        reasons.extend(acoustic_reasons)
+        if strong:
+            supporting.append("strong_or_sustained_acoustic_evidence")
 
     if qualifying_acoustic:
         supporting.append("qualifying_acoustic_evidence")
@@ -78,29 +224,10 @@ def fuse_event_evidence(
             supporting.append("yamnet_aggressive_class")
         if any(item.tone_aggressive for item in qualifying_acoustic):
             supporting.append("multi_feature_aggressive_tone")
-        if strong_acoustic:
-            supporting.append("strong_or_sustained_acoustic_evidence")
-
-    if qualifying_text and qualifying_acoustic:
-        supporting.append("text_acoustic_corroboration")
-        if level == LOW:
-            level = MEDIUM
-            reasons.append("promoted_by:text_acoustic_corroboration")
-        elif level == MEDIUM and strong_acoustic:
-            level = HIGH
-            reasons.append("promoted_by:strong_acoustic_corroboration")
-    elif qualifying_acoustic:
-        # Conservative initial policy: acoustic-only incidents never become HIGH.
-        level = MEDIUM if strong_acoustic else LOW
-        reasons.append(
-            "acoustic_only:strong_or_sustained"
-            if strong_acoustic
-            else "acoustic_only:qualifying_observation"
-        )
 
     if duration_seconds > 0:
         supporting.append("incident_duration_observed")
-    if qualifying_text and qualifying_acoustic:
+    if corroborated:
         confidence = 0.9 if level == HIGH else 0.8
     elif qualifying_text:
         confidence = {LOW: 0.6, MEDIUM: 0.75, HIGH: 0.9}[level]
@@ -112,4 +239,5 @@ def fuse_event_evidence(
         term_categories=categories,
         supporting_evidence=tuple(dict.fromkeys(supporting)),
         confidence=confidence,
+        deliver=deliver,
     )

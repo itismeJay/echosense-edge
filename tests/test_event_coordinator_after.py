@@ -191,17 +191,17 @@ class EventCoordinatorAfterTests(unittest.TestCase):
     def test_extension_never_exceeds_hard_maximum(self):
         coordinator, clock, finalized = self.make()
         coordinator.submit_text(text_evidence(0))
-        coordinator.submit_text(text_evidence(4, transcript="tanga 4"))
-        self.assertEqual(coordinator.active_incident.close_deadline, 7.0)
-        for at in (6, 8, 10, 12, 14):
+        coordinator.submit_text(text_evidence(2, transcript="tanga 2"))
+        self.assertEqual(coordinator.active_incident.close_deadline, 4.0)
+        for at in (3.5, 5, 6.5, 7.5):
             coordinator.submit_text(
                 text_evidence(at, transcript=f"tanga {at}")
             )
-        self.assertEqual(coordinator.active_incident.close_deadline, 15.0)
-        clock.value = 15
+        self.assertEqual(coordinator.active_incident.close_deadline, 8.0)
+        clock.value = 8
         coordinator.tick()
         self.assertEqual(len(finalized), 1)
-        self.assertEqual(finalized[0].duration_seconds, 15.0)
+        self.assertEqual(finalized[0].duration_seconds, 8.0)
 
     def test_pretrigger_context_is_bounded_to_two_seconds(self):
         pre = RollingAudioBuffer(2.0)
@@ -242,7 +242,7 @@ class EventCoordinatorAfterTests(unittest.TestCase):
         coordinator.tick()
         self.assertEqual(
             finalized[0].finalized_at - finalized[0].triggered_at,
-            timedelta(seconds=5),
+            timedelta(seconds=3),
         )
 
     def test_two_detector_threads_race_into_one_incident(self):
@@ -270,8 +270,8 @@ class EventCoordinatorAfterTests(unittest.TestCase):
         default, _clock, _finalized = self.make()
         default.submit_text(text_evidence(0))
         self.assertEqual(default.config.pre_trigger_seconds, 2.0)
-        self.assertEqual(default.active_incident.close_deadline, 5.0)
-        self.assertEqual(default.active_incident.hard_deadline, 15.0)
+        self.assertEqual(default.active_incident.close_deadline, 3.0)
+        self.assertEqual(default.active_incident.hard_deadline, 8.0)
         custom_config = DetectionRuntimeConfig(
             pre_trigger_seconds=1.0,
             post_trigger_seconds=2.0,

@@ -14,7 +14,13 @@ from audio.shared_source import AudioFrame, RollingAudioBuffer
 from audio.waveform import get_waveform_snapshot_float32
 from config import DetectionRuntimeConfig
 from detection.evidence import AcousticEvidence, FinalizedIncident, TextEvidence
-from detection.fusion import fuse_event_evidence
+from detection.fusion import (
+    fuse_event_evidence,
+    is_time_linked,
+    linked_acoustic,
+    strong_acoustic,
+)
+from detection.severity import contains_urgent_directive
 
 
 @dataclass(slots=True)
@@ -65,6 +71,10 @@ class EventCoordinator:
         self._lock = threading.RLock()
         self._active = None
         self._last_finalized_monotonic = None
+        self._last_finalized_had_text = False
+        # Recent acoustic windows, so a transcript that arrives after Whisper
+        # finishes can still be linked to the sound of the moment it was said.
+        self._recent_acoustic = deque(maxlen=self.config.evidence_history_size)
         self._finalized_count = 0
         self._cooldown_suppressed_count = 0
         self._closed = False
@@ -84,8 +94,12 @@ class EventCoordinator:
         with self._lock:
             return self._cooldown_suppressed_count
 
-    def _in_cooldown(self, evidence_time):
+    def _in_cooldown(self, evidence_time, trigger_type):
         if self._last_finalized_monotonic is None:
+            return False
+        if trigger_type == "KEYWORD" and not self._last_finalized_had_text:
+            # An acoustic-only incident must not silence the transcript of
+            # the same moment, which arrives later because of STT latency.
             return False
         return (
             evidence_time - self._last_finalized_monotonic
@@ -186,7 +200,7 @@ class EventCoordinator:
             if active is None:
                 if not qualifying:
                     result = CoordinatorSubmission(None, finalized=tuple(dispatch))
-                elif self._in_cooldown(evidence_time):
+                elif self._in_cooldown(evidence_time, trigger_type):
                     self._cooldown_suppressed_count += 1
                     print(
                         f"[INCIDENT] cooldown_suppressed=true "
@@ -200,6 +214,7 @@ class EventCoordinator:
                 else:
                     active = self._new_active(trigger_type, wall_time, evidence_time)
                     self._attach(active, evidence)
+                    self._after_attach(active, evidence, evidence_time)
                     dispatch.extend(
                         self._finalize_due_locked(effective_now)
                     )
@@ -219,8 +234,9 @@ class EventCoordinator:
                     active.trigger_type = "KEYWORD"
                     active.opener = "TEXT"
                 joined = self._attach(active, evidence)
-                if qualifying:
+                if joined and self._extends_incident(active, evidence):
                     self._extend(active, evidence_time)
+                self._after_attach(active, evidence, evidence_time)
                 dispatch.extend(
                     self._finalize_due_locked(effective_now)
                 )
@@ -231,6 +247,50 @@ class EventCoordinator:
                 )
         self._dispatch(dispatch)
         return result
+
+    def _extends_incident(self, active, evidence):
+        """Only text, or strong acoustic time-linked to that text, extends.
+
+        Ordinary acoustic windows are recorded but never keep an incident
+        open; a loud classroom would otherwise hold every incident open until
+        max_event_seconds.
+        """
+
+        if not evidence.qualifies_to_open:
+            return False
+        if isinstance(evidence, TextEvidence):
+            return True
+        window = self.config.corroboration_window_seconds
+        texts = tuple(active.text_evidence)
+        if not any(is_time_linked(text, evidence, window) for text in texts):
+            return False
+        return strong_acoustic(
+            linked_acoustic(texts, tuple(active.acoustic_evidence), window),
+            self.config,
+        )
+
+    def _after_attach(self, active, evidence, evidence_time):
+        if isinstance(evidence, AcousticEvidence):
+            return
+        if not evidence.qualifies_to_open:
+            return
+        window = self.config.corroboration_window_seconds
+        for recent in tuple(self._recent_acoustic):
+            if is_time_linked(evidence, recent, window):
+                self._append_bounded(
+                    active,
+                    active.acoustic_evidence,
+                    recent,
+                    self._acoustic_identity,
+                )
+        if contains_urgent_directive(evidence.detected_terms):
+            # Threat-like and self-harm phrases are sent without waiting for
+            # the incident window to close.
+            active.close_deadline = min(active.close_deadline, evidence_time)
+            print(
+                f"[INCIDENT] urgent_term=true event={active.event_id} "
+                "finalize=immediate"
+            )
 
     def _attach(self, active, evidence):
         if isinstance(evidence, TextEvidence):
@@ -268,6 +328,8 @@ class EventCoordinator:
     def submit_acoustic(self, evidence: AcousticEvidence):
         if not isinstance(evidence, AcousticEvidence):
             raise TypeError("submit_acoustic requires AcousticEvidence")
+        with self._lock:
+            self._recent_acoustic.append(evidence)
         return self._submit(
             evidence,
             "ACOUSTIC",
@@ -291,7 +353,8 @@ class EventCoordinator:
         if active is None or now < min(active.close_deadline, active.hard_deadline):
             return []
         deadline = min(active.close_deadline, active.hard_deadline)
-        return [self._finalize_locked(deadline)]
+        finalized = self._finalize_locked(deadline)
+        return [finalized] if finalized is not None else []
 
     def _finalize_locked(self, final_monotonic):
         active = self._active
@@ -302,7 +365,19 @@ class EventCoordinator:
             tuple(active.text_evidence),
             tuple(active.acoustic_evidence),
             duration_seconds=duration,
+            config=self.config,
         )
+        if not fusion.deliver:
+            # Policy-suppressed (e.g. ECHOSENSE_ACOUSTIC_ONLY_ALERTS=off). No
+            # alert is sent and no cooldown starts, so a late transcript can
+            # still open its own incident.
+            active.audio_context.clear()
+            self._active = None
+            print(
+                f"[INCIDENT] suppressed event={active.event_id} "
+                f"reasons={','.join(fusion.reasons)}"
+            )
+            return None
         pcm = active.audio_context.snapshot()
         waveform = (
             tuple(get_waveform_snapshot_float32(
@@ -331,6 +406,7 @@ class EventCoordinator:
         )
         self._active = None
         self._last_finalized_monotonic = final_monotonic
+        self._last_finalized_had_text = bool(finalized.text_evidence)
         self._finalized_count += 1
         print(
             f"[INCIDENT] finalized event={finalized.event_id} "
@@ -370,7 +446,11 @@ class EventCoordinator:
                 return ()
             current = self._monotonic_clock() if now is None else float(now)
             final_time = min(max(current, self._active.trigger_monotonic), self._active.hard_deadline)
-            finalized = (self._finalize_locked(final_time),)
+            finalized = tuple(
+                item
+                for item in (self._finalize_locked(final_time),)
+                if item is not None
+            )
         self._dispatch(finalized)
         return finalized
 

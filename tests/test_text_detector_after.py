@@ -38,7 +38,8 @@ class TextDetectorAfterTests(unittest.TestCase):
                 evidence = detector.analyze_transcript(text, language="fil")
                 self.assertIsInstance(evidence, TextEvidence)
                 self.assertTrue(evidence.qualifies_to_open)
-                self.assertEqual(evidence.baseline_severity, "MEDIUM")
+                # Opens an incident, but stays LOW without a direct target.
+                self.assertEqual(evidence.baseline_severity, "LOW")
 
     def test_pangit_suppression_and_pangit_ka_direction_are_preserved(self):
         detector = TextDetector()
@@ -54,9 +55,9 @@ class TextDetectorAfterTests(unittest.TestCase):
             monotonic_clock=clock,
             history_size=2,
         )
-        first = detector.analyze_transcript("bobo")
+        first = detector.analyze_transcript("bobo ka")
         clock.value += 1
-        second = detector.analyze_transcript("bobo")
+        second = detector.analyze_transcript("bobo ka")
         self.assertFalse(first.repeated)
         self.assertTrue(second.repeated)
         self.assertEqual(second.baseline_severity, "HIGH")
