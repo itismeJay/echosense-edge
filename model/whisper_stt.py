@@ -14,6 +14,8 @@ from detection.latency import LATENCY
 from detection.severity import LOW
 from detection.transcript_quality import assess_transcript_quality
 from model.blacklist import check_transcript
+from model.language_restricted_engine import ENGINE_NAME as RESTRICTED_ENGINE
+from model.language_restricted_engine import register as register_restricted_engine
 from model.monitored_terms import classify_transcript_language, get_backend_terms
 from model.realtimestt_audio_adapter import RealtimeSTTAudioEventAdapter
 from model.result_queue import BoundedResultQueue
