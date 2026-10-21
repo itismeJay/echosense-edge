@@ -83,16 +83,18 @@ class IncidentDeliveryAfterTests(unittest.TestCase):
             "supporting_only",
         )
 
-    def test_acoustic_opened_schema_stays_acoustic_with_text_support(self):
+    def test_sound_first_still_produces_a_keyword_incident(self):
+        # Sound never opens an incident; the later word does, and the earlier
+        # sound is attached as supporting evidence.
         event_id, _finalized = self.run_incident(acoustic_first=True)
         payload = json.loads(self.outbox.list_records()[0].payload_json)
         self.assertEqual(payload["event_id"], event_id)
-        self.assertEqual(payload["trigger_type"], "ACOUSTIC")
+        self.assertEqual(payload["trigger_type"], "KEYWORD")
         self.assertTrue(payload["monitored_word_detected"])
         self.assertIn("bobo", payload["monitored_terms"])
         self.assertEqual(
             payload["detailed_acoustic_evidence"]["role"],
-            "primary_trigger",
+            "supporting_only",
         )
 
     def test_qualifying_acoustic_label_beats_higher_scoring_neutral_label(self):
@@ -110,14 +112,14 @@ class IncidentDeliveryAfterTests(unittest.TestCase):
         self.assertEqual(arguments["yamnet_class"], "Screaming")
         self.assertEqual(arguments["yamnet_score"], 0.46)
 
-    def test_acoustic_opener_marks_tone_and_yamnet_as_primary(self):
+    def test_sound_is_never_the_primary_trigger(self):
         self.run_incident(acoustic_first=True)
         payload = json.loads(self.outbox.list_records()[0].payload_json)
         self.assertEqual(
             payload["detailed_acoustic_evidence"]["role"],
-            "primary_trigger",
+            "supporting_only",
         )
-        self.assertEqual(payload["tone_evidence"]["role"], "primary_trigger")
+        self.assertNotEqual(payload["tone_evidence"]["role"], "primary_trigger")
 
     def test_finalized_arguments_and_payload_contain_no_pcm_or_audio_path(self):
         _event_id, finalized = self.run_incident()

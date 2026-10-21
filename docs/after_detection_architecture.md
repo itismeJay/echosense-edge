@@ -47,8 +47,10 @@ deduplicates normalized content, and caps the one transcript field at 10,000
 characters. Acoustic-only incidents use schema-v2's established neutral state:
 `transcription_status="unavailable"` with no fabricated `transcribed_text`.
 
-Initial timing values are 2 seconds pre-trigger, 5 seconds post-trigger,
-3 seconds extension, 15 seconds hard maximum, and no cooldown (only a 10 second same-terms duplicate guard). These
+Initial timing values are 2 seconds pre-trigger, a 1.5 second incident
+window, 1.5 seconds extension, 6 seconds hard maximum, and no cooldown (only a
+10 second same-terms duplicate guard). Only a monitored word opens an incident;
+sound alone is logged locally and never sent. These
 are configurable development starting values, not scientifically validated
 classroom thresholds.
 

@@ -96,17 +96,20 @@ class EventCoordinatorAfterTests(unittest.TestCase):
         self.assertEqual(len(finalized[0].text_evidence), 1)
         self.assertEqual(len(finalized[0].acoustic_evidence), 1)
 
-    def test_acoustic_first_text_later_stays_acoustic(self):
+    def test_acoustic_first_opens_nothing_and_text_links_to_it(self):
         coordinator, clock, finalized = self.make()
         first = coordinator.submit_acoustic(acoustic_evidence(0))
+        self.assertFalse(first.opened)
+        self.assertIsNone(first.event_id)
         second = coordinator.submit_text(text_evidence(1))
-        self.assertEqual(first.event_id, second.event_id)
+        self.assertTrue(second.opened)
         self.finish(coordinator, clock)
-        self.assertEqual(finalized[0].trigger_type, "ACOUSTIC")
+        self.assertEqual(finalized[0].trigger_type, "KEYWORD")
+        self.assertEqual(len(finalized[0].acoustic_evidence), 1)
 
-    def test_acoustic_first_does_not_retain_non_qualifying_text_content(self):
+    def test_active_incident_does_not_retain_non_qualifying_text_content(self):
         coordinator, clock, finalized = self.make()
-        coordinator.submit_acoustic(acoustic_evidence(0))
+        coordinator.submit_text(text_evidence(0))
         normal = text_evidence(
             1,
             qualifies=False,
@@ -114,26 +117,28 @@ class EventCoordinatorAfterTests(unittest.TestCase):
         )
         submission = coordinator.submit_text(normal)
         self.assertFalse(submission.joined)
-        self.assertEqual(tuple(coordinator.active_incident.text_evidence), ())
+        self.assertEqual(len(coordinator.active_incident.text_evidence), 1)
         self.assertEqual(
             coordinator.active_incident.non_qualifying_text_count,
             1,
         )
         self.finish(coordinator, clock)
-        self.assertEqual(finalized[0].text_evidence, ())
+        self.assertNotIn(
+            "What page are we on?",
+            [item.transcript for item in finalized[0].text_evidence],
+        )
 
-    def test_text_only_and_acoustic_only_each_finalize_once(self):
-        for method, evidence, trigger in (
-            ("submit_text", text_evidence(), "KEYWORD"),
-            ("submit_acoustic", acoustic_evidence(), "ACOUSTIC"),
-        ):
-            with self.subTest(trigger=trigger):
-                coordinator, clock, finalized = self.make()
-                getattr(coordinator, method)(evidence)
-                self.finish(coordinator, clock)
-                coordinator.tick()
-                self.assertEqual(len(finalized), 1)
-                self.assertEqual(finalized[0].trigger_type, trigger)
+    def test_text_finalizes_once_and_acoustic_only_never_does(self):
+        coordinator, clock, finalized = self.make()
+        coordinator.submit_text(text_evidence())
+        self.finish(coordinator, clock)
+        coordinator.tick()
+        self.assertEqual(len(finalized), 1)
+        self.assertEqual(finalized[0].trigger_type, "KEYWORD")
+        coordinator, clock, finalized = self.make()
+        coordinator.submit_acoustic(acoustic_evidence())
+        self.finish(coordinator, clock)
+        self.assertEqual(finalized, [])
 
     def test_normal_text_and_audio_create_no_event(self):
         coordinator, clock, finalized = self.make()
@@ -193,17 +198,17 @@ class EventCoordinatorAfterTests(unittest.TestCase):
     def test_extension_never_exceeds_hard_maximum(self):
         coordinator, clock, finalized = self.make()
         coordinator.submit_text(text_evidence(0))
-        coordinator.submit_text(text_evidence(2, transcript="tanga 2"))
-        self.assertEqual(coordinator.active_incident.close_deadline, 4.0)
-        for at in (3.5, 5, 6.5, 7.5):
+        coordinator.submit_text(text_evidence(1, transcript="tanga 1"))
+        self.assertEqual(coordinator.active_incident.close_deadline, 2.5)
+        for at in (2.0, 3.0, 4.0, 5.0, 5.8):
             coordinator.submit_text(
                 text_evidence(at, transcript=f"tanga {at}")
             )
-        self.assertEqual(coordinator.active_incident.close_deadline, 8.0)
-        clock.value = 8
+        self.assertEqual(coordinator.active_incident.close_deadline, 6.0)
+        clock.value = 6
         coordinator.tick()
         self.assertEqual(len(finalized), 1)
-        self.assertEqual(finalized[0].duration_seconds, 8.0)
+        self.assertEqual(finalized[0].duration_seconds, 6.0)
 
     def test_pretrigger_context_is_bounded_to_two_seconds(self):
         pre = RollingAudioBuffer(2.0)
@@ -244,7 +249,7 @@ class EventCoordinatorAfterTests(unittest.TestCase):
         coordinator.tick()
         self.assertEqual(
             finalized[0].finalized_at - finalized[0].triggered_at,
-            timedelta(seconds=3),
+            timedelta(seconds=1.5),
         )
 
     def test_two_detector_threads_race_into_one_incident(self):
@@ -272,8 +277,8 @@ class EventCoordinatorAfterTests(unittest.TestCase):
         default, _clock, _finalized = self.make()
         default.submit_text(text_evidence(0))
         self.assertEqual(default.config.pre_trigger_seconds, 2.0)
-        self.assertEqual(default.active_incident.close_deadline, 3.0)
-        self.assertEqual(default.active_incident.hard_deadline, 8.0)
+        self.assertEqual(default.active_incident.close_deadline, 1.5)
+        self.assertEqual(default.active_incident.hard_deadline, 6.0)
         custom_config = DetectionRuntimeConfig(
             pre_trigger_seconds=1.0,
             post_trigger_seconds=2.0,

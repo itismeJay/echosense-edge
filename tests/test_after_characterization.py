@@ -49,7 +49,7 @@ class AfterTextCharacterizationTests(unittest.TestCase):
             repeated=True,
         )
         self.assertEqual(decision.level, HIGH)
-        self.assertIn("promoted_by:repetition", decision.reasons)
+        self.assertIn("promoted_by:targeted_repetition", decision.reasons)
 
     def test_low_quality_repetition_is_rejected_before_matching(self):
         quality = assess_transcript_quality(

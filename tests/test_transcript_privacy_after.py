@@ -78,29 +78,27 @@ class TranscriptPrivacyAfterTests(unittest.TestCase):
         self.assertEqual(len(records), 1)
         return json.loads(records[0].payload_json), records[0].payload_json
 
-    def test_acoustic_opener_excludes_normal_classroom_transcript_everywhere(self):
+    def test_sound_with_normal_classroom_transcript_sends_nothing(self):
         output = io.StringIO()
         with redirect_stdout(output):
             self.coordinator.submit_acoustic(acoustic_evidence(0))
             normal = self._text("What page are we on?", 1)
             self.assertFalse(normal.qualifies_to_open)
             self.coordinator.submit_text(normal)
-            payload, serialized = self._finish(5)
-        self.assertEqual(payload["trigger_type"], "ACOUSTIC")
-        self.assertEqual(payload["transcription_status"], "unavailable")
-        self.assertNotIn("transcribed_text", payload)
-        self.assertNotIn("what page", serialized.casefold())
+            self.clock.value = 5
+            self.coordinator.tick()
+        self.assertEqual(self.finalized, [])
+        self.assertEqual(self.outbox.list_records(), [])
         self.assertNotIn("what page", output.getvalue().casefold())
-        self.assertEqual(self.finalized[0].text_evidence, ())
 
-    def test_acoustic_opener_includes_only_later_qualifying_text(self):
+    def test_sound_first_includes_only_later_qualifying_text(self):
         self.coordinator.submit_acoustic(acoustic_evidence(0))
         normal = self._text("Please open your books.", 1)
         qualifying = self._text("pangit ka", 2)
         self.coordinator.submit_text(normal)
         self.coordinator.submit_text(qualifying)
         payload, serialized = self._finish(5)
-        self.assertEqual(payload["trigger_type"], "ACOUSTIC")
+        self.assertEqual(payload["trigger_type"], "KEYWORD")
         self.assertEqual(payload["transcribed_text"], "pangit ka")
         self.assertNotIn("open your books", serialized.casefold())
 
@@ -136,14 +134,12 @@ class TranscriptPrivacyAfterTests(unittest.TestCase):
         self.assertNotIn("what page", serialized.casefold())
         self.assertNotIn("open your books", serialized.casefold())
 
-    def test_acoustic_only_is_valid_with_neutral_transcription_state(self):
+    def test_acoustic_only_creates_no_incident_or_outbox_row(self):
         self.coordinator.submit_acoustic(acoustic_evidence(0, score=0.46))
-        payload, _serialized = self._finish(5)
-        self.assertEqual(payload["trigger_type"], "ACOUSTIC")
-        self.assertIn(payload["severity"], {"LOW", "MEDIUM"})
-        self.assertEqual(payload["transcription_status"], "unavailable")
-        self.assertNotIn("transcribed_text", payload)
-        self.assertFalse(payload["monitored_word_detected"])
+        self.clock.value = 5
+        self.coordinator.tick()
+        self.assertEqual(self.finalized, [])
+        self.assertEqual(self.outbox.list_records(), [])
 
     def test_loud_neutral_window_creates_no_incident_or_outbox_row(self):
         detector = AcousticDetector(

@@ -56,49 +56,38 @@ class FusionAfterTests(unittest.TestCase):
         )
         self.assertEqual(decision.level, "HIGH")
         self.assertIn(
-            "promoted_by:strong_acoustic_corroboration",
+            "promoted_by:direct_target_and_strong_shout",
             decision.reasons,
         )
         self.assertIn("text_acoustic_corroboration", decision.supporting_evidence)
 
-    def test_repeated_text_is_explainably_promoted(self):
-        repeated = replace(directed(), repeated=True)
-        decision = fuse_event_evidence((repeated,), (), duration_seconds=3)
+    def test_targeted_repetition_across_the_incident_is_high(self):
+        second = replace(directed(1.0), transcript="bobo ka talaga")
+        decision = fuse_event_evidence(
+            (directed(), second), (), duration_seconds=3,
+        )
         self.assertEqual(decision.level, "HIGH")
-        self.assertIn("promoted_by:repetition", decision.reasons)
+        self.assertIn("promoted_by:targeted_repetition", decision.reasons)
+        self.assertIn(
+            "targeted_repetition_within_incident", decision.supporting_evidence,
+        )
 
-    def test_acoustic_only_defaults_to_low_only(self):
-        weak = acoustic_evidence(score=0.46)
-        strong = acoustic_evidence(score=0.82)
-        for evidence in (weak, strong):
-            decision = fuse_event_evidence((), (evidence,), duration_seconds=5)
-            self.assertEqual(decision.level, "LOW")
-            self.assertTrue(decision.deliver)
-            self.assertIn("acoustic_only_policy:low_only", decision.reasons)
+    def test_cross_utterance_history_flag_alone_does_not_promote(self):
+        decision = fuse_event_evidence(
+            (replace(directed(), repeated=True),), (), duration_seconds=3,
+        )
+        self.assertEqual(decision.level, "MEDIUM")
 
-    def test_acoustic_only_on_needs_strong_and_sustained_for_medium(self):
-        config = DetectionRuntimeConfig(acoustic_only_alerts="on")
-        short = (acoustic_evidence(at=1, score=0.82),)
+    def test_acoustic_only_is_never_delivered(self):
         sustained = tuple(
             acoustic_evidence(at=1 + 0.4875 * index, score=0.82)
             for index in range(7)
         )
-        self.assertEqual(
-            fuse_event_evidence((), short, duration_seconds=5, config=config).level,
-            "LOW",
-        )
-        decision = fuse_event_evidence(
-            (), sustained, duration_seconds=5, config=config,
-        )
-        self.assertEqual(decision.level, "MEDIUM")
-        self.assertIn("acoustic_only:strong_and_sustained", decision.reasons)
-
-    def test_acoustic_only_off_is_not_delivered(self):
-        config = DetectionRuntimeConfig(acoustic_only_alerts="off")
-        decision = fuse_event_evidence(
-            (), (acoustic_evidence(score=0.9),), duration_seconds=5, config=config,
-        )
-        self.assertFalse(decision.deliver)
+        for evidence in ((acoustic_evidence(score=0.46),), sustained):
+            decision = fuse_event_evidence((), evidence, duration_seconds=5)
+            self.assertEqual(decision.level, "LOW")
+            self.assertFalse(decision.deliver)
+            self.assertIn("acoustic_only:never_sent", decision.reasons)
 
     def test_single_loud_non_aggressive_sound_is_no_alert_evidence(self):
         loud = replace(

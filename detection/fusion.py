@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections import Counter
 from dataclasses import dataclass
 from datetime import timedelta
 
@@ -14,6 +13,7 @@ from detection.severity import (
     MEDIUM,
     SEVERITY_ORDER,
     calculate_severity,
+    is_targeted,
 )
 
 
@@ -94,16 +94,15 @@ def strong_acoustic(windows, config=_DEFAULT_CONFIG):
     )
 
 
-def _incident_repeated_terms(text_items):
-    counts = Counter(
-        term
+def _targeted_utterances(text_items):
+    return sum(
+        1
         for item in text_items
-        for term in dict.fromkeys(item.detected_terms)
+        if is_targeted(item.detected_terms, item.transcript)
     )
-    return {term for term, count in counts.items() if count >= 2}
 
 
-def _fuse_text(text_item, acoustic_evidence, repeated_terms, config):
+def _fuse_text(text_item, acoustic_evidence, targeted_count, config):
     linked = linked_acoustic(
         (text_item,),
         acoustic_evidence,
@@ -111,58 +110,29 @@ def _fuse_text(text_item, acoustic_evidence, repeated_terms, config):
     )
     linked_qualifying = [item for item in linked if item.qualifies_to_open]
     strong = strong_acoustic(linked, config) if linked_qualifying else False
+    repeated_in_incident = targeted_count >= 2 and is_targeted(
+        text_item.detected_terms, text_item.transcript,
+    )
     decision = calculate_severity(
         text_item.detected_terms,
         transcript=text_item.transcript,
-        repeated=bool(
-            text_item.repeated
-            or repeated_terms.intersection(text_item.detected_terms)
-        ),
+        repeated=repeated_in_incident,
+        acoustic_aggressive=bool(linked_qualifying),
         laughter_present=text_item.laughter_present,
         strong_acoustic=strong,
     )
-    level = decision.level
-    reasons = list(decision.reasons)
     supporting = list(decision.supporting_evidence)
-    if repeated_terms.intersection(text_item.detected_terms):
-        supporting.append("repeated_within_incident")
+    if repeated_in_incident:
+        supporting.append("targeted_repetition_within_incident")
     if linked_qualifying:
         supporting.append("text_acoustic_corroboration")
-        if strong:
-            supporting.append("strong_or_sustained_acoustic_evidence")
-        if decision.context_downgrade:
-            reasons.append(
-                f"corroboration_ignored:{decision.context_downgrade}"
-            )
-        elif level == LOW:
-            level = MEDIUM
-            reasons.append("promoted_by:text_acoustic_corroboration")
-        elif level == MEDIUM and strong:
-            level = HIGH
-            reasons.append("promoted_by:strong_acoustic_corroboration")
-    return level, reasons, supporting, decision.term_categories, bool(linked_qualifying)
-
-
-def _fuse_acoustic_only(acoustic_evidence, config):
-    qualifying = [item for item in acoustic_evidence if item.qualifies_to_open]
-    strong = strong_acoustic(acoustic_evidence, config)
-    sustained = (
-        _covered_seconds(qualifying) >= config.acoustic_only_medium_min_seconds
+    return (
+        decision.level,
+        list(decision.reasons),
+        supporting,
+        decision.term_categories,
+        bool(linked_qualifying),
     )
-    mode = config.acoustic_only_alerts
-    reasons = [f"acoustic_only_policy:{mode}"]
-    if mode == "off":
-        reasons.append("suppressed:acoustic_only_alerts_off")
-        return LOW, reasons, strong, False
-    if mode == "on" and strong and sustained:
-        reasons.append("acoustic_only:strong_and_sustained")
-        return MEDIUM, reasons, strong, True
-    reasons.append(
-        "acoustic_only:capped_low"
-        if strong
-        else "acoustic_only:qualifying_observation"
-    )
-    return LOW, reasons, strong, True
 
 
 def fuse_event_evidence(
@@ -175,7 +145,8 @@ def fuse_event_evidence(
     """Fuse observable evidence without treating loudness/duration as proof.
 
     Each text observation is scored on its own transcript, and only acoustic
-    windows time-linked to that observation may promote it.
+    windows time-linked to that observation may promote it. Without a
+    monitored word nothing is delivered.
     """
 
     config = config or _DEFAULT_CONFIG
@@ -193,10 +164,10 @@ def fuse_event_evidence(
     corroborated = False
     if qualifying_text:
         level = LOW
-        repeated_terms = _incident_repeated_terms(qualifying_text)
+        targeted_count = _targeted_utterances(qualifying_text)
         for item in qualifying_text:
             item_level, item_reasons, item_supporting, item_categories, linked = (
-                _fuse_text(item, acoustic_evidence, repeated_terms, config)
+                _fuse_text(item, acoustic_evidence, targeted_count, config)
             )
             if SEVERITY_ORDER[item_level] > SEVERITY_ORDER[level]:
                 level = item_level
@@ -210,12 +181,11 @@ def fuse_event_evidence(
         if qualifying_acoustic and not corroborated:
             supporting.append("unlinked_acoustic_evidence_ignored")
     else:
-        level, acoustic_reasons, strong, deliver = _fuse_acoustic_only(
-            acoustic_evidence,
-            config,
-        )
-        reasons.extend(acoustic_reasons)
-        if strong:
+        # Sound never creates an alert by itself: kept in the local log only.
+        level = LOW
+        deliver = False
+        reasons.append("acoustic_only:never_sent")
+        if strong_acoustic(acoustic_evidence, config):
             supporting.append("strong_or_sustained_acoustic_evidence")
 
     if qualifying_acoustic:
@@ -229,10 +199,8 @@ def fuse_event_evidence(
         supporting.append("incident_duration_observed")
     if corroborated:
         confidence = 0.9 if level == HIGH else 0.8
-    elif qualifying_text:
-        confidence = {LOW: 0.6, MEDIUM: 0.75, HIGH: 0.9}[level]
     else:
-        confidence = 0.75 if level == MEDIUM else 0.6
+        confidence = {LOW: 0.6, MEDIUM: 0.75, HIGH: 0.9}[level]
     return EventFusionDecision(
         level=level,
         reasons=tuple(dict.fromkeys(reasons)),

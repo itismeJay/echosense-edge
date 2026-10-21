@@ -456,16 +456,18 @@ def _recorder_loop():
         _recording_limiter = RealtimeSTTRecordingLimiter(
             DETECTION_RUNTIME.max_stt_utterance_seconds
         )
-        _recorder = AudioToTextRecorder(
+        register_restricted_engine()
+        recorder_options = dict(
             # --- Final (accurate) transcription model -----------------------
             model="base",
             device="cpu",
             compute_type="int8",
             beam_size=1,
             batch_size=0,
-            # No forced language: faster-whisper auto-detects supported
-            # languages. Whisper has Tagalog and English tokens but no native
-            # Cebuano token; downstream term evidence handles ceb/mixed labels.
+            # Language detection is restricted to en/tl by the engine (see
+            # model/language_restricted_engine.py), so there is one decode per
+            # utterance. Whisper has no Cebuano token; downstream term evidence
+            # handles ceb/mixed labels.
             spinner=False,
             # EchoSense owns the only physical microphone and feeds this
             # recorder. This verified RealtimeSTT 1.0.2 mode avoids a second
@@ -474,7 +476,7 @@ def _recorder_loop():
             # VAD remains permissive for short/quiet classroom utterances.
             silero_sensitivity=0.6,
             webrtc_sensitivity=1,
-            post_speech_silence_duration=0.6,
+            post_speech_silence_duration=0.45,
             min_length_of_recording=0.5,
             min_gap_between_recordings=0.1,
             on_recording_start=_recording_limiter.on_recording_start,
@@ -485,6 +487,18 @@ def _recorder_loop():
             # only one Whisper model competes for Pi CPU.
             initial_prompt=initial_prompt,
         )
+        try:
+            _recorder = AudioToTextRecorder(
+                transcription_engine=RESTRICTED_ENGINE, **recorder_options,
+            )
+            print("[STT] language_detection=en,tl engine=restricted")
+        except Exception as exc:
+            # Stock auto-detect; the regional retry below still guards it.
+            print(
+                f"[STT] restricted_engine_failed={type(exc).__name__} "
+                "language_detection=auto fallback=true"
+            )
+            _recorder = AudioToTextRecorder(**recorder_options)
         _recording_limiter.bind(_recorder)
     except Exception as exc:
         _recorder_error = exc

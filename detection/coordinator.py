@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import deque
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 import queue
 import threading
@@ -89,6 +89,7 @@ class EventCoordinator:
         self._recent_acoustic = deque(maxlen=self.config.evidence_history_size)
         self._finalized_count = 0
         self._duplicate_count = 0
+        self._acoustic_only_burst = False
         self._closed = False
 
     @property
@@ -129,14 +130,11 @@ class EventCoordinator:
         if evidence_time - last.closed_monotonic >= window:
             return None
         # Judge severity as this text would be fused on its own, so a repeat
-        # that is now shouted (acoustically promoted) is a new incident. The
-        # repetition promotion is ignored: repeating the incident's own terms
-        # is exactly what the duplicate guard absorbs.
-        candidate = replace(evidence, repeated=False)
+        # that is now shouted (acoustically promoted) is a new incident.
         severity = fuse_event_evidence(
-            (candidate,),
+            (evidence,),
             tuple(linked_acoustic(
-                (candidate,),
+                (evidence,),
                 tuple(self._recent_acoustic),
                 self.config.corroboration_window_seconds,
             )),
@@ -244,7 +242,17 @@ class EventCoordinator:
                     if qualifying
                     else None
                 )
-                if not qualifying:
+                if isinstance(evidence, AcousticEvidence):
+                    # Sound never opens an incident or alert by itself. It is
+                    # kept in _recent_acoustic so a transcript can link to it.
+                    if qualifying and not self._acoustic_only_burst:
+                        print(
+                            "[ACOUSTIC_ONLY] aggressive_sound=true "
+                            "incident=false sent=false"
+                        )
+                    self._acoustic_only_burst = qualifying
+                    result = CoordinatorSubmission(None, finalized=tuple(dispatch))
+                elif not qualifying:
                     result = CoordinatorSubmission(None, finalized=tuple(dispatch))
                 elif duplicate_of is not None:
                     self._duplicate_count += 1
@@ -420,8 +428,8 @@ class EventCoordinator:
             config=self.config,
         )
         if not fusion.deliver:
-            # Policy-suppressed (e.g. ECHOSENSE_ACOUSTIC_ONLY_ALERTS=off). No
-            # alert is sent and nothing is recorded for the duplicate guard.
+            # No qualifying text (sound only): never sent, and nothing is
+            # recorded for the duplicate guard.
             active.audio_context.clear()
             self._active = None
             print(

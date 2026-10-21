@@ -49,7 +49,7 @@ class TextDetectorAfterTests(unittest.TestCase):
         self.assertTrue(directed.qualifies_to_open)
         self.assertTrue(directed.direct_target)
 
-    def test_repetition_is_bounded_and_promotes_second_observation(self):
+    def test_repetition_is_bounded_and_flagged_but_not_promoted_alone(self):
         clock = FakeClock()
         detector = TextDetector(
             monotonic_clock=clock,
@@ -60,7 +60,9 @@ class TextDetectorAfterTests(unittest.TestCase):
         second = detector.analyze_transcript("bobo ka")
         self.assertFalse(first.repeated)
         self.assertTrue(second.repeated)
-        self.assertEqual(second.baseline_severity, "HIGH")
+        # Cross-utterance repetition promotes only within one incident
+        # (fusion), never from the detector's history alone.
+        self.assertEqual(second.baseline_severity, "MEDIUM")
         self.assertEqual(detector._history["bobo"].maxlen, 2)
 
     def test_quality_and_laughter_protections_remain_in_evidence(self):
@@ -72,7 +74,9 @@ class TextDetectorAfterTests(unittest.TestCase):
         self.assertFalse(low_quality.quality_accepted)
         self.assertFalse(low_quality.qualifies_to_open)
         self.assertTrue(laughter.laughter_present)
-        self.assertFalse(laughter.qualifies_to_open)
+        # A monitored word with laughter is still logged, but only as LOW.
+        self.assertTrue(laughter.qualifies_to_open)
+        self.assertEqual(laughter.baseline_severity, "LOW")
 
     def test_finalized_stt_results_are_fifo_not_latest_value(self):
         whisper_stt._on_text("first harmless", whisper_language="en")

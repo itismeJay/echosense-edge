@@ -111,23 +111,23 @@ class TimeLinkedCorroborationTests(unittest.TestCase):
         self.assertEqual(len(finalized), 1)
         self.assertEqual(finalized[0].severity, HIGH)
         self.assertIn(
-            "promoted_by:strong_acoustic_corroboration",
+            "promoted_by:direct_target_and_strong_shout",
             finalized[0].severity_reasons,
         )
 
-    def test_late_transcript_still_links_to_shout_after_acoustic_incident_closed(self):
+    def test_late_transcript_still_links_to_shout_heard_earlier(self):
         harness = CoordinatorHarness()
         for window in windows(0.5, 2.0):
             harness.acoustic(window)
         harness.finish(5.5)
-        self.assertEqual(harness.finalized[0].severity, LOW)
-        # STT latency: the transcript of the shout arrives after that
-        # acoustic-only incident closed. It is never suppressed and
-        # still links to the shout that happened while it was spoken.
+        # The shout alone opened nothing and sent nothing.
+        self.assertEqual(harness.finalized, [])
+        # STT latency: the transcript arrives seconds later and still links
+        # to the shout that happened while it was spoken.
         result = harness.text(text("bobo ka", 6.0, spoken_seconds=5.0))
         self.assertTrue(result.opened)
         finalized = harness.finish(20)
-        self.assertEqual(finalized[1].severity, HIGH)
+        self.assertEqual(finalized[0].severity, HIGH)
 
     def test_strong_acoustic_needs_share_of_linked_windows(self):
         word = text("bobo ka", 2.0, spoken_seconds=1.5)
@@ -138,40 +138,31 @@ class TimeLinkedCorroborationTests(unittest.TestCase):
         decision = fuse_event_evidence(
             (word,), tuple(mostly_calm), duration_seconds=3,
         )
-        # One aggressive window among many calm ones corroborates (LOW->MEDIUM
-        # only) but is not strong enough to make MEDIUM text HIGH.
+        # One aggressive window among many calm ones is linked aggression
+        # (MEDIUM) but not a strong shout, so targeted text stays MEDIUM.
         self.assertEqual(decision.level, MEDIUM)
 
 
 class AcousticOnlyPolicyTests(unittest.TestCase):
-    def test_acoustic_only_room_noise_stays_low(self):
+    def test_sound_alone_never_creates_an_incident(self):
         harness = CoordinatorHarness()
         for window in windows(0.5, 6.0):
-            harness.acoustic(window)
-        finalized = harness.finish(30)
-        # No cooldown: sustained noise closes one incident and opens the
-        # next, but every one stays LOW.
-        self.assertGreaterEqual(len(finalized), 1)
-        self.assertEqual({item.severity for item in finalized}, {LOW})
-        for item in finalized:
-            self.assertIn(
-                "acoustic_only_policy:low_only",
-                item.severity_reasons,
-            )
+            result = harness.acoustic(window)
+            self.assertFalse(result.opened)
+        self.assertEqual(harness.finish(30), [])
+        self.assertTrue(harness.text(text("bobo ka", 31.0)).opened)
 
-    def test_acoustic_only_off_sends_nothing_and_blocks_nothing(self):
-        harness = CoordinatorHarness(
-            DetectionRuntimeConfig(acoustic_only_alerts="off"),
+    def test_acoustic_only_fusion_is_never_delivered(self):
+        decision = fuse_event_evidence(
+            (), tuple(windows(0.5, 6.0)), duration_seconds=6,
         )
-        for window in windows(0.5, 2.0):
-            harness.acoustic(window)
-        harness.finish(6)
-        self.assertEqual(harness.finalized, [])
-        self.assertTrue(harness.text(text("bobo ka", 7.0)).opened)
+        self.assertFalse(decision.deliver)
+        self.assertEqual(decision.level, LOW)
+        self.assertIn("acoustic_only:never_sent", decision.reasons)
 
     def test_environment_controls_new_settings(self):
         values = detection_runtime_config_from_environment({
-            "ECHOSENSE_ACOUSTIC_ONLY_ALERTS": "ON",
+            "ECHOSENSE_ACOUSTIC_ONLY_ALERTS": "ON",  # ignored now
             "ECHOSENSE_INCIDENT_WINDOW_SECONDS": "4",
             "ECHOSENSE_CORROBORATION_WINDOW_SECONDS": "1",
             "ECHOSENSE_STRONG_TONE_RATIO": "0.5",
@@ -179,17 +170,13 @@ class AcousticOnlyPolicyTests(unittest.TestCase):
             "ECHOSENSE_TONE_FLOOR_MULTIPLIER": "3",
             "ECHOSENSE_CALIBRATION_SECONDS": "10",
         })
-        self.assertEqual(values.acoustic_only_alerts, "on")
+        self.assertFalse(hasattr(values, "acoustic_only_alerts"))
         self.assertEqual(values.post_trigger_seconds, 4.0)
         self.assertEqual(values.corroboration_window_seconds, 1.0)
         self.assertEqual(values.strong_tone_ratio, 0.5)
         self.assertEqual(values.noise_floor_window_seconds, 30.0)
         self.assertEqual(values.tone_floor_multiplier, 3.0)
         self.assertEqual(values.calibration_seconds, 10.0)
-        with self.assertRaises(ValueError):
-            detection_runtime_config_from_environment({
-                "ECHOSENSE_ACOUSTIC_ONLY_ALERTS": "sometimes",
-            })
 
 
 class NoiseFloorTests(unittest.TestCase):
@@ -259,29 +246,29 @@ class CasualUseContextTests(unittest.TestCase):
             self.assertIn(reason, evidence.reasons, transcript)
 
     def test_self_directed_is_low(self):
-        self.assertLevel("ang bobo ko", LOW, "downgraded_to_low:self_directed")
-        self.assertLevel("buang ko", LOW, "downgraded_to_low:self_directed")
-        self.assertLevel("I am worthless", LOW, "downgraded_to_low:self_directed")
+        self.assertLevel("ang bobo ko", LOW, "held_low:self_directed")
+        self.assertLevel("buang ko", LOW, "held_low:self_directed")
+        self.assertLevel("I am worthless", LOW, "held_low:self_directed")
 
     def test_about_a_thing_is_low(self):
         self.assertLevel("stupid game", LOW, "held_low:about_object")
-        self.assertLevel("bobo yung tanong", LOW, "downgraded_to_low:about_object")
+        self.assertLevel("bobo yung tanong", LOW, "held_low:about_object")
 
     def test_negated_or_instructional_is_low(self):
         self.assertLevel(
             "wag mong sabihing bobo",
             LOW,
-            "downgraded_to_low:negated_or_instructional",
+            "held_low:negated_or_instructional",
         )
         self.assertLevel(
             "ayaw pag ingon nga bogo",
             LOW,
-            "downgraded_to_low:negated_or_instructional",
+            "held_low:negated_or_instructional",
         )
         self.assertLevel(
             "don't call him tanga",
             LOW,
-            "downgraded_to_low:negated_or_instructional",
+            "held_low:negated_or_instructional",
         )
 
     def test_directed_terms_are_medium(self):
@@ -290,10 +277,10 @@ class CasualUseContextTests(unittest.TestCase):
         self.assertLevel("you are stupid", MEDIUM)
 
     def test_untargeted_medium_term_is_low(self):
-        self.assertLevel("bobo", LOW, "downgraded_to_low:no_direct_target")
+        self.assertLevel("bobo", LOW, "held_low:no_aggression")
 
     def test_repetition_within_utterance_escalates(self):
-        self.assertLevel("bobo ka bobo ka", HIGH, "promoted_by:repetition")
+        self.assertLevel("bobo ka bobo ka", HIGH, "promoted_by:targeted_repetition")
 
     def test_threats_are_never_downgraded(self):
         self.assertLevel("kill you haha", HIGH)
@@ -315,9 +302,11 @@ class CasualUseContextTests(unittest.TestCase):
             ["pangit"],
             transcript="pangit ka haha",
             laughter_present=True,
+            acoustic_aggressive=True,
             strong_acoustic=True,
         )
-        self.assertEqual(shouted.level, MEDIUM)
+        # Laughing but shouting it at someone: direct target + strong shout.
+        self.assertEqual(shouted.level, HIGH)
 
     def test_negation_after_the_term_does_not_downgrade(self):
         self.assertLevel("bobo ka, wag ka ganyan", MEDIUM)
@@ -326,35 +315,44 @@ class CasualUseContextTests(unittest.TestCase):
 class IncidentWindowTests(unittest.TestCase):
     def test_noise_after_a_word_does_not_extend(self):
         harness = CoordinatorHarness()
-        harness.text(text("bobo ka", 0.0))
+        # Whisper latency: the words were said 2-3 s before the transcript.
+        word = text("bobo ka", 0.0)
+        harness.text(replace(
+            word,
+            observed_at=WALL - timedelta(seconds=2.0),
+            spoken_started_at=WALL - timedelta(seconds=3.0),
+        ))
         deadline = harness.coordinator.active_incident.close_deadline
-        self.assertEqual(deadline, 3.0)
-        for window in windows(2.0, 2.9):
+        self.assertEqual(deadline, 1.5)
+        for window in windows(1.0, 1.4):
             harness.acoustic(window)
         self.assertEqual(
             harness.coordinator.active_incident.close_deadline,
             deadline,
         )
-        harness.finish(3.0)
-        self.assertEqual(harness.finalized[0].duration_seconds, 3.0)
+        harness.finish(1.5)
+        self.assertEqual(harness.finalized[0].duration_seconds, 1.5)
 
     def test_repeated_word_extends(self):
         harness = CoordinatorHarness()
         harness.text(text("bobo ka", 0.0))
-        harness.text(replace(text("bobo ka", 2.5), observed_monotonic=2.5))
-        self.assertEqual(harness.coordinator.active_incident.close_deadline, 4.5)
-        finalized = harness.finish(4.5)
+        harness.text(replace(text("bobo ka", 1.2), observed_monotonic=1.2))
+        self.assertEqual(harness.coordinator.active_incident.close_deadline, 2.7)
+        finalized = harness.finish(2.7)
         self.assertEqual(len(finalized[0].text_evidence), 2)
         self.assertEqual(finalized[0].severity, HIGH)
-        self.assertIn("repeated_within_incident", finalized[0].supporting_evidence)
+        self.assertIn(
+            "targeted_repetition_within_incident",
+            finalized[0].supporting_evidence,
+        )
 
     def test_linked_strong_acoustic_extends(self):
         harness = CoordinatorHarness()
         harness.text(text("bobo ka", 0.0))
+        harness.acoustic(acoustic_evidence(at=0.5, score=0.9))
+        self.assertEqual(harness.coordinator.active_incident.close_deadline, 2.0)
         harness.acoustic(acoustic_evidence(at=1.0, score=0.9))
-        self.assertEqual(harness.coordinator.active_incident.close_deadline, 3.0)
-        harness.acoustic(acoustic_evidence(at=1.4, score=0.9))
-        self.assertEqual(harness.coordinator.active_incident.close_deadline, 3.4)
+        self.assertEqual(harness.coordinator.active_incident.close_deadline, 2.5)
 
     def test_threat_is_enqueued_without_waiting(self):
         harness = CoordinatorHarness()

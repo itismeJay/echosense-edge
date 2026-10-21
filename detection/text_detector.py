@@ -9,7 +9,7 @@ import time
 
 from detection.evidence import MatchedTermEvidence, TextEvidence
 from detection.latency import LATENCY
-from detection.severity import HIGH, calculate_severity, has_direct_target_evidence
+from detection.severity import calculate_severity, has_direct_target_evidence
 from detection.transcript_quality import assess_transcript_quality
 from model.blacklist import check_transcript
 
@@ -139,27 +139,22 @@ class TextDetector:
                         repeated = True
                     history.append(mono)
 
+        # ``repeated`` (same term within the history window) stays as
+        # evidence metadata only. Severity repetition is judged within one
+        # utterance here and across the incident in fusion.
         severity = calculate_severity(
             detected,
             transcript=transcript,
-            repeated=repeated,
             laughter_present=laughter,
         )
         context_suppressed = bool(result.get("context_suppressed_all"))
         has_monitored = bool(result.get("has_profanity")) and bool(detected)
-        limited_laughter = laughter and severity.level != HIGH
+        # Any accepted monitored word opens an incident (LOW at minimum);
+        # severity, not qualification, decides how far it goes.
         qualifies = bool(
             quality_accepted
             and not context_suppressed
             and has_monitored
-            and not limited_laughter
-            and (
-                severity.level == HIGH
-                or bool(hard_hits)
-                or repeated
-                or direct_target
-                or len(soft_hits) >= 2
-            )
         )
         reasons = list(severity.reasons)
         reasons.extend(severity.supporting_evidence)
@@ -167,10 +162,6 @@ class TextDetector:
             reasons.append("suppressed:transcript_quality")
         if context_suppressed:
             reasons.append("suppressed:harmless_or_ambiguous_context")
-        if limited_laughter:
-            reasons.append("suppressed:laughter_with_limited_text_evidence")
-        if has_monitored and not qualifies and not limited_laughter:
-            reasons.append("insufficient_text_context")
 
         matched = []
         for item in result.get("matched_terms") or ():

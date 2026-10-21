@@ -38,24 +38,24 @@ class DuplicateGuardTests(unittest.TestCase):
     def test_live_test_sequence(self):
         harness = CoordinatorHarness()
         say = Speech()
-        # Room noise opens an acoustic-only LOW incident (closes at 3.5).
+        # Room noise: logged locally, no incident, nothing sent.
         for window in windows(0.5, 2.0):
-            harness.acoustic(window)
+            self.assertFalse(harness.acoustic(window).opened)
         harness.finish(3.5)
-        self.assertEqual([item.severity for item in harness.finalized], [LOW])
+        self.assertEqual(harness.finalized, [])
 
-        # "bobo ka" 2 s after it closed is NOT suppressed.
+        # "bobo ka" 2 s later is NOT suppressed.
         first = harness.text(say("bobo ka", 5.5))
         self.assertTrue(first.opened)
         self.assertIsNone(first.duplicate_of)
-        harness.finish(8.5)
-        self.assertEqual(len(harness.finalized), 2)
-        self.assertEqual(harness.finalized[1].severity, MEDIUM)
-        bobo_id = harness.finalized[1].event_id
+        harness.finish(7.0)
+        self.assertEqual(len(harness.finalized), 1)
+        self.assertEqual(harness.finalized[0].severity, MEDIUM)
+        bobo_id = harness.finalized[0].event_id
 
         # Same "bobo ka" 5 s after close: duplicate of that incident, no alert
         # (even though the detector flags it as repeated).
-        again = say("bobo ka", 13.5)
+        again = say("bobo ka", 12.0)
         self.assertTrue(again.repeated)
         duplicate = harness.text(again)
         self.assertEqual(duplicate.duplicate_of, bobo_id)
@@ -66,22 +66,22 @@ class DuplicateGuardTests(unittest.TestCase):
         self.assertEqual(
             harness.coordinator.last_text_incident.duplicates, [again],
         )
-        harness.finish(30)
-        self.assertEqual(len(harness.finalized), 2)
+        harness.finish(12.5)
+        self.assertEqual(len(harness.finalized), 1)
 
         # "kill you" right after: different terms -> new HIGH immediately.
-        threat = harness.text(say("kill you", 14.0))
+        threat = harness.text(say("kill you", 13.0))
         self.assertTrue(threat.opened)
-        self.assertEqual(len(harness.finalized), 3)
-        self.assertEqual(harness.finalized[2].severity, HIGH)
-        self.assertNotEqual(harness.finalized[2].event_id, bobo_id)
+        self.assertEqual(len(harness.finalized), 2)
+        self.assertEqual(harness.finalized[1].severity, HIGH)
+        self.assertNotEqual(harness.finalized[1].event_id, bobo_id)
 
     def test_same_terms_after_window_open_new_incident(self):
         harness = CoordinatorHarness()
         say = Speech()
         harness.text(say("bobo ka", 1.0))
-        harness.finish(4.0)
-        result = harness.text(say("bobo ka", 14.0))  # 10 s after close
+        harness.finish(2.5)
+        result = harness.text(say("bobo ka", 12.5))  # 10 s after close
         self.assertTrue(result.opened)
 
     def test_extra_term_is_new_incident(self):
@@ -101,9 +101,6 @@ class DuplicateGuardTests(unittest.TestCase):
         self.assertEqual(harness.finalized[0].severity, MEDIUM)
         for window in windows(5.0, 6.5):
             harness.acoustic(window)
-        # The shout itself opened an acoustic incident; close it first so the
-        # transcript reaches the duplicate check with nothing active.
-        harness.finish(9.0)
         result = harness.text(say("bobo ka", 9.5, spoken_seconds=4.5))
         self.assertTrue(result.opened)
         harness.finish(30)
@@ -118,13 +115,12 @@ class DuplicateGuardTests(unittest.TestCase):
         harness.finish(4.0)
         self.assertTrue(harness.text(say("bobo ka", 5.0)).opened)
 
-    def test_acoustic_only_incidents_never_block_each_other(self):
+    def test_sound_never_blocks_or_opens_anything(self):
         harness = CoordinatorHarness()
         for window in windows(0.5, 2.0):
-            harness.acoustic(window)
-        harness.finish(3.5)
-        result = harness.acoustic(windows(4.0, 4.0)[0])
-        self.assertTrue(result.opened)
+            self.assertFalse(harness.acoustic(window).opened)
+        self.assertIsNone(harness.coordinator.last_text_incident)
+        self.assertTrue(harness.text(Speech()("bobo ka", 2.5)).opened)
 
     def test_environment_controls_duplicate_window(self):
         values = detection_runtime_config_from_environment({

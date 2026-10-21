@@ -151,7 +151,7 @@ class SeverityAndLaughterRegressionTests(unittest.TestCase):
 
         self.assertEqual(direct["severity"], MEDIUM)
         self.assertEqual(repeated.level, HIGH)
-        self.assertIn("promoted_by:repetition", repeated.reasons)
+        self.assertIn("promoted_by:targeted_repetition", repeated.reasons)
 
     def test_kill_yourself_is_high(self):
         result = check_transcript("kill yourself")

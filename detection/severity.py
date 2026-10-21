@@ -295,14 +295,6 @@ def _context_downgrade(tokens, terms) -> str | None:
     return None
 
 
-def _promote(level: str) -> str:
-    if level == LOW:
-        return MEDIUM
-    if level == MEDIUM:
-        return HIGH
-    return HIGH
-
-
 @dataclass(frozen=True, slots=True)
 class SeverityDecision:
     level: str
@@ -323,6 +315,19 @@ class SeverityDecision:
         }
 
 
+def is_targeted(monitored_terms: Iterable[object], transcript: object) -> bool:
+    """Direct-target wording (ka/mo/ikaw/you...) not negated/self/object."""
+
+    terms = [
+        term
+        for term in (_normalize_term(item) for item in monitored_terms or ())
+        if term
+    ]
+    if not terms or not has_direct_target_evidence(transcript):
+        return False
+    return _context_downgrade(_tokens(transcript), terms) is None
+
+
 def calculate_severity(
     monitored_terms: Iterable[object],
     *,
@@ -333,12 +338,19 @@ def calculate_severity(
     laughter_present: bool = False,
     strong_acoustic: bool = False,
 ) -> SeverityDecision:
-    """Calculate severity from observable text, duration, and acoustic evidence.
+    """Severity policy: no monitored word, no alert. Sound alone never alerts.
 
-    Mild/medium terms reach MEDIUM only with direct-target evidence, and stay
-    LOW when self-directed, about a thing, negated/instructional, or playful.
-    Severe, threat-like, and self-harm terms are never downgraded. Every
-    up/downgrade is recorded in ``reasons``.
+    LOW    monitored word with no aggression (self-directed, about a thing,
+           negated, playful, or untargeted).
+    MEDIUM monitored word + aggression: direct target, or a time-linked
+           aggressive tone/shout (``acoustic_aggressive``).
+    HIGH   threat/self-harm term (always); or direct target AND a time-linked
+           strong shout (``strong_acoustic``); or targeted words repeated in
+           the utterance or across the incident (``repeated``).
+
+    ``acoustic_aggressive``/``strong_acoustic`` must already be time-linked to
+    this utterance. ``duration`` is accepted for legacy callers and ignored.
+    Laughter never lowers a threat. Every level records its reasons.
     """
 
     terms = tuple(dict.fromkeys(
@@ -369,96 +381,70 @@ def calculate_severity(
         if matched
     }
 
-    reasons: list[str] = []
-    supporting: list[str] = []
-    severe = any(
-        category in categories
-        for category in (
-            "self_harm_directive",
-            "threat_like_phrase",
-            "severe_direct_harassment",
-        )
-    )
-    if severe:
-        level = HIGH
-        reasons.extend(
-            f"term_category:{category}"
-            for category in (
-                "self_harm_directive",
-                "threat_like_phrase",
-                "severe_direct_harassment",
-            )
-            if category in categories
-        )
-    elif "direct_harassment" in categories:
-        level = MEDIUM
-        reasons.append("term_category:direct_harassment")
-    else:
-        level = LOW
-        reasons.append(
-            "term_category:low_risk_or_uncategorized"
-            if terms
-            else "no_monitored_term"
+    def decision(level, reasons, supporting, context=None):
+        return SeverityDecision(
+            level=level,
+            reasons=tuple(dict.fromkeys(reasons)),
+            term_categories=categories,
+            supporting_evidence=tuple(dict.fromkeys(supporting)),
+            context_downgrade=context,
         )
 
+    if not terms:
+        return decision(LOW, ["no_monitored_term"], [])
+
+    reasons = [f"term_category:{category}" for category in categories]
+    if not categories:
+        reasons.append("term_category:uncategorized_monitored_term")
+    supporting: list[str] = []
     tokens = _tokens(transcript)
-    if terms and _max_term_occurrences(tokens, terms) >= 2:
+    if _max_term_occurrences(tokens, terms) >= 2:
         repeated = True
         supporting.append("repeated_within_utterance")
-
     direct_target = has_direct_target_evidence(transcript)
     if direct_target:
         supporting.append("direct_target_pattern")
-
-    context = None if severe or not terms else _context_downgrade(tokens, terms)
-    if context:
-        if level != LOW:
-            reasons.append(f"downgraded_to_low:{context}")
-        else:
-            reasons.append(f"held_low:{context}")
-        level = LOW
-    elif terms and not severe:
-        playful = laughter_present and not strong_acoustic and not repeated
-        if level == MEDIUM and not direct_target:
-            level = LOW
-            reasons.append("downgraded_to_low:no_direct_target")
-        elif level == LOW and direct_target:
-            if playful:
-                reasons.append("held_low:playful_context")
-            else:
-                level = MEDIUM
-                reasons.append("promoted_by:direct_target_pattern")
-
     if repeated:
         supporting.append("repeated_monitored_evidence")
-        if not context:
-            promoted = _promote(level)
-            if promoted != level:
-                level = promoted
-                reasons.append("promoted_by:repetition")
-
     if acoustic_aggressive:
         supporting.append("aggressive_acoustic_evidence")
-        if terms and level == LOW and not context:
-            level = MEDIUM
-            reasons.append("promoted_by:acoustic_evidence")
-
-    duration_level = severity_from_duration(float(duration or 0.0))
-    if SEVERITY_ORDER[duration_level] > SEVERITY_ORDER[level]:
-        level = duration_level
-        reasons.append(f"duration_floor:{duration_level}")
-
+    if strong_acoustic:
+        supporting.append("strong_or_sustained_acoustic_evidence")
     if laughter_present:
-        # Laughter is context metadata, never evidence that cancels a HIGH term.
         supporting.append("laughter_or_excitement_marker_present")
 
-    return SeverityDecision(
-        level=level,
-        reasons=tuple(dict.fromkeys(reasons)),
-        term_categories=categories,
-        supporting_evidence=tuple(dict.fromkeys(supporting)),
-        context_downgrade=context,
-    )
+    if "self_harm_directive" in categories or "threat_like_phrase" in categories:
+        reasons.append("high:threat_or_self_harm_term")
+        if laughter_present:
+            reasons.append("laughter_ignored:threat_or_self_harm_term")
+        return decision(HIGH, reasons, supporting)
+
+    context = _context_downgrade(tokens, terms)
+    if context:
+        reasons.append(f"held_low:{context}")
+        if acoustic_aggressive:
+            reasons.append(f"corroboration_ignored:{context}")
+        return decision(LOW, reasons, supporting, context)
+
+    targeted = direct_target
+    if laughter_present and not strong_acoustic and not repeated:
+        reasons.append("held_low:playful_context")
+        return decision(LOW, reasons, supporting)
+
+    if targeted and strong_acoustic:
+        reasons.append("promoted_by:direct_target_and_strong_shout")
+        return decision(HIGH, reasons, supporting)
+    if targeted and repeated:
+        reasons.append("promoted_by:targeted_repetition")
+        return decision(HIGH, reasons, supporting)
+    if targeted or acoustic_aggressive:
+        if targeted:
+            reasons.append("promoted_by:direct_target_pattern")
+        if acoustic_aggressive:
+            reasons.append("promoted_by:time_linked_aggressive_tone")
+        return decision(MEDIUM, reasons, supporting)
+    reasons.append("held_low:no_aggression")
+    return decision(LOW, reasons, supporting)
 
 
 def contains_high_severity_term(monitored_terms: Iterable[object]) -> bool:

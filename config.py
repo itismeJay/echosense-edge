@@ -102,9 +102,6 @@ def _source_int(source, name, default):
         raise ValueError(f"{name} must be an integer") from exc
 
 
-ACOUSTIC_ONLY_ALERT_MODES = ("on", "low_only", "off")
-
-
 @dataclass(frozen=True, slots=True)
 class DetectionRuntimeConfig:
     """Validated bounds and timing for the shared AFTER detection runtime."""
@@ -115,10 +112,10 @@ class DetectionRuntimeConfig:
     pre_trigger_seconds: float = 2.0
     # Incident close window: an incident finalizes once no qualifying evidence
     # has arrived for this long (ECHOSENSE_INCIDENT_WINDOW_SECONDS).
-    post_trigger_seconds: float = 3.0
+    post_trigger_seconds: float = 1.5
     # Only text (or time-linked strong acoustic) evidence extends an incident.
-    event_extension_seconds: float = 2.0
-    max_event_seconds: float = 8.0
+    event_extension_seconds: float = 1.5
+    max_event_seconds: float = 6.0
     # There is no global cooldown. After a text incident closes, the SAME
     # terms at the same-or-lower severity within this window are logged as a
     # duplicate of it instead of alerting again. 0 disables the guard.
@@ -149,9 +146,6 @@ class DetectionRuntimeConfig:
     strong_yamnet_score: float = 0.65
     strong_tone_ratio: float = 0.40
     strong_tone_min_seconds: float = 1.0
-    # Acoustic-only incidents: "on", "low_only", or "off".
-    acoustic_only_alerts: str = "low_only"
-    acoustic_only_medium_min_seconds: float = 3.0
 
     def __post_init__(self):
         if self.sample_rate != 16_000:
@@ -221,7 +215,6 @@ class DetectionRuntimeConfig:
             "strong_yamnet_score": (0.0, 1.0),
             "strong_tone_ratio": (0.0, 1.0),
             "strong_tone_min_seconds": (0.0, 60.0),
-            "acoustic_only_medium_min_seconds": (0.0, 60.0),
         }
         for name, (minimum, maximum) in bounded.items():
             value = float(getattr(self, name))
@@ -229,11 +222,6 @@ class DetectionRuntimeConfig:
                 raise ValueError(
                     f"{name} must be between {minimum:g} and {maximum:g}"
                 )
-        if self.acoustic_only_alerts not in ACOUSTIC_ONLY_ALERT_MODES:
-            raise ValueError(
-                "acoustic_only_alerts must be one of "
-                + ", ".join(ACOUSTIC_ONLY_ALERT_MODES)
-            )
 
     @property
     def max_stt_utterance_samples(self):
@@ -257,8 +245,13 @@ def detection_runtime_config_from_environment(environ=None):
     # ECHOSENSE_INCIDENT_WINDOW_SECONDS is the close window after an incident
     # opens; the older ECHOSENSE_POST_TRIGGER_SECONDS still wins when set.
     incident_window = _source_float(
-        source, "ECHOSENSE_INCIDENT_WINDOW_SECONDS", 3.0
+        source, "ECHOSENSE_INCIDENT_WINDOW_SECONDS", 1.5
     )
+    if source.get("ECHOSENSE_ACOUSTIC_ONLY_ALERTS") not in (None, ""):
+        print(
+            "[CONFIG] ECHOSENSE_ACOUSTIC_ONLY_ALERTS is ignored: "
+            "sound alone never sends an alert"
+        )
     return DetectionRuntimeConfig(
         pre_trigger_seconds=_source_float(
             source, "ECHOSENSE_PRE_TRIGGER_SECONDS", 2.0
@@ -267,10 +260,10 @@ def detection_runtime_config_from_environment(environ=None):
             source, "ECHOSENSE_POST_TRIGGER_SECONDS", incident_window
         ),
         event_extension_seconds=_source_float(
-            source, "ECHOSENSE_EVENT_EXTENSION_SECONDS", 2.0
+            source, "ECHOSENSE_EVENT_EXTENSION_SECONDS", 1.5
         ),
         max_event_seconds=_source_float(
-            source, "ECHOSENSE_MAX_EVENT_SECONDS", 8.0
+            source, "ECHOSENSE_MAX_EVENT_SECONDS", 6.0
         ),
         duplicate_window_seconds=_source_float(
             source, "ECHOSENSE_DUPLICATE_WINDOW_SECONDS", 10.0
@@ -317,9 +310,6 @@ def detection_runtime_config_from_environment(environ=None):
         strong_tone_ratio=_source_float(
             source, "ECHOSENSE_STRONG_TONE_RATIO", 0.40
         ),
-        acoustic_only_alerts=str(
-            source.get("ECHOSENSE_ACOUSTIC_ONLY_ALERTS", "low_only")
-        ).strip().lower(),
     )
 
 

@@ -7,6 +7,9 @@ from sender.http_client import (
     send_alert,
 )
 from config import SHOW_TRANSCRIPT_TEXT
+# Registers the en/tl Whisper engine. Kept at top level on purpose: the
+# RealtimeSTT transcription child process re-imports this module.
+import model.language_restricted_engine  # noqa: F401
 
 
 def should_ship_runtime_log(line):
