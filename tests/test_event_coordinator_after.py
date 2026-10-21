@@ -270,7 +270,10 @@ class EventCoordinatorAfterTests(unittest.TestCase):
         barrier.wait()
         for thread in threads:
             thread.join()
-        self.assertEqual(results, [EVENT_ID, EVENT_ID])
+        # Text opens exactly one incident. Sound joins it only if it arrives
+        # second; arriving first it opens nothing (None).
+        self.assertIn(EVENT_ID, results)
+        self.assertTrue(set(results) <= {EVENT_ID, None})
         self.assertEqual(coordinator.active_incident.trigger_type, "KEYWORD")
 
     def test_timing_defaults_and_overrides_are_applied(self):
