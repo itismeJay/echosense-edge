@@ -119,7 +119,10 @@ class DetectionRuntimeConfig:
     # Only text (or time-linked strong acoustic) evidence extends an incident.
     event_extension_seconds: float = 2.0
     max_event_seconds: float = 8.0
-    cooldown_seconds: float = 15.0
+    # There is no global cooldown. After a text incident closes, the SAME
+    # terms at the same-or-lower severity within this window are logged as a
+    # duplicate of it instead of alerting again. 0 disables the guard.
+    duplicate_window_seconds: float = 10.0
     audio_queue_frames: int = 64
     stt_result_queue_size: int = 32
     stt_internal_audio_chunks: int = 128
@@ -135,6 +138,9 @@ class DetectionRuntimeConfig:
     noise_floor_window_seconds: float = 60.0
     noise_floor_percentile: float = 60.0
     tone_floor_multiplier: float = 2.5
+    # Absolute loudness floor for "aggressive tone" (int16 RMS). In a quiet
+    # room floor*multiplier is low enough that normal speech would cross it.
+    tone_min_absolute_rms: float = 400.0
     calibration_seconds: float = 15.0
     noise_floor_log_interval_seconds: float = 30.0
     # Text/acoustic fusion. Only acoustic windows within this many seconds of
@@ -158,7 +164,7 @@ class DetectionRuntimeConfig:
             "pre_trigger_seconds",
             "post_trigger_seconds",
             "event_extension_seconds",
-            "cooldown_seconds",
+            "duplicate_window_seconds",
         ):
             value = getattr(self, name)
             if not math.isfinite(float(value)):
@@ -208,6 +214,7 @@ class DetectionRuntimeConfig:
             "noise_floor_window_seconds": (1.0, 3_600.0),
             "noise_floor_percentile": (50.0, 70.0),
             "tone_floor_multiplier": (1.0, 20.0),
+            "tone_min_absolute_rms": (0.0, 32_768.0),
             "calibration_seconds": (0.0, 300.0),
             "noise_floor_log_interval_seconds": (1.0, 3_600.0),
             "corroboration_window_seconds": (0.0, 30.0),
@@ -265,8 +272,8 @@ def detection_runtime_config_from_environment(environ=None):
         max_event_seconds=_source_float(
             source, "ECHOSENSE_MAX_EVENT_SECONDS", 8.0
         ),
-        cooldown_seconds=_source_float(
-            source, "ECHOSENSE_EVENT_COOLDOWN_SECONDS", 15.0
+        duplicate_window_seconds=_source_float(
+            source, "ECHOSENSE_DUPLICATE_WINDOW_SECONDS", 10.0
         ),
         audio_queue_frames=_source_int(
             source, "ECHOSENSE_AUDIO_QUEUE_FRAMES", 64
@@ -297,6 +304,9 @@ def detection_runtime_config_from_environment(environ=None):
         ),
         tone_floor_multiplier=_source_float(
             source, "ECHOSENSE_TONE_FLOOR_MULTIPLIER", 2.5
+        ),
+        tone_min_absolute_rms=_source_float(
+            source, "ECHOSENSE_TONE_MIN_ABSOLUTE_RMS", 400.0
         ),
         calibration_seconds=_source_float(
             source, "ECHOSENSE_CALIBRATION_SECONDS", 15.0
@@ -399,7 +409,7 @@ PRE_TRIGGER_SECONDS = DETECTION_RUNTIME.pre_trigger_seconds
 POST_TRIGGER_SECONDS = DETECTION_RUNTIME.post_trigger_seconds
 EVENT_EXTENSION_SECONDS = DETECTION_RUNTIME.event_extension_seconds
 MAX_EVENT_SECONDS = DETECTION_RUNTIME.max_event_seconds
-EVENT_COOLDOWN_SECONDS = DETECTION_RUNTIME.cooldown_seconds
+DUPLICATE_WINDOW_SECONDS = DETECTION_RUNTIME.duplicate_window_seconds
 
 # One application-owned microphone. The preference can be replaced by name or
 # disabled with an empty value. Strict mode refuses unrelated fallback devices.

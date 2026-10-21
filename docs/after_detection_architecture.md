@@ -48,7 +48,7 @@ characters. Acoustic-only incidents use schema-v2's established neutral state:
 `transcription_status="unavailable"` with no fabricated `transcribed_text`.
 
 Initial timing values are 2 seconds pre-trigger, 5 seconds post-trigger,
-3 seconds extension, 15 seconds hard maximum, and 15 seconds cooldown. These
+3 seconds extension, 15 seconds hard maximum, and no cooldown (only a 10 second same-terms duplicate guard). These
 are configurable development starting values, not scientifically validated
 classroom thresholds.
 

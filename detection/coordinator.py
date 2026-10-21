@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
 import queue
 import threading
@@ -20,7 +20,7 @@ from detection.fusion import (
     linked_acoustic,
     strong_acoustic,
 )
-from detection.severity import contains_urgent_directive
+from detection.severity import SEVERITY_ORDER, contains_urgent_directive
 
 
 @dataclass(slots=True)
@@ -41,11 +41,22 @@ class ActiveIncident:
 
 
 @dataclass(frozen=True, slots=True)
+class ClosedTextIncident:
+    event_id: str
+    closed_monotonic: float
+    terms: frozenset
+    severity: str
+    duplicates: list = field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
 class CoordinatorSubmission:
     event_id: str | None
     opened: bool = False
     joined: bool = False
-    cooldown_suppressed: bool = False
+    # Event id of the closed incident this text was logged against as a
+    # duplicate (same terms, same-or-lower severity, inside the window).
+    duplicate_of: str | None = None
     finalized: tuple[FinalizedIncident, ...] = ()
 
 
@@ -70,13 +81,14 @@ class EventCoordinator:
         self._event_id_factory = event_id_factory
         self._lock = threading.RLock()
         self._active = None
-        self._last_finalized_monotonic = None
-        self._last_finalized_had_text = False
+        # Most recently closed incident that carried text evidence. Only the
+        # duplicate guard reads it; nothing is ever cooldown-suppressed.
+        self._last_text_incident = None
         # Recent acoustic windows, so a transcript that arrives after Whisper
         # finishes can still be linked to the sound of the moment it was said.
         self._recent_acoustic = deque(maxlen=self.config.evidence_history_size)
         self._finalized_count = 0
-        self._cooldown_suppressed_count = 0
+        self._duplicate_count = 0
         self._closed = False
 
     @property
@@ -90,21 +102,50 @@ class EventCoordinator:
             return self._finalized_count
 
     @property
-    def cooldown_suppressed_count(self):
+    def duplicate_count(self):
         with self._lock:
-            return self._cooldown_suppressed_count
+            return self._duplicate_count
 
-    def _in_cooldown(self, evidence_time, trigger_type):
-        if self._last_finalized_monotonic is None:
-            return False
-        if trigger_type == "KEYWORD" and not self._last_finalized_had_text:
-            # An acoustic-only incident must not silence the transcript of
-            # the same moment, which arrives later because of STT latency.
-            return False
-        return (
-            evidence_time - self._last_finalized_monotonic
-            < self.config.cooldown_seconds
-        )
+    @property
+    def last_text_incident(self):
+        with self._lock:
+            return self._last_text_incident
+
+    def _duplicate_of(self, evidence, evidence_time):
+        """Return the closed text incident this text merely repeats, if any.
+
+        Duplicate only when every term was already in that incident, the
+        severity is not higher, and it is inside the duplicate window.
+        Acoustic evidence and acoustic-only incidents never take part.
+        """
+
+        window = self.config.duplicate_window_seconds
+        last = self._last_text_incident
+        if window <= 0 or last is None or not isinstance(evidence, TextEvidence):
+            return None
+        terms = frozenset(evidence.detected_terms)
+        if not terms or not terms <= last.terms:
+            return None
+        if evidence_time - last.closed_monotonic >= window:
+            return None
+        # Judge severity as this text would be fused on its own, so a repeat
+        # that is now shouted (acoustically promoted) is a new incident. The
+        # repetition promotion is ignored: repeating the incident's own terms
+        # is exactly what the duplicate guard absorbs.
+        candidate = replace(evidence, repeated=False)
+        severity = fuse_event_evidence(
+            (candidate,),
+            tuple(linked_acoustic(
+                (candidate,),
+                tuple(self._recent_acoustic),
+                self.config.corroboration_window_seconds,
+            )),
+            duration_seconds=0.0,
+            config=self.config,
+        ).level
+        if SEVERITY_ORDER[severity] > SEVERITY_ORDER[last.severity]:
+            return None
+        return last
 
     def _new_active(self, trigger_type, wall_time, mono_time):
         event_id = self._event_id_factory()
@@ -198,17 +239,28 @@ class EventCoordinator:
             active = self._active
             qualifying = evidence.qualifies_to_open
             if active is None:
+                duplicate_of = (
+                    self._duplicate_of(evidence, evidence_time)
+                    if qualifying
+                    else None
+                )
                 if not qualifying:
                     result = CoordinatorSubmission(None, finalized=tuple(dispatch))
-                elif self._in_cooldown(evidence_time, trigger_type):
-                    self._cooldown_suppressed_count += 1
+                elif duplicate_of is not None:
+                    self._duplicate_count += 1
+                    age = evidence_time - duplicate_of.closed_monotonic
+                    if len(duplicate_of.duplicates) < self.config.evidence_history_size:
+                        duplicate_of.duplicates.append(evidence)
                     print(
-                        f"[INCIDENT] cooldown_suppressed=true "
-                        f"trigger={trigger_type} count={self._cooldown_suppressed_count}"
+                        f"[INCIDENT] duplicate_of={duplicate_of.event_id} "
+                        f"terms={','.join(sorted(evidence.detected_terms))} "
+                        f"severity={evidence.baseline_severity} "
+                        f"seconds_after_close={age:.1f} "
+                        f"duplicates={len(duplicate_of.duplicates)} alert=false"
                     )
                     result = CoordinatorSubmission(
                         None,
-                        cooldown_suppressed=True,
+                        duplicate_of=duplicate_of.event_id,
                         finalized=tuple(dispatch),
                     )
                 else:
@@ -369,8 +421,7 @@ class EventCoordinator:
         )
         if not fusion.deliver:
             # Policy-suppressed (e.g. ECHOSENSE_ACOUSTIC_ONLY_ALERTS=off). No
-            # alert is sent and no cooldown starts, so a late transcript can
-            # still open its own incident.
+            # alert is sent and nothing is recorded for the duplicate guard.
             active.audio_context.clear()
             self._active = None
             print(
@@ -405,8 +456,17 @@ class EventCoordinator:
             waveform_snapshot=waveform,
         )
         self._active = None
-        self._last_finalized_monotonic = final_monotonic
-        self._last_finalized_had_text = bool(finalized.text_evidence)
+        if finalized.text_evidence:
+            self._last_text_incident = ClosedTextIncident(
+                event_id=finalized.event_id,
+                closed_monotonic=final_monotonic,
+                terms=frozenset(
+                    term
+                    for item in finalized.text_evidence
+                    for term in item.detected_terms
+                ),
+                severity=finalized.severity,
+            )
         self._finalized_count += 1
         print(
             f"[INCIDENT] finalized event={finalized.event_id} "

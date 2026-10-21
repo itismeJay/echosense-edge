@@ -18,6 +18,7 @@ from detection.acoustic_detector import (
     NoiseFloorTracker,
 )
 from detection.coordinator import CoordinatorAudioWorker, EventCoordinator
+from detection.latency import LATENCY
 from detection.text_detector import TextDetector, TextDetectorWorker
 from model.monitored_terms import start_dictionary_sync
 from model.whisper_stt import (
@@ -56,6 +57,7 @@ class EdgeRuntime:
     def _finalize(self, incident):
         queued = enqueue_finalized_incident(incident)
         if queued:
+            LATENCY.mark_incident(incident.event_id, "incident_enqueued")
             self.led.alert()
         return queued
 

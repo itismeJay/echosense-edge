@@ -122,7 +122,7 @@ class TimeLinkedCorroborationTests(unittest.TestCase):
         harness.finish(5.5)
         self.assertEqual(harness.finalized[0].severity, LOW)
         # STT latency: the transcript of the shout arrives after that
-        # acoustic-only incident closed. It is not cooldown-suppressed and
+        # acoustic-only incident closed. It is never suppressed and
         # still links to the shout that happened while it was spoken.
         result = harness.text(text("bobo ka", 6.0, spoken_seconds=5.0))
         self.assertTrue(result.opened)
@@ -149,13 +149,17 @@ class AcousticOnlyPolicyTests(unittest.TestCase):
         for window in windows(0.5, 6.0):
             harness.acoustic(window)
         finalized = harness.finish(30)
-        self.assertEqual([item.severity for item in finalized], [LOW])
-        self.assertIn(
-            "acoustic_only_policy:low_only",
-            finalized[0].severity_reasons,
-        )
+        # No cooldown: sustained noise closes one incident and opens the
+        # next, but every one stays LOW.
+        self.assertGreaterEqual(len(finalized), 1)
+        self.assertEqual({item.severity for item in finalized}, {LOW})
+        for item in finalized:
+            self.assertIn(
+                "acoustic_only_policy:low_only",
+                item.severity_reasons,
+            )
 
-    def test_acoustic_only_off_sends_nothing_and_starts_no_cooldown(self):
+    def test_acoustic_only_off_sends_nothing_and_blocks_nothing(self):
         harness = CoordinatorHarness(
             DetectionRuntimeConfig(acoustic_only_alerts="off"),
         )
@@ -221,7 +225,7 @@ class NoiseFloorTests(unittest.TestCase):
             at += 0.5
         quiet_floor = tracker.floor
         quiet_threshold = tracker.threshold
-        shout = self.bursty(500)
+        shout = self.bursty(1_200)  # RMS ~850, above the 400 absolute floor
         self.assertTrue(self.feed(detector, shout, at).tone_aggressive)
         for index in range(120):  # the room gets loud for a minute
             at += 0.5
@@ -379,7 +383,9 @@ class WhisperFrontEndTests(unittest.TestCase):
             calls.append((y.size, y_noise.size, sr, stationary))
             return y * 0.5
 
-        reducer = NoiseReducer(reduce_function=reduce_noise, block_samples=1_000)
+        reducer = NoiseReducer(
+            reduce_function=reduce_noise, block_samples=1_000, profile_blocks=4,
+        )
         out = []
         for _ in range(6):
             out.extend(reducer.process(np.full(1_000, 0.2, dtype=np.float32)))

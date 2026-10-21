@@ -19,7 +19,9 @@ class AfterConfigurationTests(unittest.TestCase):
         self.assertEqual(values.post_trigger_seconds, 3.0)
         self.assertEqual(values.event_extension_seconds, 2.0)
         self.assertEqual(values.max_event_seconds, 8.0)
-        self.assertEqual(values.cooldown_seconds, 15.0)
+        self.assertEqual(values.duplicate_window_seconds, 10.0)
+        self.assertEqual(values.tone_min_absolute_rms, 400.0)
+        self.assertFalse(hasattr(values, "cooldown_seconds"))
         self.assertEqual(values.max_stt_utterance_seconds, 15.0)
         self.assertEqual(values.max_stt_utterance_samples, 240_000)
         self.assertEqual(values.max_stt_result_queue_pcm_bytes, 30_720_000)
@@ -30,12 +32,12 @@ class AfterConfigurationTests(unittest.TestCase):
             "ECHOSENSE_POST_TRIGGER_SECONDS": "4",
             "ECHOSENSE_EVENT_EXTENSION_SECONDS": "2",
             "ECHOSENSE_MAX_EVENT_SECONDS": "9",
-            "ECHOSENSE_EVENT_COOLDOWN_SECONDS": "12",
+            "ECHOSENSE_DUPLICATE_WINDOW_SECONDS": "12",
             "ECHOSENSE_MAX_STT_UTTERANCE_SECONDS": "10",
         })
         self.assertEqual(values.pre_trigger_seconds, 1.5)
         self.assertEqual(values.max_event_seconds, 9.0)
-        self.assertEqual(values.cooldown_seconds, 12.0)
+        self.assertEqual(values.duplicate_window_seconds, 12.0)
         self.assertEqual(values.max_stt_utterance_seconds, 10.0)
         with self.assertRaises(ValueError):
             detection_runtime_config_from_environment({
@@ -60,7 +62,7 @@ class AfterConfigurationTests(unittest.TestCase):
             "post_trigger_seconds",
             "event_extension_seconds",
             "max_event_seconds",
-            "cooldown_seconds",
+            "duplicate_window_seconds",
         ):
             with self.subTest(name=name):
                 with self.assertRaises(ValueError):

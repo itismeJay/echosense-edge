@@ -8,6 +8,7 @@ import threading
 import time
 
 from detection.evidence import MatchedTermEvidence, TextEvidence
+from detection.latency import LATENCY
 from detection.severity import HIGH, calculate_severity, has_direct_target_evidence
 from detection.transcript_quality import assess_transcript_quality
 from model.blacklist import check_transcript
@@ -220,6 +221,17 @@ class TextDetector:
         return evidence
 
 
+def _record_latency(utterance_id, submission):
+    if not utterance_id:
+        return
+    if submission is not None and (submission.opened or submission.joined):
+        LATENCY.link_incident(submission.event_id, utterance_id)
+    elif submission is not None and submission.duplicate_of:
+        LATENCY.finish(utterance_id, f"duplicate_of:{submission.duplicate_of}")
+    else:
+        LATENCY.finish(utterance_id, "no_incident")
+
+
 class TextDetectorWorker:
     """Consume the bounded STT FIFO and submit evidence off the main thread."""
 
@@ -249,7 +261,8 @@ class TextDetectorWorker:
                 if result is None:
                     continue
                 evidence = self.detector.analyze_stt_result(result)
-                self.evidence_consumer(evidence)
+                submission = self.evidence_consumer(evidence)
+                _record_latency(result.get("event_id"), submission)
         except Exception as exc:
             self.error = exc
             self._stop_event.set()

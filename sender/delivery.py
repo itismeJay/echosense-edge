@@ -28,6 +28,7 @@ from config import (
     OUTBOX_REQUEST_TIMEOUT_SECONDS,
     OUTBOX_STALE_SENDING_SECONDS,
 )
+from detection.latency import LATENCY
 from sender.http_client import (
     AUTHENTICATION as HTTP_AUTHENTICATION,
     DELIVERED as HTTP_DELIVERED,
@@ -235,6 +236,7 @@ class OutboxDeliveryWorker:
                 f"[OUTBOX] delivered event={record.event_id} "
                 f"http={result.http_status}{duplicate}"
             )
+            LATENCY.mark_incident(record.event_id, "delivered")
             return
 
         if result.disposition == HTTP_PERMANENT:

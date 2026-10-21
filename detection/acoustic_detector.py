@@ -12,7 +12,7 @@ import numpy as np
 
 from audio.shared_source import AudioFrame, BoundedFrameQueue, CANONICAL_SAMPLE_RATE
 from detection.evidence import AcousticEvidence
-from detection.thresholds import TONE_RMS_THRESHOLD, YAMNET_THRESHOLD
+from detection.thresholds import TONE_MIN_ABSOLUTE_RMS, YAMNET_THRESHOLD
 from model.tone_analyzer import analyze_tone_float32
 from model.yamnet_infer import is_aggressive_sound, run_yamnet_float32
 
@@ -23,7 +23,9 @@ class NoiseFloorTracker:
     The floor is a mid percentile of recent window RMS values, so brief shouts
     barely move it while a room that stays louder raises it. A window counts as
     "aggressive tone" only when its RMS reaches the adaptive threshold
-    ``max(minimum_threshold, floor * multiplier)``. Until the startup
+    ``max(minimum_threshold, floor * multiplier)`` (and passes the existing
+    variance/ZCR checks). ``minimum_threshold`` is an absolute RMS floor so
+    normal speech in a quiet room never counts as aggressive. Until the startup
     calibration period has elapsed no window can be tone-aggressive.
     """
 
@@ -33,7 +35,7 @@ class NoiseFloorTracker:
         window_seconds=60.0,
         percentile=60.0,
         multiplier=2.5,
-        minimum_threshold=TONE_RMS_THRESHOLD,
+        minimum_threshold=TONE_MIN_ABSOLUTE_RMS,
         calibration_seconds=15.0,
         log_interval_seconds=30.0,
     ):
@@ -53,6 +55,7 @@ class NoiseFloorTracker:
             window_seconds=config.noise_floor_window_seconds,
             percentile=config.noise_floor_percentile,
             multiplier=config.tone_floor_multiplier,
+            minimum_threshold=config.tone_min_absolute_rms,
             calibration_seconds=config.calibration_seconds,
             log_interval_seconds=config.noise_floor_log_interval_seconds,
         )
@@ -90,8 +93,11 @@ class NoiseFloorTracker:
             or monotonic_end - self._last_log_at >= self.log_interval_seconds
         ):
             self._last_log_at = float(monotonic_end)
+            floor = self.floor
             print(
-                f"[NOISE_FLOOR] floor_rms={self.floor:.1f} "
+                f"[NOISE_FLOOR] floor_rms={floor:.1f} "
+                f"floor_x{self.multiplier:g}={floor * self.multiplier:.1f} "
+                f"absolute_min_rms={self.minimum_threshold:.1f} "
                 f"tone_threshold_rms={self.threshold:.1f} "
                 f"windows={len(self._observations)} "
                 f"calibrated={str(self.is_calibrated(monotonic_end)).lower()}"
@@ -237,7 +243,9 @@ class AcousticDetector:
         print(
             f"[ACOUSTIC_EVIDENCE] count={self.evidence_count} "
             f"qualifies={str(qualifies).lower()} yamnet_ran={str(yamnet_ran).lower()} "
-            f"tone_aggressive={str(tone_aggressive).lower()}"
+            f"tone_aggressive={str(tone_aggressive).lower()} "
+            f"rms={tone['rms']:.1f} floor_rms={self.noise_floor.floor:.1f} "
+            f"tone_threshold_rms={tone_threshold:.1f}"
         )
         return evidence
 

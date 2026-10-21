@@ -170,7 +170,7 @@ class EventCoordinatorAfterTests(unittest.TestCase):
         self.assertEqual(len(coordinator.active_incident.text_evidence), 2)
         self.assertEqual(coordinator.active_incident.evidence_overflow_count, 1)
 
-    def test_cooldown_suppresses_then_allows_new_event(self):
+    def test_no_cooldown_same_terms_duplicate_then_new_event_after_window(self):
         ids = iter((EVENT_ID, "22222222-2222-4222-8222-222222222222"))
         clock = FakeClock()
         finalized = []
@@ -181,8 +181,10 @@ class EventCoordinatorAfterTests(unittest.TestCase):
         )
         coordinator.submit_text(text_evidence(0))
         self.finish(coordinator, clock, 5)
-        suppressed = coordinator.submit_text(text_evidence(10))
-        self.assertTrue(suppressed.cooldown_suppressed)
+        # Closed at 3.0: same term 7 s later is a duplicate, 17 s later is new.
+        duplicate = coordinator.submit_text(text_evidence(10))
+        self.assertEqual(duplicate.duplicate_of, EVENT_ID)
+        self.assertFalse(duplicate.opened)
         clock.value = 20
         opened = coordinator.submit_text(text_evidence(20))
         self.assertTrue(opened.opened)
@@ -277,13 +279,13 @@ class EventCoordinatorAfterTests(unittest.TestCase):
             post_trigger_seconds=2.0,
             event_extension_seconds=1.0,
             max_event_seconds=4.0,
-            cooldown_seconds=7.0,
+            duplicate_window_seconds=7.0,
         )
         custom, _clock, _finalized = self.make(config=custom_config)
         custom.submit_text(text_evidence(0))
         self.assertEqual(custom.active_incident.close_deadline, 2.0)
         self.assertEqual(custom.active_incident.hard_deadline, 4.0)
-        self.assertEqual(custom.config.cooldown_seconds, 7.0)
+        self.assertEqual(custom.config.duplicate_window_seconds, 7.0)
 
 
 if __name__ == "__main__":

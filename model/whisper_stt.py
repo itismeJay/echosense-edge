@@ -3,12 +3,14 @@ import json
 import math
 import queue
 import threading
+import time
 import unicodedata
 
 import numpy as np
 
 from audio.audio_event import float32_samples_to_int16
 from config import DETECTION_RUNTIME, SHOW_TRANSCRIPT_TEXT
+from detection.latency import LATENCY
 from detection.severity import LOW
 from detection.transcript_quality import assess_transcript_quality
 from model.blacklist import check_transcript
@@ -79,6 +81,7 @@ class RealtimeSTTRecordingLimiter:
             timer.start()
 
     def on_recording_stop(self):
+        LATENCY.speech_end()
         with self._lock:
             timer = self._timer
             self._timer = None
@@ -138,9 +141,12 @@ class NoiseReducer:
         self,
         *,
         sample_rate=16000,
-        block_samples=8000,
-        history_blocks=20,
-        profile_blocks=4,
+        # 0.25 s blocks: every block is held this long before RealtimeSTT's
+        # VAD sees it, so it adds directly to speech-end latency. Profile and
+        # history keep the same 2 s / 20 s of audio as the old 0.5 s blocks.
+        block_samples=4000,
+        history_blocks=40,
+        profile_blocks=8,
         prop_decrease=0.75,
         reduce_function=None,
         enabled=True,
@@ -163,6 +169,10 @@ class NoiseReducer:
                     f"{type(exc).__name__} passthrough=true"
                 )
         self.enabled = bool(enabled and self._reduce is not None)
+        self.hold_ms = (
+            self.block_samples / self.sample_rate * 1000 if self.enabled else 0.0
+        )
+        self.compute_ms = 0.0
 
     def process(self, samples):
         """Accept float32 samples; return zero or more processed blocks.
@@ -191,6 +201,7 @@ class NoiseReducer:
         noise = np.concatenate(
             [item[1] for item in quietest[:self.profile_blocks]]
         )
+        started = time.perf_counter()
         try:
             reduced = self._reduce(
                 y=block,
@@ -202,6 +213,15 @@ class NoiseReducer:
         except Exception as exc:
             print(f"[STT_NOISE] reduce_failed={type(exc).__name__}")
             return block
+        elapsed_ms = (time.perf_counter() - started) * 1000
+        # Smoothed per-block compute time, reported on [LATENCY] lines.
+        self.compute_ms = (
+            elapsed_ms if self.compute_ms == 0.0
+            else 0.8 * self.compute_ms + 0.2 * elapsed_ms
+        )
+        LATENCY.set_noise_reduction(
+            hold_ms=self.hold_ms, compute_ms=self.compute_ms,
+        )
         return np.clip(np.asarray(reduced, dtype=np.float32), -1.0, 1.0)
 
 
@@ -377,6 +397,8 @@ def _on_text(
         )
 
     _result_queue.put(result)
+    if audio_event is not None:
+        LATENCY.mark(audio_event.event_id, "transcript_emitted")
 
 
 def _run_transcription_cycle(recorder, audio_event_adapter):
@@ -389,6 +411,8 @@ def _run_transcription_cycle(recorder, audio_event_adapter):
         raise
 
     audio_event = audio_event_adapter.consume_pending()
+    utterance_id = audio_event.event_id if audio_event is not None else None
+    LATENCY.begin(utterance_id)
     detected_language = getattr(recorder, "detected_language", None)
     detected_language_probability = getattr(
         recorder,
@@ -406,6 +430,9 @@ def _run_transcription_cycle(recorder, audio_event_adapter):
         )
         if not text:
             print("[LANGUAGE_GUARD] rejected=true")
+        LATENCY.mark(utterance_id, "whisper_done", language_retry="true")
+    else:
+        LATENCY.mark(utterance_id, "whisper_done")
 
     return (
         text,
