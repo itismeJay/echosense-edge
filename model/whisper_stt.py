@@ -9,7 +9,7 @@ import unicodedata
 import numpy as np
 
 from audio.audio_event import float32_samples_to_int16
-from config import DETECTION_RUNTIME, SHOW_TRANSCRIPT_TEXT
+from config import DETECTION_RUNTIME, SHOW_TRANSCRIPT_TEXT, WHISPER_MODEL
 from detection.latency import LATENCY
 from detection.false_alarm_filters import (
     DecodeMetrics,
@@ -560,7 +560,7 @@ def _recorder_loop():
     try:
         from RealtimeSTT import AudioToTextRecorder
 
-        print("[STT] Loading RealtimeSTT with Whisper base...")
+        print(f"[STT] Loading RealtimeSTT with Whisper {WHISPER_MODEL}...")
         print("[STT] initial_prompt=none (dictionary used for matching only)")
         _recording_limiter = RealtimeSTTRecordingLimiter(
             DETECTION_RUNTIME.max_stt_utterance_seconds
@@ -568,7 +568,7 @@ def _recorder_loop():
         register_restricted_engine()
         recorder_options = dict(
             # --- Final (accurate) transcription model -----------------------
-            model="base",
+            model=WHISPER_MODEL,
             device="cpu",
             compute_type="int8",
             beam_size=1,

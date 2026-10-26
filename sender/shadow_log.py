@@ -1,6 +1,6 @@
 """Shadow logging for post-deployment tuning.
 
-Appends one JSON line per event to logs/shadow_log.jsonl:
+Appends one JSON line per event to <ECHOSENSE_LOG_DIR>/shadow_log.jsonl:
   - type "alert"     — an alert that fired (delivery state is recorded separately)
   - type "near_miss" — profanity heard and 3+ stages passed, but no alert
 
@@ -11,7 +11,7 @@ import json
 import os
 from datetime import datetime
 
-_LOG_PATH = "/home/echosense/echosense-edge/logs/shadow_log.jsonl"
+from config import SHADOW_LOG_PATH as _LOG_PATH
 
 
 def _write(record: dict) -> None:

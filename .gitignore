@@ -25,3 +25,8 @@ seeed-voicecard/
 
 # RealtimeSTT runtime log
 realtimesst.log
+
+# Machine-specific settings (device key) and local virtualenv
+edge.env
+venv/
+logs/

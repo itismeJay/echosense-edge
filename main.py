@@ -1,3 +1,4 @@
+import getpass
 import subprocess
 import signal
 import time
@@ -6,7 +7,12 @@ import threading
 from sender.http_client import (
     send_alert,
 )
-from config import SHOW_TRANSCRIPT_TEXT
+from config import (
+    DEVICE_HOSTNAME,
+    NETWORK_INTERFACE,
+    PLATFORM,
+    SHOW_TRANSCRIPT_TEXT,
+)
 # Registers the en/tl Whisper engine. Kept at top level on purpose: the
 # RealtimeSTT transcription child process re-imports this module.
 import model.language_restricted_engine  # noqa: F401
@@ -18,26 +24,29 @@ def should_ship_runtime_log(line):
     return not str(line or "").startswith("[TRANSCRIPT]")
 
 
+def _run(args):
+    return subprocess.run(args, capture_output=True, text=True).stdout.strip()
+
+
 def get_ip():
-    """Current global IPv4 on wlan0. On a phone hotspot the Pi gets its address
-    by DHCP from the phone, so this is the address the MacBook must SSH to when
-    raspberrypi.local fails (hotspots often block mDNS). Falls back to the first
-    non-IPv6 token from `hostname -I`."""
+    """Current IPv4 on NETWORK_INTERFACE (wlan0 on the Pi, en0 on a Mac). On a
+    phone hotspot the Pi gets its address by DHCP from the phone, so this is
+    the address the MacBook must SSH to when mDNS fails (hotspots often block
+    it). Falls back to the first IPv4 token from `hostname -I` on Linux."""
+    if PLATFORM == "macos":
+        try:
+            return _run(['ipconfig', 'getifaddr', NETWORK_INTERFACE]) or "unknown"
+        except Exception:
+            return "unknown"
     try:
-        out = subprocess.run(
-            ['ip', '-4', '-o', 'addr', 'show', 'wlan0'],
-            capture_output=True, text=True
-        ).stdout
+        out = _run(['ip', '-4', '-o', 'addr', 'show', NETWORK_INTERFACE])
         for part in out.split():
             if '/' in part and part.count('.') == 3:   # e.g. 10.151.131.42/24
                 return part.split('/')[0]
     except Exception:
         pass
     try:
-        ips = subprocess.run(
-            ['hostname', '-I'], capture_output=True, text=True
-        ).stdout.strip().split()
-        for ip in ips:
+        for ip in _run(['hostname', '-I']).split():
             if ip.count('.') == 3:                      # skip IPv6 tokens
                 return ip
     except Exception:
@@ -47,19 +56,21 @@ def get_ip():
 
 def get_mac():
     try:
-        with open('/sys/class/net/wlan0/address') as f:
+        if PLATFORM == "macos":
+            out = _run(['ifconfig', NETWORK_INTERFACE])
+            return out.split('ether ', 1)[1].split()[0] if 'ether ' in out else "unknown"
+        with open(f'/sys/class/net/{NETWORK_INTERFACE}/address') as f:
             return f.read().strip()
     except Exception:
         return "unknown"
 
 
 def get_ssid():
+    # macOS hides the SSID from command-line tools without location access.
+    if PLATFORM == "macos":
+        return "unknown"
     try:
-        result = subprocess.run(
-            ['iwgetid', '-r'],
-            capture_output=True, text=True
-        )
-        return result.stdout.strip() or "unknown"
+        return _run(['iwgetid', '-r']) or "unknown"
     except Exception:
         return "unknown"
 
@@ -72,10 +83,10 @@ def print_network_banner(prefix="[NETWORK]"):
     ssid = get_ssid()
     print("=" * 50)
     print(f"{prefix} WiFi SSID : {ssid}")
-    print(f"{prefix} Pi IP     : {ip}")
-    print(f"{prefix} Pi MAC    : {get_mac()}   <- find this in the phone's hotspot device list")
-    print(f"{prefix} SSH (IP)  : ssh echosense@{ip}")
-    print(f"{prefix} SSH (mDNS): ssh echosense@raspberrypi.local")
+    print(f"{prefix} Device IP : {ip}")
+    print(f"{prefix} Device MAC: {get_mac()}   <- find this in the phone's hotspot device list")
+    print(f"{prefix} SSH (IP)  : ssh {getpass.getuser()}@{ip}")
+    print(f"{prefix} SSH (mDNS): ssh {getpass.getuser()}@{DEVICE_HOSTNAME}.local")
     print("=" * 50)
 
 
@@ -190,7 +201,7 @@ def main():
             "ip": get_ip(),
             "ssid": get_ssid(),
             "mac": get_mac(),
-            "hostname": "raspberrypi",
+            "hostname": DEVICE_HOSTNAME,
         },
     )
     print_network_banner()

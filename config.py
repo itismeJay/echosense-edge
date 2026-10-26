@@ -4,6 +4,109 @@ import os
 from dataclasses import dataclass
 import math
 from pathlib import Path
+import sys
+
+
+_PROJECT_ROOT = Path(__file__).resolve().parent
+
+
+def parse_env_file(text):
+    """Parse KEY=value lines (optionally prefixed with ``export``)."""
+
+    values = {}
+    for raw_line in str(text or "").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export "):].lstrip()
+        key, separator, value = line.partition("=")
+        key = key.strip()
+        if not separator or not key.isidentifier():
+            continue
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        values[key] = value
+    return values
+
+
+def load_edge_env(path=None, environ=None):
+    """Load edge.env into the environment without overriding set variables.
+
+    The same commit runs on the Mac and the Pi; only edge.env differs.
+    ECHOSENSE_ENV_FILE picks another file, and an empty value disables it.
+    Variables already exported (systemd, the demo scripts) always win.
+    """
+
+    target = os.environ if environ is None else environ
+    if path is None:
+        path = target.get("ECHOSENSE_ENV_FILE", "edge.env")
+    if not str(path).strip():
+        return {}
+    env_path = Path(path).expanduser()
+    if not env_path.is_absolute():
+        env_path = _PROJECT_ROOT / env_path
+    try:
+        values = parse_env_file(env_path.read_text(encoding="utf-8"))
+    except OSError:
+        return {}
+    for key, value in values.items():
+        target.setdefault(key, value)
+    return values
+
+
+load_edge_env()
+
+
+def detect_platform(environ=None):
+    """Return "macos", "raspberrypi" or "linux" (ECHOSENSE_PLATFORM overrides)."""
+
+    source = os.environ if environ is None else environ
+    override = str(source.get("ECHOSENSE_PLATFORM") or "").strip().lower()
+    if override:
+        return override
+    if sys.platform == "darwin":
+        return "macos"
+    try:
+        model = Path("/proc/device-tree/model").read_bytes()
+    except OSError:
+        model = b""
+    if b"Raspberry Pi" in model:
+        return "raspberrypi"
+    return "linux"
+
+
+PLATFORM = detect_platform()
+
+
+def project_path(value):
+    """Resolve a configured path; relative paths are under the repo root."""
+
+    path = Path(str(value)).expanduser()
+    if not path.is_absolute():
+        path = _PROJECT_ROOT / path
+    return path.resolve()
+
+
+def _default_hostname():
+    import socket
+
+    return socket.gethostname().split(".")[0] or "unknown"
+
+
+# Network identity reported in the log banner and heartbeat.
+NETWORK_INTERFACE = str(
+    os.environ.get("ECHOSENSE_NETWORK_INTERFACE")
+    or ("en0" if PLATFORM == "macos" else "wlan0")
+).strip()
+DEVICE_HOSTNAME = str(
+    os.environ.get("ECHOSENSE_HOSTNAME") or _default_hostname()
+).strip()
+
+DATA_DIR = project_path(os.environ.get("ECHOSENSE_DATA_DIR") or "data")
+LOG_DIR = project_path(os.environ.get("ECHOSENSE_LOG_DIR") or "logs")
+SHADOW_LOG_PATH = str(LOG_DIR / "shadow_log.jsonl")
 
 
 _TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
@@ -313,23 +416,16 @@ def detection_runtime_config_from_environment(environ=None):
     )
 
 
-_PROJECT_ROOT = Path(__file__).resolve().parent
-_configured_outbox_path = Path(
-    os.environ.get(
-        "ECHOSENSE_OUTBOX_DATABASE_PATH",
-        "data/alert_outbox.sqlite3",
-    )
-).expanduser()
-if not _configured_outbox_path.is_absolute():
-    _configured_outbox_path = _PROJECT_ROOT / _configured_outbox_path
-
 # Persistent offline alert outbox. Remote synchronization still requires
 # connectivity; these settings control resilient local retry behavior.
 OUTBOX_ENABLED = parse_boolean(
     os.environ.get("ECHOSENSE_OUTBOX_ENABLED"),
     default=True,
 )
-OUTBOX_DATABASE_PATH = str(_configured_outbox_path.resolve())
+OUTBOX_DATABASE_PATH = str(project_path(
+    os.environ.get("ECHOSENSE_OUTBOX_DATABASE_PATH")
+    or DATA_DIR / "alert_outbox.sqlite3"
+))
 OUTBOX_POLL_INTERVAL_SECONDS = _environment_float(
     "ECHOSENSE_OUTBOX_POLL_INTERVAL_SECONDS",
     1.0,
@@ -413,31 +509,29 @@ MICROPHONE_STRICT = parse_boolean(
 
 # Repository-relative by default, with explicit environment overrides for Pi
 # deployment. Model binaries remain ignored and are never downloaded at runtime.
-_configured_yamnet_path = Path(
-    os.environ.get("ECHOSENSE_YAMNET_MODEL_PATH", "yamnet.tflite")
-).expanduser()
-_configured_yamnet_classes_path = Path(
-    os.environ.get(
-        "ECHOSENSE_YAMNET_CLASSES_PATH",
-        "yamnet_class_map.csv",
-    )
-).expanduser()
-if not _configured_yamnet_path.is_absolute():
-    _configured_yamnet_path = _PROJECT_ROOT / _configured_yamnet_path
-if not _configured_yamnet_classes_path.is_absolute():
-    _configured_yamnet_classes_path = (
-        _PROJECT_ROOT / _configured_yamnet_classes_path
-    )
-YAMNET_MODEL_PATH = str(_configured_yamnet_path.resolve())
-YAMNET_CLASSES_PATH = str(_configured_yamnet_classes_path.resolve())
+YAMNET_MODEL_PATH = str(project_path(
+    os.environ.get("ECHOSENSE_YAMNET_MODEL_PATH") or "yamnet.tflite"
+))
+YAMNET_CLASSES_PATH = str(project_path(
+    os.environ.get("ECHOSENSE_YAMNET_CLASSES_PATH") or "yamnet_class_map.csv"
+))
 ACOUSTIC_DEGRADED_MODE = parse_boolean(
     os.environ.get("ECHOSENSE_ACOUSTIC_DEGRADED_MODE"),
     default=True,
 )
 
-# Vosk models
-VOSK_FILIPINO_MODEL = "/home/echosense/echosense-edge/vosk-model-tl-ph-generic-0.6"
-VOSK_ENGLISH_MODEL = "/home/echosense/echosense-edge/vosk-model-small-en-us-0.15"
+# Whisper model for faster-whisper: a size name ("base") or a local model dir.
+WHISPER_MODEL = str(os.environ.get("ECHOSENSE_WHISPER_MODEL") or "base").strip()
+
+# Legacy Vosk models (model/vosk_detect.py, not used by the live runtime)
+VOSK_FILIPINO_MODEL = str(project_path(
+    os.environ.get("ECHOSENSE_VOSK_FILIPINO_MODEL_PATH")
+    or "vosk-model-tl-ph-generic-0.6"
+))
+VOSK_ENGLISH_MODEL = str(project_path(
+    os.environ.get("ECHOSENSE_VOSK_ENGLISH_MODEL_PATH")
+    or "vosk-model-small-en-us-0.15"
+))
 
 # Deprecated compatibility label. Schema-v2 delivery never sends this value;
 # the backend derives classroom and school from the authenticated device.

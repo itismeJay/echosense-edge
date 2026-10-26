@@ -32,7 +32,7 @@ All model files are `.gitignore`'d — they must be re-downloaded on a fresh clo
 
 ## Running the system
 
-- Entry point: `echosense-env/bin/python3 main.py`. Run from the repo root — `config.py` uses absolute paths pinned to `/home/echosense/echosense-edge/...` and the imports expect the CWD to be the repo root.
+- Entry point: `echosense-env/bin/python3 main.py` on the Pi, `venv/bin/python main.py` on the Mac. Run from the repo root — the imports expect the CWD to be the repo root.
 - Backend connectivity smoke-test (no hardware needed): `echosense-env/bin/python3 test_backend.py` — sends a synthetic `high` alert and checks the `/health` endpoint.
 - No build system, no tests, no linter. There are no other commands.
 - Runtime libs listed in `requirements.txt`: `pyaudio`, `numpy`, `ai_edge_litert`, `vosk`, `requests`.
@@ -69,7 +69,7 @@ Non-obvious behaviors that span multiple files:
 
 ## Configuration caveats (`config.py`)
 
-- Paths are absolute and hard-coded to `/home/echosense/echosense-edge/...`. The project is not location-portable; moving it requires editing `config.py`.
+- One codebase for Mac and Pi. Everything machine-specific (backend URL, device ID/key, microphone, model paths, data/log folders, network interface) comes from `edge.env` in the repo root or the environment; see `edge.env.example`. `config.py` loads `edge.env` at import without overriding already-exported variables. Relative paths resolve against the repo root. `PLATFORM` is auto-detected (`macos` / `raspberrypi` / `linux`).
 - `LOCATION` is a deprecated compatibility constant and is not sent in schema-v2. The backend derives classroom and school from the authenticated device.
 - `ECHOSENSE_BACKEND_BASE_URL` is required and has no implicit production fallback.
 - `YAMNET_CONFIDENCE_THRESHOLD` and `DURATION_THRESHOLD` in `config.py` are **duplicates that the runtime does not read** — the authoritative copies are `YAMNET_THRESHOLD` and `DURATION_THRESHOLD` in `detection/thresholds.py`. If asked to tune thresholds, edit the ones in `detection/thresholds.py` (and flag the duplication).
