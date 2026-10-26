@@ -244,6 +244,19 @@ def send_alert(severity, confidence, duration,
 
     return get_alert_delivery_service().enqueue_payload(payload)
 
+def heartbeat_headers(device_id=ECHOSENSE_DEVICE_ID, device_key=ECHOSENSE_DEVICE_KEY):
+    """Device credentials for the heartbeat, so the backend records this device's check-in.
+
+    Without them the backend only updates its global status and the dashboard shows the
+    device as Offline between alerts.
+    """
+    device_id = str(device_id or "").strip()
+    device_key = str(device_key or "").strip()
+    if not device_id or not device_key:
+        return {}
+    return {"X-EchoSense-Device-Id": device_id, "X-EchoSense-Device-Key": device_key}
+
+
 def _heartbeat_loop(interval, info_provider=None):
     while True:
         time.sleep(interval)
@@ -260,6 +273,7 @@ def _heartbeat_loop(interval, info_provider=None):
             response = requests.post(
                 f"{API_URL}/system-settings/heartbeat",
                 json=info or None,
+                headers=heartbeat_headers(),
                 timeout=10
             )
             ip = info.get("ip", "?")
