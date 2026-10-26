@@ -197,3 +197,28 @@ def scan_audio_float32(samples, sample_rate, interpreter, class_names):
         class_names,
         run_yamnet_float32,
     )
+
+
+def top_classes_float32(samples, sample_rate, interpreter, class_names, k=5):
+    """YAMNet's k most likely classes over a whole utterance.
+
+    Scores are averaged across 0.975 s windows, so a song under speech shows up
+    even when no single window is dominated by it. Returns [(label, score)].
+    """
+    if sample_rate != 16000:
+        raise ValueError("YAMNet requires 16000 Hz audio")
+    if not isinstance(samples, np.ndarray) or samples.dtype != np.float32:
+        raise TypeError("top_classes_float32 expects a float32 NumPy array")
+    if samples.ndim != 1 or samples.size == 0 or not class_names:
+        return []
+    if samples.size < YAMNET_INPUT_SIZE:
+        samples = np.pad(samples, (0, YAMNET_INPUT_SIZE - samples.size))
+    windows = samples.size // YAMNET_INPUT_SIZE
+    total = None
+    for i in range(windows):
+        window = samples[i * YAMNET_INPUT_SIZE:(i + 1) * YAMNET_INPUT_SIZE]
+        _cls, _score, mean_scores = run_yamnet_float32(interpreter, window, class_names)
+        total = mean_scores if total is None else total + mean_scores
+    averaged = total / windows
+    order = np.argsort(averaged)[::-1][:k]
+    return [(class_names[i], float(averaged[i])) for i in order]

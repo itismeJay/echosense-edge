@@ -23,11 +23,12 @@ from detection.text_detector import TextDetector, TextDetectorWorker
 from model.monitored_terms import start_dictionary_sync
 from model.whisper_stt import (
     RealtimeSTTFeedWorker,
+    set_media_classifier,
     consume_transcription_result,
     get_recorder,
     stop_recorder,
 )
-from model.yamnet_infer import load_yamnet_bundle
+from model.yamnet_infer import load_yamnet_bundle, top_classes_float32
 from sender.delivery import start_alert_delivery, stop_alert_delivery
 from sender.http_client import check_backend_connection, start_heartbeat
 from sender.incident_delivery import enqueue_finalized_incident
@@ -79,6 +80,21 @@ class EdgeRuntime:
         print(
             f"[ACOUSTIC] yamnet_available={str(yamnet.available).lower()} "
             f"reason={yamnet.reason}"
+        )
+        # The media filter scores each finished utterance with its own YAMNet
+        # interpreter; TFLite interpreters must not be shared across threads.
+        media_yamnet = load_yamnet_bundle(degraded_mode=True)
+        if media_yamnet.available:
+            set_media_classifier(
+                lambda samples, sample_rate: top_classes_float32(
+                    samples,
+                    sample_rate,
+                    media_yamnet.interpreter,
+                    media_yamnet.class_names,
+                )
+            )
+        print(
+            f"[FILTER] media_classifier={str(media_yamnet.available).lower()}"
         )
         get_recorder()
         if self.source is None:

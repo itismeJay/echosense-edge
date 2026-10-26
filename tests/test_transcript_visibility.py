@@ -206,7 +206,7 @@ class TranscriptVisibilityTests(unittest.TestCase):
                 return "One finalized transcript."
 
         recorder = Recorder()
-        text, event, language, confidence = (
+        text, event, language, confidence, _metadata = (
             whisper_stt._run_transcription_cycle(recorder, adapter)
         )
         self.assertEqual(recorder.text_calls, 1)

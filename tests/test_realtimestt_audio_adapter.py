@@ -68,7 +68,7 @@ class RealtimeSTTAudioAdapterTests(unittest.TestCase):
         samples = np.full(8000, 0.25, dtype=np.float32)
         recorder = _FakeRecorder(self.adapter, samples=samples)
 
-        text, event, language, probability = _run_transcription_cycle(
+        text, event, language, probability, _metadata = _run_transcription_cycle(
             recorder,
             self.adapter,
         )
@@ -86,7 +86,7 @@ class RealtimeSTTAudioAdapterTests(unittest.TestCase):
         )
         recorder = _FakeRecorder(self.adapter, samples=None)
 
-        _text, event, _language, _probability = _run_transcription_cycle(
+        _text, event, _language, _probability, _metadata = _run_transcription_cycle(
             recorder,
             self.adapter,
         )
@@ -118,7 +118,7 @@ class RealtimeSTTAudioAdapterTests(unittest.TestCase):
     def test_audio_event_is_attached_to_the_matching_project_result(self):
         samples = np.ones(16000, dtype=np.float32)
         recorder = _FakeRecorder(self.adapter, samples=samples)
-        text, event, language, probability = _run_transcription_cycle(
+        text, event, language, probability, _metadata = _run_transcription_cycle(
             recorder,
             self.adapter,
         )
@@ -246,7 +246,7 @@ class RealtimeSTTAudioAdapterTests(unittest.TestCase):
                 return "Baboy."
 
         recorder = Recorder(self.adapter)
-        text, event, language, probability = _run_transcription_cycle(
+        text, event, language, probability, _metadata = _run_transcription_cycle(
             recorder,
             self.adapter,
         )
@@ -277,7 +277,7 @@ class RealtimeSTTAudioAdapterTests(unittest.TestCase):
                 return "방일까?"
 
         self_adapter = self.adapter
-        text, event, language, probability = _run_transcription_cycle(
+        text, event, language, probability, _metadata = _run_transcription_cycle(
             Recorder(),
             self.adapter,
         )

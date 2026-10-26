@@ -11,21 +11,28 @@ import numpy as np
 from audio.audio_event import float32_samples_to_int16
 from config import DETECTION_RUNTIME, SHOW_TRANSCRIPT_TEXT
 from detection.latency import LATENCY
+from detection.false_alarm_filters import (
+    DecodeMetrics,
+    FilterConfig,
+    decode_gate,
+    decode_gate_overridden,
+    filter_terms_by_probability,
+    hallucination_reason,
+    media_gate,
+)
 from detection.severity import LOW
 from detection.transcript_quality import assess_transcript_quality
-from model.blacklist import check_transcript
+from model.blacklist import check_transcript, restrict_to_terms
 from model.language_restricted_engine import ENGINE_NAME as RESTRICTED_ENGINE
 from model.language_restricted_engine import register as register_restricted_engine
 from model.monitored_terms import classify_transcript_language, get_backend_terms
 from model.realtimestt_audio_adapter import RealtimeSTTAudioEventAdapter
 from model.result_queue import BoundedResultQueue
 
-# Whisper initial_prompt: a short, comma-separated list of the monitored terms
-# from the synced backend dictionary, to bias recognition toward them.
-# Historical note: an earlier long profanity-list prompt made Whisper
-# hallucinate those words out of background noise. The prompt is therefore kept
-# short, audio is noise-reduced before Whisper (see NoiseReducer), and quality
-# gates plus context rules still run on every transcript.
+# Whisper decodes with NO initial_prompt. A prompt listing the monitored terms
+# made Whisper "hear" those words in music, video audio and quiet rooms. The
+# synced dictionary is used for matching only. build_initial_prompt() remains
+# for diagnostics and tests; its result is not passed to Whisper.
 WHISPER_PROMPT_MAX_TERMS = 24
 WHISPER_PROMPT_MAX_CHARACTERS = 200
 
@@ -46,6 +53,19 @@ _result_queue = BoundedResultQueue(
     max_audio_samples=DETECTION_RUNTIME.max_stt_utterance_samples,
 )
 _recording_limiter = None
+
+# False-alarm filters (see detection/false_alarm_filters.py), tunable through
+# ECHOSENSE_FILTER_* environment variables.
+_FILTERS = FilterConfig.from_environment()
+# Set by the runtime: (samples, sample_rate) -> [(yamnet_label, score)].
+_media_classifier = None
+
+
+def set_media_classifier(classifier):
+    """Install the YAMNet top-classes function used by the media filter."""
+
+    global _media_classifier
+    _media_classifier = classifier
 
 
 class RealtimeSTTRecordingLimiter:
@@ -308,11 +328,72 @@ def _retry_in_regional_language(recorder, audio_event):
     return text, language, confidence
 
 
+def _log_decode_metrics(event_id, metrics):
+    if metrics is None:
+        print(f"[DECODE] event={event_id} metrics=unavailable")
+        return
+    print(
+        f"[DECODE] event={event_id} no_speech_prob={metrics.no_speech_prob:.2f} "
+        f"avg_logprob={metrics.avg_logprob:.2f} "
+        f"compression_ratio={metrics.compression_ratio:.2f} "
+        f"words={len(metrics.words)} segments={metrics.segment_count}"
+    )
+
+
+def _media_top_classes(event_id, audio_event):
+    if _media_classifier is None or audio_event is None:
+        return None
+    try:
+        top = _media_classifier(audio_event.samples, audio_event.sample_rate)
+    except Exception as exc:
+        print(f"[YAMNET_TOP] event={event_id} ran=false error={type(exc).__name__}")
+        return None
+    summary = ",".join(f"{label}:{score:.2f}" for label, score in top)
+    print(f"[YAMNET_TOP] event={event_id} top={summary or 'none'}")
+    return top
+
+
+def _apply_term_filters(result, original_text, metrics, audio_event, event_id):
+    """Word-probability and media filters on an accepted, matched transcript."""
+
+    terms = list(result.get("detected_words") or ())
+    if not terms:
+        return result
+    kept, dropped, scores = filter_terms_by_probability(terms, metrics, _FILTERS)
+    for term in terms:
+        probability = scores.get(term)
+        print(
+            f"[WORD_PROB] event={event_id} term={term} "
+            f"probability={'unscored' if probability is None else f'{probability:.2f}'} "
+            f"kept={str(term in kept).lower()}"
+        )
+    if dropped:
+        print(
+            f"[FILTER] event={event_id} dropped_terms={dropped} "
+            f"reason=word_probability<{_FILTERS.word_probability_min:g}"
+            f"(urgent<{_FILTERS.urgent_word_probability_min:g})"
+        )
+        result = restrict_to_terms(result, kept, original_text)
+        result.setdefault("filter_reasons", []).append("low_word_probability")
+    if not kept:
+        return result
+    top_classes = _media_top_classes(event_id, audio_event)
+    reason = media_gate(top_classes, kept, _FILTERS)
+    if reason:
+        print(
+            f"[FILTER] event={event_id} dropped_terms={kept} reason={reason}"
+        )
+        result = restrict_to_terms(result, [], original_text)
+        result.setdefault("filter_reasons", []).append(reason)
+    return result
+
+
 def _on_text(
     text: str,
     whisper_language=None,
     whisper_language_confidence=None,
     audio_event=None,
+    decode_metadata=None,
 ):
     original_text = str(text or "")
     normalized_whisper_language = str(
@@ -334,8 +415,31 @@ def _on_text(
         original_text = ""
         whisper_language = None
         whisper_language_confidence = None
-    quality = assess_transcript_quality(original_text)
     event_id = audio_event.event_id if audio_event is not None else "unavailable"
+    metrics = DecodeMetrics.from_metadata(decode_metadata)
+    filter_reasons = []
+    if original_text:
+        _log_decode_metrics(event_id, metrics)
+        drop_reason = hallucination_reason(original_text, _FILTERS)
+        if drop_reason is None:
+            drop_reason = decode_gate(metrics, _FILTERS)
+            if drop_reason and decode_gate_overridden(
+                check_transcript(original_text).get("detected_words", ()),
+                metrics,
+                _FILTERS,
+            ):
+                print(
+                    f"[FILTER] event={event_id} kept=utterance "
+                    f"decode_gate={drop_reason} override=threat_or_self_harm"
+                )
+                drop_reason = None
+        if drop_reason:
+            print(
+                f"[FILTER] event={event_id} dropped=utterance reason={drop_reason}"
+            )
+            filter_reasons.append(drop_reason)
+            original_text = ""
+    quality = assess_transcript_quality(original_text)
 
     if quality.accepted:
         print(
@@ -344,6 +448,9 @@ def _on_text(
             f"repetition_ratio={quality.repetition_ratio:.2f}"
         )
         result = check_transcript(original_text)
+        result = _apply_term_filters(
+            result, original_text, metrics, audio_event, event_id,
+        )
     else:
         primary_reason = quality.reason_codes[0]
         print(
@@ -358,6 +465,7 @@ def _on_text(
     result["transcript"] = original_text
     result["normalized_text"] = quality.normalized_text
     result["transcript_quality"] = quality
+    result["filter_reasons"] = filter_reasons + list(result.get("filter_reasons", []))
     result["quality_accepted"] = quality.accepted
     result["quality_reason_codes"] = quality.reason_codes
     result["quality_warnings"] = quality.warnings
@@ -406,6 +514,8 @@ def _on_text(
 def _run_transcription_cycle(recorder, audio_event_adapter):
     """Run exactly one synchronous transcription and consume its event once."""
     audio_event_adapter.clear_pending()
+    # Never let one utterance's decode metrics describe the next.
+    recorder.last_transcription_metadata = None
     try:
         text = recorder.text()
     except Exception:
@@ -441,6 +551,7 @@ def _run_transcription_cycle(recorder, audio_event_adapter):
         audio_event,
         detected_language,
         detected_language_probability,
+        getattr(recorder, "last_transcription_metadata", None),
     )
 
 
@@ -450,11 +561,7 @@ def _recorder_loop():
         from RealtimeSTT import AudioToTextRecorder
 
         print("[STT] Loading RealtimeSTT with Whisper base...")
-        initial_prompt = build_initial_prompt()
-        print(
-            "[STT] initial_prompt_terms="
-            f"{len(initial_prompt.split(', ')) if initial_prompt else 0}"
-        )
+        print("[STT] initial_prompt=none (dictionary used for matching only)")
         _recording_limiter = RealtimeSTTRecordingLimiter(
             DETECTION_RUNTIME.max_stt_utterance_seconds
         )
@@ -484,10 +591,10 @@ def _recorder_loop():
             on_recording_start=_recording_limiter.on_recording_start,
             on_recording_stop=_recording_limiter.on_recording_stop,
             on_transcription_start=_audio_event_adapter.on_transcription_start,
-            # Short monitored-term list from the synced dictionary (see
-            # build_initial_prompt). Realtime transcription remains disabled so
-            # only one Whisper model competes for Pi CPU.
-            initial_prompt=initial_prompt,
+            # No hint list (see the note at the top of this module). Realtime
+            # transcription remains disabled so only one Whisper model competes
+            # for Pi CPU.
+            initial_prompt=None,
         )
         try:
             _recorder = AudioToTextRecorder(
@@ -519,6 +626,7 @@ def _recorder_loop():
                 audio_event,
                 detected_language,
                 detected_language_probability,
+                decode_metadata,
             ) = _run_transcription_cycle(_recorder, _audio_event_adapter)
             event_id = (
                 audio_event.event_id
@@ -536,6 +644,7 @@ def _recorder_loop():
                 detected_language,
                 detected_language_probability,
                 audio_event,
+                decode_metadata,
             )
         except Exception as exc:
             if _recorder_stop_event.is_set():

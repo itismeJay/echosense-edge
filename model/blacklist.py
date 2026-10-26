@@ -799,6 +799,55 @@ def get_word_severity(word: str) -> str:
     return calculate_severity([word]).level
 
 
+def categories_for_terms(terms) -> list:
+    """Category labels for accepted terms (same rules check_transcript uses)."""
+
+    categories = []
+    for w in terms:
+        if any(a in w for a in ACADEMIC_KEYWORDS):
+            categories.append("academic_shaming")
+        if any(a in w for a in APPEARANCE_KEYWORDS):
+            categories.append("appearance_shaming")
+        if any(b in w for b in BODY_KEYWORDS):
+            categories.append("body_shaming")
+        if any(e in w for e in EMOTIONAL_KEYWORDS):
+            categories.append("emotional_taunting")
+        if any(t in w for t in THREAT_KEYWORDS):
+            categories.append("threat")
+    return list(dict.fromkeys(categories))
+
+
+def restrict_to_terms(result: dict, keep_terms, transcript: str) -> dict:
+    """Return ``result`` with only ``keep_terms`` left as detected terms.
+
+    Used by the false-alarm filters after check_transcript: dropped terms leave
+    every term list, and severity and categories are recomputed from the rest.
+    """
+
+    keep = set(keep_terms or ())
+    restricted = dict(result)
+    restricted["detected_words"] = [t for t in result.get("detected_words", []) if t in keep]
+    restricted["hard_hits"] = [t for t in result.get("hard_hits", []) if t in keep]
+    restricted["soft_hits"] = [t for t in result.get("soft_hits", []) if t in keep]
+    restricted["matched_terms"] = [
+        item for item in result.get("matched_terms", [])
+        if not isinstance(item, dict) or item.get("term") in keep
+    ]
+    remaining = restricted["detected_words"]
+    restricted["has_profanity"] = bool(remaining)
+    restricted["word_count"] = len(remaining)
+    restricted["match_accepted_count"] = len(remaining)
+    restricted["categories"] = categories_for_terms(remaining)
+    decision = calculate_severity(
+        remaining,
+        transcript=transcript,
+        laughter_present=bool(result.get("is_casual")),
+    )
+    restricted["severity"] = decision.level
+    restricted["severity_evidence"] = decision.evidence()
+    return restricted
+
+
 def check_transcript(transcript: str) -> dict:
     text = clean_text(transcript)
 
@@ -857,19 +906,7 @@ def check_transcript(transcript: str) -> dict:
         laughter_present=is_casual,
     )
 
-    # Categories
-    categories = []
-    for w in all_detected:
-        if any(a in w for a in ACADEMIC_KEYWORDS):
-            categories.append("academic_shaming")
-        if any(a in w for a in APPEARANCE_KEYWORDS):
-            categories.append("appearance_shaming")
-        if any(b in w for b in BODY_KEYWORDS):
-            categories.append("body_shaming")
-        if any(e in w for e in EMOTIONAL_KEYWORDS):
-            categories.append("emotional_taunting")
-        if any(t in w for t in THREAT_KEYWORDS):
-            categories.append("threat")
+    categories = categories_for_terms(all_detected)
 
     return {
         "has_profanity":  has_profanity,
