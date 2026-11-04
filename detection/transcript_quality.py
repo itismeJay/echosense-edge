@@ -130,6 +130,23 @@ def phrase_matches(term: object, text: object) -> bool:
     return False
 
 
+def phrase_ends_segment(term: object, text: object) -> bool:
+    """Like ``phrase_matches``, but only when nothing follows in its sentence.
+
+    "pangita nimo oy." (how ugly you are) ends the sentence; "pangita nimo oy
+    ang libro" (look for the book) goes on, so it does not count.
+    """
+
+    term_tokens = tuple(normalize_transcript(term).split())
+    if not term_tokens:
+        return False
+    length = len(term_tokens)
+    return any(
+        len(segment) >= length and segment[-length:] == term_tokens
+        for segment in transcript_token_segments(text)
+    )
+
+
 def _longest_repeated_run(tokens: tuple[str, ...]) -> int:
     longest = 0
     current = 0
