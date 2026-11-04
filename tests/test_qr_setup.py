@@ -145,11 +145,23 @@ class SpeakerTests(unittest.TestCase):
         self.assertIsNone(speak_command("hi", "macos", "off", which=everything))
 
     def test_speaker_never_raises(self):
-        run = mock.Mock(side_effect=OSError("no audio"))
-        speaker = Speaker("macos", run=run, which=lambda program: "/usr/bin/say")
+        popen = mock.Mock(side_effect=OSError("no audio"))
+        speaker = Speaker("macos", popen=popen, which=lambda program: "/usr/bin/say")
         with contextlib.redirect_stdout(io.StringIO()) as output:
             self.assertFalse(speaker("hello"))
         self.assertIn("[VOICE] hello", output.getvalue())
+
+    def test_speech_runs_in_background_and_a_newer_line_replaces_a_hung_one(self):
+        hung = mock.Mock()
+        hung.poll.return_value = None  # still "playing"
+        popen = mock.Mock(side_effect=[hung, mock.Mock()])
+        speaker = Speaker("macos", popen=popen, which=lambda program: "/usr/bin/say")
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertTrue(speaker("Waiting to be added to a classroom"))
+            self.assertTrue(speaker("EchoSense connected"))
+        hung.terminate.assert_called_once()
+        self.assertEqual(popen.call_args.args[0], ["say", "EchoSense connected"])
+        hung.wait.assert_not_called()
 
 
 class ActivationTests(unittest.TestCase):

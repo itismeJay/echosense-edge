@@ -50,19 +50,34 @@ def speak_command(text, platform, override=None, which=shutil.which):
 
 
 class Speaker:
-    def __init__(self, platform, override=None, run=subprocess.run, which=shutil.which):
+    """Says a status line without ever holding up activation.
+
+    The speech command runs in the background (an audio device that is busy or missing
+    can make `say` hang); a newer line stops one that is still playing.
+    """
+
+    def __init__(self, platform, override=None, popen=subprocess.Popen, which=shutil.which):
         self._platform = platform
         self._override = override
-        self._run = run
+        self._popen = popen
         self._which = which
+        self._current = None
 
     def __call__(self, text):
         print(f"[VOICE] {text}")
         command = speak_command(text, self._platform, self._override, self._which)
         if command is None:
             return False
+        previous = self._current
+        if previous is not None and previous.poll() is None:
+            previous.terminate()
         try:
-            self._run(command, check=False, timeout=30, capture_output=True)
+            self._current = self._popen(
+                command,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
         except Exception as exc:  # a missing speaker must never stop setup
             print(f"[VOICE] could not play ({type(exc).__name__})")
             return False
