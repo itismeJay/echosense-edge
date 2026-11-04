@@ -343,10 +343,26 @@ def classify_transcript_language(
 
 
 def sync_backend_dictionary(session=requests, timeout: float = 10.0) -> bool:
-    """Fetch current monitored terms.  Failures leave the last good copy active."""
+    """Fetch current monitored terms.  Failures leave the last good copy active.
+
+    Sends the device credentials: the backend requires them for dictionary sync.
+    """
+
+    from sender.http_client import device_auth_headers
 
     try:
-        response = session.get(f"{API_URL}/dictionary/", timeout=timeout)
+        response = session.get(
+            f"{API_URL}/dictionary/",
+            headers=device_auth_headers(),
+            timeout=timeout,
+        )
+        status = getattr(response, "status_code", None)
+        if status in (401, 403):
+            print(
+                f"[DICTIONARY] ERROR sync refused ({status}): check ECHOSENSE_DEVICE_ID and "
+                "ECHOSENSE_DEVICE_KEY in edge.env; using current terms"
+            )
+            return False
         response.raise_for_status()
         entries = response.json()
         if not isinstance(entries, list):
@@ -357,6 +373,32 @@ def sync_backend_dictionary(session=requests, timeout: float = 10.0) -> bool:
     except Exception as exc:
         print(f"[DICTIONARY] Sync unavailable ({type(exc).__name__}); using current terms")
         return False
+
+
+def attach_backend_term_ids(payload: Mapping) -> dict:
+    """Fill in term_ids for matched terms the synchronized dictionary now knows.
+
+    Used when the backend rejected an alert: after a dictionary re-sync, a term that was
+    local-only may have a backend id. The term text is unchanged; only term_id (and the
+    dictionary's language, which older backends check) is added. Returns a new payload.
+    """
+
+    by_text = {}
+    for item in get_backend_terms():
+        by_text.setdefault(item.term, item)
+    refreshed = dict(payload)
+    terms = []
+    for matched in payload.get("matched_terms") or ():
+        matched = dict(matched)
+        if matched.get("term_id") is None:
+            known = by_text.get(normalize_text(matched.get("term") or ""))
+            if known is not None:
+                matched["term_id"] = known.term_id
+                if known.language in {"fil", "ceb", "en"}:
+                    matched["language"] = known.language
+        terms.append(matched)
+    refreshed["matched_terms"] = terms
+    return refreshed
 
 
 def start_dictionary_sync(interval: float = 300.0) -> threading.Thread:

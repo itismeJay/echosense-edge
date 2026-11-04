@@ -33,6 +33,42 @@ class DeliveryResult:
     error_type: str | None = None
     retry_after_seconds: float | None = None
     duplicate_acknowledged: bool = False
+    # The backend's short reason for a 4xx, safe to log (never the transcript).
+    detail: str | None = None
+
+
+# 409s that mean the device is not set up yet (an operator fixes it in the dashboard);
+# the alert is kept and retried, never dropped.
+_CONFIGURATION_CONFLICTS = (
+    "not assigned to a classroom",
+    "classroom is inactive",
+)
+
+
+def rejection_detail(response) -> str | None:
+    """The backend's reason for a rejection, without echoing any submitted values.
+
+    FastAPI errors are either a string or a list of validation errors; for the list only
+    the field location and error type are kept (the "input" and "msg" parts can contain
+    the transcript).
+    """
+
+    try:
+        body = response.json()
+    except Exception:
+        return None
+    detail = body.get("detail") if isinstance(body, dict) else None
+    if isinstance(detail, str):
+        return " ".join(detail.split())[:200] or None
+    if isinstance(detail, list):
+        parts = []
+        for item in detail[:3]:
+            if not isinstance(item, dict):
+                continue
+            location = ".".join(str(part) for part in item.get("loc") or ())
+            parts.append(f"{location}:{item.get('type') or 'invalid'}")
+        return "; ".join(parts)[:200] or None
+    return None
 
 
 def _retry_after_seconds(response, *, now=None):
@@ -166,10 +202,21 @@ def deliver_alert_payload(
             ),
         )
     if 400 <= status < 500:
+        detail = rejection_detail(response)
+        if status == 409 and detail and any(
+            marker in detail.lower() for marker in _CONFIGURATION_CONFLICTS
+        ):
+            return DeliveryResult(
+                AUTHENTICATION,
+                http_status=status,
+                error_type="device_not_ready_http_409",
+                detail=detail,
+            )
         return DeliveryResult(
             PERMANENT,
             http_status=status,
             error_type=f"http_{status}",
+            detail=detail,
         )
     return DeliveryResult(
         RETRYABLE,
@@ -244,17 +291,21 @@ def send_alert(severity, confidence, duration,
 
     return get_alert_delivery_service().enqueue_payload(payload)
 
-def heartbeat_headers(device_id=ECHOSENSE_DEVICE_ID, device_key=ECHOSENSE_DEVICE_KEY):
-    """Device credentials for the heartbeat, so the backend records this device's check-in.
+def device_auth_headers(device_id=ECHOSENSE_DEVICE_ID, device_key=ECHOSENSE_DEVICE_KEY):
+    """Device credentials, sent on every backend call (alerts, heartbeat, logs, dictionary).
 
-    Without them the backend only updates its global status and the dashboard shows the
-    device as Offline between alerts.
+    The backend requires them on all edge calls. Older backends ignore them on the calls
+    that did not need them, so sending them is always safe.
     """
     device_id = str(device_id or "").strip()
     device_key = str(device_key or "").strip()
     if not device_id or not device_key:
         return {}
     return {"X-EchoSense-Device-Id": device_id, "X-EchoSense-Device-Key": device_key}
+
+
+# Kept for callers and tests that use the old name.
+heartbeat_headers = device_auth_headers
 
 
 def model_versions():
@@ -285,11 +336,16 @@ def _heartbeat_loop(interval, info_provider=None):
             response = requests.post(
                 f"{API_URL}/system-settings/heartbeat",
                 json=info or None,
-                headers=heartbeat_headers(),
+                headers=device_auth_headers(),
                 timeout=10
             )
             ip = info.get("ip", "?")
             print(f"[HEARTBEAT] {response.status_code} ip={ip}")
+            if response.status_code in (401, 403):
+                print(
+                    f"[HEARTBEAT] ERROR backend refused this device ({response.status_code}): "
+                    "check ECHOSENSE_DEVICE_ID and ECHOSENSE_DEVICE_KEY in edge.env"
+                )
         except Exception as e:
             print(f"[HEARTBEAT] Error: {e}")
 
@@ -341,6 +397,7 @@ def _send_logs_batch(lines: list) -> None:
         requests.post(
             f"{API_URL}/system/logs",
             json={"lines": lines},
+            headers=device_auth_headers(),
             timeout=5,
         )
     except Exception:
