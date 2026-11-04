@@ -422,9 +422,12 @@ def _on_text(
         _log_decode_metrics(event_id, metrics)
         drop_reason = hallucination_reason(original_text, _FILTERS)
         if drop_reason is None:
-            drop_reason = decode_gate(metrics, _FILTERS)
+            # Terms after sound-alike/alias correction: an utterance with a
+            # monitored word is not dropped for a low avg_logprob alone.
+            gate_terms = check_transcript(original_text).get("detected_words", ())
+            drop_reason = decode_gate(metrics, _FILTERS, gate_terms)
             if drop_reason and decode_gate_overridden(
-                check_transcript(original_text).get("detected_words", ()),
+                gate_terms,
                 metrics,
                 _FILTERS,
             ):

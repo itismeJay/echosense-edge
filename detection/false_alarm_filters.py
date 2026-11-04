@@ -5,7 +5,10 @@ model/whisper_stt.py applies them to every finalized utterance, in this order:
 
 1. decode quality   no_speech_prob, avg_logprob and compression_ratio from the
                     Whisper decode (a quiet room or music produces confident-
-                    looking text with these warning signs).
+                    looking text with these warning signs). When the utterance
+                    contains a monitored term (after sound-alike correction),
+                    avg_logprob uses the looser term floor: Whisper is unsure
+                    of correctly heard Bisaya, which it has no language for.
 2. hallucination    utterances made only of known Whisper filler phrases
                     ("Thank you for watching", "Subscribe", ...) or of one
                     word repeated.
@@ -31,6 +34,10 @@ from typing import Iterable, Mapping, Sequence
 from detection.severity import contains_urgent_directive
 
 DEFAULT_MEDIA_CLASSES = ("Music", "Television", "Radio")
+# Measured on the recorded test set (2026-11-04): every term-bearing
+# utterance that was wrongly dropped sat between -1.0 and -1.19; -1.5 keeps a
+# margin for decode variance and still drops garbled decodes.
+TERM_AVG_LOGPROB_MIN_DEFAULT: float | None = -1.5
 
 # Whole-utterance fillers Whisper produces from silence, music or credits.
 # Matching is on normalized text; an utterance is dropped only when nothing
@@ -64,6 +71,20 @@ def _env_float(environ, name, default):
         return default
 
 
+def _env_optional_float(environ, name, default):
+    """Like _env_float, but "none"/"off" means no limit (None)."""
+
+    raw = environ.get(name)
+    if raw is None or not str(raw).strip():
+        return default
+    if str(raw).strip().lower() in {"none", "off", "disabled"}:
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        return default
+
+
 def _env_int(environ, name, default):
     raw = environ.get(name)
     if raw is None or not str(raw).strip():
@@ -87,6 +108,10 @@ class FilterConfig:
     no_speech_prob_max: float = 0.6
     avg_logprob_min: float = -1.0
     compression_ratio_max: float = 2.4
+    # avg_logprob floor for an utterance that contains a monitored term.
+    # None = no avg_logprob check for such utterances; no_speech_prob and
+    # compression_ratio still drop them. Chosen on the recorded test set.
+    term_avg_logprob_min: float | None = TERM_AVG_LOGPROB_MIN_DEFAULT
     hallucination_enabled: bool = True
     repeated_word_min: int = 3
     word_probability_enabled: bool = True
@@ -123,6 +148,11 @@ class FilterConfig:
             ),
             compression_ratio_max=_env_float(
                 environ, "ECHOSENSE_FILTER_COMPRESSION_RATIO_MAX", 2.4
+            ),
+            term_avg_logprob_min=_env_optional_float(
+                environ,
+                "ECHOSENSE_FILTER_TERM_AVG_LOGPROB_MIN",
+                TERM_AVG_LOGPROB_MIN_DEFAULT,
             ),
             hallucination_enabled=_env_bool(
                 environ, "ECHOSENSE_FILTER_HALLUCINATION", True
@@ -229,15 +259,27 @@ def summarize_segments(segments: Sequence) -> dict:
     }
 
 
-def decode_gate(metrics: DecodeMetrics | None, config: FilterConfig):
-    """Return the reason to drop the whole utterance, or None to keep it."""
+def decode_gate(
+    metrics: DecodeMetrics | None,
+    config: FilterConfig,
+    terms: Iterable[str] = (),
+):
+    """Return the reason to drop the whole utterance, or None to keep it.
+
+    ``terms`` are the monitored terms the utterance matched (after sound-alike
+    correction). With a term, a low avg_logprob alone drops it only below
+    ``term_avg_logprob_min``; no_speech_prob and compression_ratio, the clear
+    hallucination signs, apply unchanged.
+    """
 
     if not config.decode_gate_enabled or metrics is None:
         return None
     if metrics.no_speech_prob > config.no_speech_prob_max:
         return f"no_speech_prob>{config.no_speech_prob_max:g}"
-    if metrics.avg_logprob < config.avg_logprob_min:
-        return f"avg_logprob<{config.avg_logprob_min:g}"
+    has_term = any(str(term).strip() for term in terms or ())
+    floor = config.term_avg_logprob_min if has_term else config.avg_logprob_min
+    if floor is not None and metrics.avg_logprob < floor:
+        return f"avg_logprob<{floor:g}"
     if metrics.compression_ratio > config.compression_ratio_max:
         return f"compression_ratio>{config.compression_ratio_max:g}"
     return None
@@ -290,6 +332,11 @@ def _similar(left: str, right: str) -> bool:
     return fuzz.ratio(left, right) >= 75
 
 
+# "You" markers on insults. Threat pronouns (tika, taka, kita) stay scored:
+# they are part of the threat, which already has a lower floor.
+_TARGET_WORDS = frozenset({"ka", "mo", "ikaw", "imo", "imong", "nimo", "you", "your"})
+
+
 def term_probability(term: str, words: Sequence[WordScore]):
     """Lowest probability among the Whisper words that spell ``term``.
 
@@ -307,7 +354,12 @@ def term_probability(term: str, words: Sequence[WordScore]):
         for token in tokens
     ]
     probabilities = []
-    for token in normalize_words(term):
+    tokens = normalize_words(term)
+    # Short target words ("ka", "nimo") are often decoded with low
+    # confidence even when heard right (a clear "Ilo ka." scored ka=0.13).
+    # Judge a phrase by its insult words; a pronoun-only term still counts.
+    content = [token for token in tokens if token not in _TARGET_WORDS]
+    for token in content or tokens:
         candidates = [p for word, p in flat if _similar(token, word)]
         if not candidates:
             return None

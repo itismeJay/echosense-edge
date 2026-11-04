@@ -364,11 +364,18 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(len(alerts), 1)
         self.assertEqual(alerts[0].severity, "HIGH")
 
-    def test_ordinary_insult_is_still_dropped_by_the_decode_gate(self):
+    def test_insult_survives_a_low_avg_logprob_above_the_term_floor(self):
         result, alerts = self.run_utterance(
             "Bobo ka!", metadata([(" Bobo", 0.95), (" ka!", 0.9)], logprob=-1.3)
         )
-        self.assertEqual(result["filter_reasons"], ["avg_logprob<-1"])
+        self.assertIn("bobo", result["detected_words"])
+        self.assertEqual(len(alerts), 1)
+
+    def test_insult_below_the_term_floor_is_still_dropped(self):
+        result, alerts = self.run_utterance(
+            "Bobo ka!", metadata([(" Bobo", 0.95), (" ka!", 0.9)], logprob=-1.6)
+        )
+        self.assertEqual(result["filter_reasons"], ["avg_logprob<-1.5"])
         self.assertEqual(alerts, [])
 
     def test_unsure_threat_words_do_not_override_the_decode_gate(self):
