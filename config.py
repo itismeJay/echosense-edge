@@ -166,9 +166,35 @@ def device_credentials_from_environment(environ=None):
     return device_id, device_key
 
 
-ECHOSENSE_DEVICE_ID, ECHOSENSE_DEVICE_KEY = (
-    device_credentials_from_environment()
+# QR setup (see provisioning/): identity.json comes from tools/provision_box.py; the
+# box saves its device key to device_credentials.json when an admin adds it to a room.
+# Without an identity file the manual ECHOSENSE_DEVICE_ID/KEY flow is unchanged.
+IDENTITY_FILE = project_path(
+    os.environ.get("ECHOSENSE_IDENTITY_FILE") or (DATA_DIR / "identity.json")
 )
+DEVICE_CREDENTIALS_FILE = project_path(
+    os.environ.get("ECHOSENSE_DEVICE_CREDENTIALS_FILE")
+    or (IDENTITY_FILE.parent / "device_credentials.json")
+)
+ACTIVATION_POLL_SECONDS = max(
+    1.0, float(os.environ.get("ECHOSENSE_ACTIVATION_POLL_SECONDS") or 10)
+)
+ACTIVATION_ANNOUNCE_SECONDS = max(
+    30.0, float(os.environ.get("ECHOSENSE_ACTIVATION_ANNOUNCE_SECONDS") or 180)
+)
+SPEAK_COMMAND = os.environ.get("ECHOSENSE_SPEAK_COMMAND")
+
+
+def resolve_device_credentials(environ=None):
+    from provisioning.identity import resolve_credentials
+
+    source = os.environ if environ is None else environ
+    return resolve_credentials(source, IDENTITY_FILE, DEVICE_CREDENTIALS_FILE)
+
+
+DEVICE_CREDENTIALS = resolve_device_credentials()
+ECHOSENSE_DEVICE_ID = DEVICE_CREDENTIALS.device_id
+ECHOSENSE_DEVICE_KEY = DEVICE_CREDENTIALS.device_key
 
 
 def _environment_float(name, default, *, minimum=None):

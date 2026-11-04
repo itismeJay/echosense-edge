@@ -1,5 +1,7 @@
 import getpass
+import os
 import subprocess
+import sys
 import signal
 import time
 import threading
@@ -225,5 +227,44 @@ def main():
     return exit_code
 
 
+def activate_if_needed(credentials=None, activate=None, restart=os.execv):
+    """QR-set-up box without a key yet: wait for an admin to add it, then restart.
+
+    Credentials are read once at import time by config and the sender modules, so after
+    the key is saved the process restarts itself and comes up with it, exactly like a
+    normal start. Returns False when nothing had to be done.
+    """
+
+    import config
+
+    credentials = credentials or config.DEVICE_CREDENTIALS
+    if credentials.source != "needs_activation":
+        return False
+    if activate is None:
+        from provisioning.activation import Speaker, activate_until_ready
+
+        def activate():
+            return activate_until_ready(
+                config.API_URL,
+                config.IDENTITY_FILE,
+                config.DEVICE_CREDENTIALS_FILE,
+                speak=Speaker(config.PLATFORM, config.SPEAK_COMMAND),
+                poll_seconds=config.ACTIVATION_POLL_SECONDS,
+                announce_seconds=config.ACTIVATION_ANNOUNCE_SECONDS,
+            )
+
+    print(f"[SETUP] device={credentials.device_id} has no key yet; starting activation")
+    activate()
+    print("[SETUP] Restarting with the new device key")
+    # exec replaces the process without flushing Python's buffers; flush so the setup
+    # lines reach the log.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    script = os.path.abspath(sys.argv[0])
+    restart(sys.executable, [sys.executable, script, *sys.argv[1:]])
+    return True
+
+
 if __name__ == "__main__":
+    activate_if_needed()
     raise SystemExit(main())

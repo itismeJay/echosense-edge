@@ -44,6 +44,32 @@
   https://echosense-frontend.vercel.app
   Pi status should show: 🟢 Online
 
+## Adding a New Box (QR setup)
+
+Nobody types or copies a device key. One-time steps per box:
+
+1. **Super admin, on the Mac:** make the box and its label.
+
+       venv/bin/pip install -r tools/requirements-provision.txt   # once
+       venv/bin/python tools/provision_box.py --backend <backend URL> \
+           --email admin@echosense.app --identity data/identity.json
+
+   This writes `labels/<es-xxxx>/label.png` + `label.pdf` (the sticker) and the box's
+   `identity.json` (owner-only). Print the label and stick it on the box. Copy
+   `identity.json` to the box as `data/identity.json` (`chmod 600`), then delete the
+   `labels/` folder. (The web dashboard's **Boxes** page can also make boxes, print labels
+   and download identity files.)
+2. **On the box:** start EchoSense as usual. With an identity but no key it says
+   "Waiting to be added to a classroom" (again every few minutes) and checks in every 10 s.
+   On the Pi, `sudo apt install espeak-ng` once so it can speak.
+3. **School admin:** in EchoSense (web or phone) open **Classrooms → the room → Add device →
+   Scan QR** and scan the sticker (or **Type code instead**). Within about 10 s the box gets
+   its key, says "EchoSense connected", restarts itself and shows **Online** in that room.
+
+To reuse a box elsewhere: a school admin **Removes** it (its key stops working), then a super
+admin **Resets** it on the Boxes page or with `tools/provision_box.py --reset es-xxxx`, which
+prints a new label and identity file.
+
 ## If Pi Does Not Connect
   1. Make sure hotspot name matches: YOUR_WIFI_SSID
   2. Make sure the saved password matches: YOUR_WIFI_PASSWORD

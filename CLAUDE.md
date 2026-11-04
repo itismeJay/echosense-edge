@@ -37,7 +37,8 @@ The Whisper model (`ECHOSENSE_WHISPER_MODEL`, default `base`) is fetched by fast
 ## Running the system
 
 - Entry point: `venv/bin/python main.py` on the Mac, `echosense-env/bin/python3 main.py` on the Pi (systemd `echosense.service`, drop-ins in `deploy/`). Run from the repo root; the imports expect it as the CWD.
-- Mac demo wrappers live outside the repo in `~/echosense-demo`: `edge-local.sh` (backend `http://localhost:8000`) and `edge-live.sh` (Render). Options: `--mic builtin|emeet`, `--device <code> --key-file <path>`, `--test-alert`.
+- Mac demo wrappers live outside the repo in `~/echosense-demo`: `edge-local.sh` (backend `http://localhost:8000`) and `edge-live.sh` (Render). Options: `--mic builtin|emeet`, `--device <code> --key-file <path>`, `--identity <path>` (a QR-set-up box), `--test-alert`.
+- QR setup: `provisioning/identity.py` resolves credentials (identity.json + the key saved at activation, else `ECHOSENSE_DEVICE_ID/KEY`); `main.py` runs `provisioning/activation.py` (polls `/devices/activate`, speaks status) before the runtime and restarts itself once the key is saved. `tools/provision_box.py` (super admin) makes boxes, identity files and QR labels (needs `tools/requirements-provision.txt`).
 - Tests: `venv/bin/python -m unittest discover -s tests -t .` (unittest, no pytest). There is no build step and no linter.
 - `test_backend.py` contacts the configured backend; `test_tone.py` is a standalone synthetic-audio check.
 
