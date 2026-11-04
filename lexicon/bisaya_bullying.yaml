@@ -6,6 +6,9 @@
 # How it is used (detection/lexicon.py):
 #   - Every root expands through the patterns of its `kind` into phrases.
 #   - `extra` adds hand-written idioms, comparisons and mocking sounds.
+#   - `end_only` phrases are hand-written too, but count only when nothing
+#     follows them in the sentence ("pangita nimo oy." alerts, "pangita nimo
+#     oy ang libro" = look for the book does not).
 #   - `everyday` sentences use the same words innocently. They must NEVER
 #     alert; tests/test_lexicon.py checks every one of them.
 #   - Generated phrases match exactly (Bisaya spelling variation such as o/u
@@ -138,7 +141,16 @@ categories:
         kind: adjective
         exclamative: null        # "pangita" also means "look for"
         priority: high
+        # "pangita" = how ugly, but also "look for". "pangita nimo oy" is an
+        # insult only when it ends the sentence; "pangita nimo oy ang libro"
+        # is "look for the book".
+        end_only:
+          - pangita nimo oy
+          - pangita nimo uy
+          - pangita ninyo oy
         extra:
+          - pangita kaayo nimo
+          - pangita sa imong nawong
           - pangit imong nawong
           - pangit kaayo imong nawong
           - ka pangit sa imong nawong
@@ -151,6 +163,12 @@ categories:
           - pangit kaayo ang panahon karon
           - pangitaa ang imong libro
           - pangita ang imong bag
+          - pangita nimo ang imong bag
+          - pangitaa nimo oy ang libro
+          - pangita nimo oy ang libro
+          - pangita nimo oy, ang imong bag
+          - gipangita nimo oy ang yawe
+          - nangita ko nimo oy
           - pangit ang signal diri
           - nangita ko sa akong lapis
 

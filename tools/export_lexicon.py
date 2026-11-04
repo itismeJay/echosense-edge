@@ -17,7 +17,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from detection.lexicon import LEXICON, LEXICON_PATH  # noqa: E402
+from detection.lexicon import END_ONLY_SOURCE, LEXICON, LEXICON_PATH  # noqa: E402
 
 SEVERITY = {
     "insult": "MEDIUM when aimed at someone",
@@ -42,10 +42,12 @@ def main():
         ])
         for root in LEXICON.roots:
             for phrase in root.phrases:
-                made = (
-                    "hand-written" if phrase.source == "extra"
-                    else "pattern " + phrase.source.split(":", 1)[1]
-                )
+                if phrase.source == "extra":
+                    made = "hand-written"
+                elif phrase.source == END_ONLY_SOURCE:
+                    made = "hand-written, end of sentence only"
+                else:
+                    made = "pattern " + phrase.source.split(":", 1)[1]
                 writer.writerow([
                     LEXICON.labels[root.category], root.name, root.meaning,
                     phrase.text, SEVERITY[phrase.role], made,

@@ -129,6 +129,13 @@ class SoundalikeTests(unittest.TestCase):
                 self.assertEqual(result["corrections"], [])
                 self.assertFalse(sent(sentence)[0], result["detected_words"])
 
+    def test_never_correct_word_is_not_changed_inside_an_exact_span(self):
+        # "pangitaa nimo oy" (look for it) folds to the same letters as the
+        # insult "pangita nimo oy", but "pangitaa" must stay as it is.
+        result = blacklist.correct_for_matching("Pangitaa nimo oy.")
+        self.assertEqual(result.corrections, ())
+        self.assertIn("pangita nimo oy", blacklist.HARD_TRIGGERS)
+
     def test_switch_off_keeps_only_the_explicit_mishearings(self):
         blacklist.SOUNDALIKE_ENABLED = False
         self.assertEqual(check_transcript("Bwang ka")["detected_words"], [])

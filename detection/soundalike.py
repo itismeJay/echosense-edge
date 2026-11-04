@@ -265,6 +265,21 @@ def _keeps_fixed_words(span_tokens, candidate, single_terms):
     return True
 
 
+def _changes_blocked_word(span_tokens, candidate, blocked):
+    """A never-correct word may sit inside a repaired span, never be changed.
+
+    "mura kag ungguy" -> "mura kag unggoy" keeps "mura" and "kag" as they are;
+    "pangitaa nimo oy" (look for it) must not become "pangita nimo oy".
+    """
+
+    if len(span_tokens) != len(candidate.tokens):
+        return any(token in blocked for token in span_tokens)
+    return any(
+        token in blocked and token != wanted
+        for token, wanted in zip(span_tokens, candidate.tokens)
+    )
+
+
 def _soundalike(span_tokens, candidates, blocked, single_terms, exact_only=False):
     # A whole multi-word span with exactly a term's letters is not a
     # "correction" of a common word ("mura kag ungguy" = "mura kag unggoy"),
@@ -280,7 +295,9 @@ def _soundalike(span_tokens, candidates, blocked, single_terms, exact_only=False
     # An exact spelling match anywhere beats a close match on a longer
     # term: "tamboka" is "tambok ka", never "tambok kaayo".
     for candidate in candidates:
-        if spelling == candidate.spelling and (
+        if spelling == candidate.spelling and not _changes_blocked_word(
+            span_tokens, candidate, blocked
+        ) and (
             _keeps_fixed_words(span_tokens, candidate, single_terms)
             or (len(span_tokens) == len(candidate.tokens) and len(span_tokens) > 1)
         ):

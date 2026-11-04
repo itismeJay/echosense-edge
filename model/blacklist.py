@@ -17,7 +17,7 @@ from detection.lexicon import (
 )
 from detection.soundalike import correct_transcript
 from detection.text_context import apply_harmless_context_rules
-from detection.transcript_quality import phrase_matches
+from detection.transcript_quality import phrase_ends_segment, phrase_matches
 from config import SOUNDALIKE_MATCH
 from model.monitored_terms import (
     build_matched_terms,
@@ -662,6 +662,7 @@ _CORE_CURATED = frozenset(
 )
 HARD_TRIGGERS |= LEXICON.texts(LEX_INSULT, LEX_THREAT, LEX_SELF_HARM, LEX_SWEAR)
 SOFT_TRIGGERS |= LEXICON.texts(LEX_CONTEXT)
+END_ONLY_TERMS = LEXICON.end_only
 
 # ─────────────────────────────────────────────────────────────
 # COMBINED SET
@@ -1020,6 +1021,17 @@ def check_transcript(transcript: str) -> dict:
     # in both sets), otherwise one hard word alone would trip the hard+soft rule.
     soft_hits = [w for w in soft_hits if w not in HARD_TRIGGERS]
 
+    # End-of-sentence phrases ("pangita nimo oy") count only when nothing
+    # follows them; "pangita nimo oy ang libro" is "look for the book". This
+    # also covers the same text arriving through the backend dictionary.
+    misplaced_hits = [
+        term for term in hard_hits + soft_hits
+        if term in END_ONLY_TERMS and not phrase_ends_segment(term, transcript)
+    ]
+    if misplaced_hits:
+        hard_hits = [term for term in hard_hits if term not in misplaced_hits]
+        soft_hits = [term for term in soft_hits if term not in misplaced_hits]
+
     candidate_terms = list(dict.fromkeys(hard_hits + soft_hits))
     context_result = apply_harmless_context_rules(text, candidate_terms)
     accepted_terms = set(context_result.accepted_terms)
@@ -1045,7 +1057,10 @@ def check_transcript(transcript: str) -> dict:
     matched_terms = build_matched_terms(
         transcript,
         all_detected,
-        excluded_terms=[item["term"] for item in suppressed_terms],
+        excluded_terms=[
+            *(item["term"] for item in suppressed_terms),
+            *misplaced_hits,
+        ],
     )
 
     severity_decision = calculate_severity(

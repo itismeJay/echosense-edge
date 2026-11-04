@@ -81,6 +81,44 @@ class LexiconFalseAlarmTests(unittest.TestCase):
         ]
         self.assertEqual(alarms, [])
 
+    def test_end_only_phrase_alerts_only_at_the_end_of_a_sentence(self):
+        # "pangita nimo oy" = how ugly you are; with more words after it,
+        # "pangita" is "look for" ("pangita nimo oy ang libro").
+        self.assertIn("pangita nimo oy", LEXICON.end_only)
+        for text in ("Pangita nimo oy.", "pangita nimo uy!"):
+            with self.subTest(text=text):
+                self.assertEqual(quiet_sent(text), (True, "MEDIUM"))
+        # Still sent after a lead-in; "hala" is an excitement marker (LOW).
+        self.assertTrue(quiet_sent("Hala, pangita nimo oy.")[0])
+        for text in (
+            "Pangita nimo oy ang libro.",
+            "Pangita nimo oy, ang imong bag.",
+            "Pangitaa nimo oy ang libro.",
+        ):
+            with self.subTest(text=text):
+                self.assertFalse(quiet_sent(text)[0])
+
+    def test_end_only_rule_also_holds_for_backend_terms(self):
+        import model.monitored_terms as monitored_terms
+        from model.blacklist import check_transcript
+
+        previous = monitored_terms.get_backend_terms()
+        monitored_terms.replace_backend_terms(
+            [{"term_id": 9001, "slur_text": "pangita nimo oy", "language": "ceb"}]
+        )
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = check_transcript("Pangita nimo oy ang libro.")
+            self.assertEqual(result["detected_words"], [])
+            self.assertEqual(result["matched_terms"], [])
+        finally:
+            monitored_terms.replace_backend_terms(
+                [
+                    {"term_id": t.term_id, "slur_text": t.term, "language": t.language}
+                    for t in previous
+                ]
+            )
+
     def test_negated_insults_do_not_alert(self):
         for text in ("dili ka bogo", "dili man ka bogo uy", "dili ka buang"):
             with self.subTest(text=text):

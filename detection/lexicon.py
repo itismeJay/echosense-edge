@@ -1,7 +1,9 @@
 """Bisaya bullying lexicon: lexicon/bisaya_bullying.yaml expanded into phrases.
 
 Each root expands through the patterns of its ``kind`` (adjective, noun,
-swear, threat) plus hand-written ``extra`` phrases. ``everyday`` sentences use
+swear, threat) plus hand-written ``extra`` phrases and ``end_only`` phrases
+(which count only when nothing follows them in the sentence; enforced in
+model/blacklist.py). ``everyday`` sentences use
 the same words innocently and must never alert (tests/test_lexicon.py).
 
 Pure data: imports nothing from detection.severity or model.blacklist, so both
@@ -29,6 +31,10 @@ SELF_HARM = "self_harm"  # HIGH
 CORE_PATTERNS = frozenset({
     "pattern:{w} ka", "pattern:{t} tika", "pattern:{t} taka",
 })
+
+
+# Hand-written phrases listed under a root's ``end_only:`` key.
+END_ONLY_SOURCE = "end_only"
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,6 +105,8 @@ def _expand(name, spec, category, patterns):
             add(pattern.format(t=name), THREAT, f"pattern:{pattern}")
     for text in spec.get("extra") or ():
         add(text, role, "extra")
+    for text in spec.get("end_only") or ():
+        add(text, role, END_ONLY_SOURCE)
     return Root(
         name=name,
         category=category,
@@ -125,6 +133,12 @@ class Lexicon:
 
     def texts(self, *roles: str) -> frozenset[str]:
         return frozenset(p.text for p in self.phrases if not roles or p.role in roles)
+
+    @property
+    def end_only(self) -> frozenset[str]:
+        """Phrases that count only at the end of a sentence (``end_only:``)."""
+
+        return frozenset(p.text for p in self.phrases if p.source == END_ONLY_SOURCE)
 
     @property
     def generated(self) -> frozenset[str]:
