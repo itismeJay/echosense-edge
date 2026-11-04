@@ -31,6 +31,7 @@ from functools import lru_cache
 import re
 from typing import Iterable
 
+from detection import school_policy
 from detection.transcript_quality import transcript_token_segments
 
 
@@ -196,8 +197,12 @@ class _Term:
     fuzzy: bool
 
 
-def _allowed_mismatches(length: int) -> int:
-    return 2 if length >= 9 else 1
+def _allowed_mismatches(length: int, *, single_word: bool = False) -> int:
+    # Strict sensitivity allows a second differing sound on a single word from
+    # 7 letters (normal: from 9). Multi-word spans keep the normal rule: joined
+    # everyday phrases are long, and "dili ka" must never become "duling ka".
+    long_word = 7 if single_word and school_policy.is_strict() else 9
+    return 2 if length >= long_word else 1
 
 
 def _edit_distance_within(a: str, b: str, limit: int) -> bool:
@@ -220,10 +225,12 @@ def _edit_distance_within(a: str, b: str, limit: int) -> bool:
     return previous[-1] <= limit
 
 
-def _fuzzy_equal(a: str, b: str) -> bool:
+def _fuzzy_equal(a: str, b: str, *, single_word: bool = False) -> bool:
     if not a or not b or a[0] != b[0]:
         return False
-    return _edit_distance_within(a, b, _allowed_mismatches(len(b)))
+    return _edit_distance_within(
+        a, b, _allowed_mismatches(len(b), single_word=single_word)
+    )
 
 
 @lru_cache(maxsize=8)
@@ -316,7 +323,10 @@ def _soundalike(span_tokens, candidates, blocked, single_terms, exact_only=False
             continue
         if sound is None:
             sound = sound_key(joined)
-        if sound == candidate.sound or _fuzzy_equal(sound, candidate.sound):
+        single_word = len(span_tokens) == 1 and len(candidate.tokens) == 1
+        if sound == candidate.sound or _fuzzy_equal(
+            sound, candidate.sound, single_word=single_word
+        ):
             return candidate
     return None
 

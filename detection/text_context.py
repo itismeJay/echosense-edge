@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
+from detection import school_policy
 from detection.transcript_quality import normalize_transcript
 
 
@@ -92,8 +93,9 @@ def _suppression_reason(
 
     # A bare ambiguous adjective has no targeting evidence. Severe monitored
     # words are not in _AMBIGUOUS_TERMS and therefore never enter this rule.
+    # Strict sensitivity alerts on it anyway (harmless objects stay suppressed).
     if tokens == tuple(term.split()):
-        return "ambiguous_without_target"
+        return None if school_policy.is_strict() else "ambiguous_without_target"
 
     if term == "pangit":
         harmless = any(

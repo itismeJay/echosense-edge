@@ -15,6 +15,7 @@ from detection.lexicon import (
     SWEAR as LEX_SWEAR,
     THREAT as LEX_THREAT,
 )
+from detection import school_policy
 from detection.soundalike import correct_transcript
 from detection.text_context import apply_harmless_context_rules
 from detection.transcript_quality import phrase_matches
@@ -986,6 +987,27 @@ def correct_for_matching(transcript: str):
     )
 
 
+def drop_turned_off_terms(hits, transcript: str):
+    """Split ``hits`` into (kept, dropped) by the school's turned-off words.
+
+    A hit is dropped when it is a turned-off word, or when it sits inside a
+    turned-off phrase that was said: turning off "tambok ka" must also stop the
+    built-in word "tambok" from alerting on that phrase.
+    """
+
+    turned_off = school_policy.disabled_terms()
+    if not turned_off:
+        return list(hits), []
+    said = [term for term in turned_off if _exact_match(term, transcript)]
+    kept, dropped = [], []
+    for hit in hits:
+        if hit in turned_off or any(_exact_match(hit, phrase) for phrase in said):
+            dropped.append(hit)
+        else:
+            kept.append(hit)
+    return kept, dropped
+
+
 def check_transcript(transcript: str) -> dict:
     original_transcript = transcript
     correction = correct_for_matching(transcript)
@@ -1020,6 +1042,13 @@ def check_transcript(transcript: str) -> dict:
     # in both sets), otherwise one hard word alone would trip the hard+soft rule.
     soft_hits = [w for w in soft_hits if w not in HARD_TRIGGERS]
 
+    # Words this school turned off never alert, even from the built-in lists.
+    hard_hits, dropped_hard = drop_turned_off_terms(hard_hits, transcript)
+    soft_hits, dropped_soft = drop_turned_off_terms(soft_hits, transcript)
+    turned_off_hits = dropped_hard + dropped_soft
+    if turned_off_hits:
+        print(f"[SCHOOL_CONFIG] turned_off_terms_dropped={len(turned_off_hits)}")
+
     candidate_terms = list(dict.fromkeys(hard_hits + soft_hits))
     context_result = apply_harmless_context_rules(text, candidate_terms)
     accepted_terms = set(context_result.accepted_terms)
@@ -1045,7 +1074,11 @@ def check_transcript(transcript: str) -> dict:
     matched_terms = build_matched_terms(
         transcript,
         all_detected,
-        excluded_terms=[item["term"] for item in suppressed_terms],
+        excluded_terms=[
+            *(item["term"] for item in suppressed_terms),
+            *turned_off_hits,
+            *school_policy.disabled_terms(),
+        ],
     )
 
     severity_decision = calculate_severity(

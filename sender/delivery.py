@@ -76,9 +76,11 @@ class DeliverySettings:
 
 
 def _default_resync() -> bool:
-    from model.monitored_terms import sync_backend_dictionary
+    # The school config, not the bare dictionary: a dictionary sync would bring
+    # back the words this school turned off.
+    from model.school_config import resync_terms
 
-    return sync_backend_dictionary()
+    return resync_terms()
 
 
 def _default_refresh_payload(payload: dict) -> dict:

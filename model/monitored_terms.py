@@ -150,6 +150,9 @@ class MonitoredTerm:
     term: str
     language: str
     term_id: Optional[int] = None
+    # "global" (backend dictionary) or "school" (one school's own word). School
+    # words carry no term_id: the backend links them by text to the device's school.
+    source: str = "global"
 
     @property
     def match_type(self) -> str:
@@ -200,6 +203,48 @@ def replace_backend_terms(entries: Iterable[Mapping]) -> tuple[MonitoredTerm, ..
 
     parsed = parse_backend_terms(entries)
     global _BACKEND_TERMS
+    with _BACKEND_TERMS_LOCK:
+        _BACKEND_TERMS = parsed
+    return parsed
+
+
+def parse_config_terms(entries: Iterable[Mapping]) -> tuple[MonitoredTerm, ...]:
+    """Terms from /devices/me/config: global words (with term_id) and school words."""
+
+    parsed = []
+    seen = set()
+    for entry in entries or ():
+        if not isinstance(entry, Mapping):
+            continue
+        term = normalize_text(entry.get("text"))
+        source = "school" if entry.get("source") == "school" else "global"
+        term_id = entry.get("term_id")
+        if source == "school":
+            term_id = None
+        elif isinstance(term_id, bool) or not isinstance(term_id, int):
+            continue
+        key = (source, term_id) if term_id is not None else (source, term)
+        if not term or key in seen:
+            continue
+        parsed.append(
+            MonitoredTerm(
+                term=term,
+                language=normalize_language(entry.get("language"), backend=True),
+                term_id=term_id,
+                source=source,
+            )
+        )
+        seen.add(key)
+    return tuple(
+        sorted(parsed, key=lambda item: (-len(item.term.split()), item.term_id or 0, item.term))
+    )
+
+
+def set_backend_terms(terms: Sequence[MonitoredTerm]) -> tuple[MonitoredTerm, ...]:
+    """Atomically replace the synchronized terms with already-parsed ones."""
+
+    global _BACKEND_TERMS
+    parsed = tuple(terms)
     with _BACKEND_TERMS_LOCK:
         _BACKEND_TERMS = parsed
     return parsed
@@ -286,9 +331,9 @@ def build_matched_terms(
     seen = set()
     backend_texts = {item.term for item in backend_matches}
     for item in [*backend_matches, *local_matches]:
-        # Prefer the synchronized representation when it is the same term and
-        # language, because it carries the authoritative term ID.
-        if item.term_id is None and item.term in backend_texts:
+        # Prefer the synchronized representation when it is the same term,
+        # because it carries the term ID (or marks it as the school's word).
+        if item in local_matches and item.term in backend_texts:
             continue
         key = (
             ("id", item.term_id)
@@ -385,7 +430,8 @@ def attach_backend_term_ids(payload: Mapping) -> dict:
 
     by_text = {}
     for item in get_backend_terms():
-        by_text.setdefault(item.term, item)
+        if item.term_id is not None:
+            by_text.setdefault(item.term, item)
     refreshed = dict(payload)
     terms = []
     for matched in payload.get("matched_terms") or ():

@@ -20,7 +20,7 @@ from detection.acoustic_detector import (
 from detection.coordinator import CoordinatorAudioWorker, EventCoordinator
 from detection.latency import LATENCY
 from detection.text_detector import TextDetector, TextDetectorWorker
-from model.monitored_terms import start_dictionary_sync
+from model.school_config import start_school_config_sync
 from model.whisper_stt import (
     RealtimeSTTFeedWorker,
     set_media_classifier,
@@ -70,7 +70,7 @@ class EdgeRuntime:
                 "durability failures explicitly"
             )
         check_backend_connection()
-        start_dictionary_sync()
+        start_school_config_sync()
         start_heartbeat(
             interval=60,
             info_provider=self.network_info_provider,

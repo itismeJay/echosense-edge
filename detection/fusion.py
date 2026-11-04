@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 from config import DetectionRuntimeConfig
+from detection import school_policy
 from detection.evidence import AcousticEvidence, TextEvidence
 from detection.severity import (
     HIGH,
@@ -183,12 +184,16 @@ def fuse_event_evidence(
             supporting.append("unlinked_acoustic_evidence_ignored")
         # Soft descriptive words ("ugly", "too short") are everyday speech:
         # send them only when aimed at someone or said in an aggressive tone.
+        # A school on Strict sensitivity wants them sent anyway.
         descriptive_only = is_descriptive_only(
             term for item in qualifying_text for term in item.detected_terms
         )
         if descriptive_only and not targeted_count and not corroborated:
-            deliver = False
-            reasons.append("descriptive_untargeted:never_sent")
+            if school_policy.is_strict():
+                supporting.append("strict_sensitivity:descriptive_untargeted_sent")
+            else:
+                deliver = False
+                reasons.append("descriptive_untargeted:never_sent")
     else:
         # Sound never creates an alert by itself: kept in the local log only.
         level = LOW
