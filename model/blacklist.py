@@ -1,15 +1,27 @@
 from typing import List
 
 from detection.severity import (
+    DESCRIPTIVE_TERMS,
     HIGH_SEVERITY_TERMS,
     LOW_SEVERITY_TERMS,
     MEDIUM_SEVERITY_TERMS,
     calculate_severity,
 )
+from detection.lexicon import (
+    CONTEXT as LEX_CONTEXT,
+    INSULT as LEX_INSULT,
+    LEXICON,
+    SELF_HARM as LEX_SELF_HARM,
+    SWEAR as LEX_SWEAR,
+    THREAT as LEX_THREAT,
+)
+from detection.soundalike import correct_transcript
 from detection.text_context import apply_harmless_context_rules
 from detection.transcript_quality import phrase_matches
+from config import SOUNDALIKE_MATCH
 from model.monitored_terms import (
     build_matched_terms,
+    get_backend_terms,
     match_backend_terms,
     normalize_text,
 )
@@ -62,6 +74,7 @@ HARD_TRIGGERS = {
 
     # ── Threats ──────────────────────────────────────────────
     "patyon tika", "patyon ka nako", "kill you",
+    "bunalan tika", "bunalan ka nako", "sumbagon tika", "patyon taka",
     "gusto kag sumbagay", "suwayi rag duol",
     "sumbagay ta", "papatayin kita",
     "papatayin kita", "mamamatay ka",
@@ -175,6 +188,51 @@ HARD_TRIGGERS = {
     # ── Bisaya bullying sentences (Grade 6) — added ──────────
     "buang kaayo ka", "wala kay kapuse pahan", "wala kay pulos",
     "yawa ka gyud", "piste ka", "giatay ka", "bogo gyud ka",
+    # "atay" alone is "liver" and sits inside "patay" (dead), so only the
+    # directed curse is monitored.
+    "atay ka", "yawa ka", "gaga ka", "bogo ka",
+
+    # ── Bisaya (Davao) priority additions: the deployment school ──
+    # Single words only where the word has no everyday meaning; otherwise
+    # the directed "... ka" form ("mananap" is also just "animal").
+    "amaw", "amaw ka",                  # stupid
+    # "boang" (buang spelling) is covered by the sound-alike spelling fold.
+    "bugo ka", "bogo ka gyud",          # stupid
+    "pisti ka",                         # pest/curse (piste spelling)
+    "maot ka", "maot kaayo ka",         # you're ugly
+    "bati kaayo ka",                    # you're very ugly
+    "luod ka",                          # you're disgusting
+    "mananap ka",                       # you beast
+    "bayot ka",                         # anti-gay slur, aimed
+    "ulaga ka",                         # idiot
+    # Vocative shouts ("Yawaa!", "Buanga!", "Animala!")
+    "yawaa", "buanga", "bogoa", "animala", "amawa", "giatay ka",
+    # Physical threats (tika/taka = I will ... you)
+    "tadyakan tika", "tadyakan taka",   # kick you
+    "sagpaon tika", "sagpaon taka",     # slap you
+    "kulatahon tika",                   # beat you up
+    "sumbagon taka", "sumbagon ka nako",# punch you
+    "bunalan taka",                     # hit you
+
+    # ── Grade 6 Bisaya list (school plan, 2026-11-04) ─────────
+    # Body/appearance, aimed
+    "niwang ka", "buktot ka", "kutohon ka", "dakog tiyan",
+    "bisaya kaayo ka",                  # backward/"promdi"
+    # Intelligence
+    "buwang", "walay utok", "hinay ug utok", "abnoy ka", "ungo ka",
+    # Poverty/family, aimed
+    "pobre ka", "ilo ka",
+    # Character
+    "sipsip ka", "salingkapaw ka", "tikasan ka",
+    # Swear words, aimed
+    "gago ka", "leche ka",
+    # Exclusion
+    "walay ganahan nimo",
+    # Threats and self-harm (always HIGH, see detection/severity.py)
+    "sipaon tika", "sipaon taka", "hulata ko sa gawas", "ayaw pagsumbong",
+    "magpakamatay ka",
+    # Natural wordings from the school recordings
+    "anak ka sa pobre", "wala ka y pulos",
     "walay pulos ka", "dili ka gusto sa tanan", "dili ka gusto",
     "wala kay bili",
 
@@ -374,6 +432,20 @@ SOFT_TRIGGERS = {
     "loser", "get lost", "go away",
     "nobody cares", "you don't belong", "you don t belong",
     "dili ka among barkada",    # not part of our group
+    # Bisaya priority additions (scolding/exclusion; context decides)
+    "pahawa diri",              # get out of here
+    "dili ka apil",             # you're not included
+    "ayaw siya iapil",          # don't include them
+    "way uwaw ka",              # shameless
+    "walay uwaw ka",
+    "walay ulaw ka",
+    "way pulos ka",             # you're useless
+    # Grade 6 Bisaya list: context decides (aimed or shouted)
+    "walay kwarta", "anak sa pobre", "layo diri", "ayaw ug duol",
+    "ayaw ug duol nako",        # don't come near me
+    "palayo diri",              # go away from here (aimed: "palayo diri ikaw")
+    # Base body/poverty words: alert only when aimed (DESCRIPTIVE_TERMS)
+    "itom", "niwang", "hugaw", "buktot", "pobre", "kutohon",
 
     # ── Code-switch combo phrases ─────────────────────────────
     "bogo ka man gyud",         # you really are stupid
@@ -575,6 +647,21 @@ THREAT_KEYWORDS = {
     "bungoan tika", "suntukan ta", "sampalan tika",  # Grade 6 additions
     "kill yourself", "go kill yourself", "patay ka na sana",  # sentence additions
 }
+
+# ─────────────────────────────────────────────────────────────
+# BISAYA GRADE 6 LEXICON (lexicon/bisaya_bullying.yaml)
+# ─────────────────────────────────────────────────────────────
+# Insults, threats, self-harm and bare swear words are hard triggers;
+# exclusion/pressure phrases are soft (context decides).
+_CURATED_TERMS = frozenset(HARD_TRIGGERS | SOFT_TRIGGERS)
+# Curated single words and "X ka"/"X tika" forms stay fuzzy even when the
+# lexicon also lists them; every other lexicon phrase matches exactly.
+_CORE_CURATED = frozenset(
+    term for term in _CURATED_TERMS
+    if len(term.split()) == 1 or term.split()[-1] in ("ka", "tika", "taka")
+)
+HARD_TRIGGERS |= LEXICON.texts(LEX_INSULT, LEX_THREAT, LEX_SELF_HARM, LEX_SWEAR)
+SOFT_TRIGGERS |= LEXICON.texts(LEX_CONTEXT)
 
 # ─────────────────────────────────────────────────────────────
 # COMBINED SET
@@ -848,7 +935,68 @@ def restrict_to_terms(result: dict, keep_terms, transcript: str) -> dict:
     return restricted
 
 
+# Sound-alike correction of Whisper mishearings (detection/soundalike.py).
+# The explicit MISHEARINGS table always applies; this switches the fuzzy
+# sound-alike layer. Module-level so the offline evaluator can toggle it.
+SOUNDALIKE_ENABLED = SOUNDALIKE_MATCH
+# The explicit MISHEARINGS table. Always on in production; the evaluator
+# switches it off only to reproduce the pre-correction baseline.
+MISHEARINGS_ENABLED = True
+
+
+def _correction_terms():
+    backend = tuple(item.term for item in get_backend_terms())
+    return _correction_terms_for(backend)
+
+
+_CORRECTION_CACHE = {}
+
+
+def _correction_terms_for(backend_terms):
+    cached = _CORRECTION_CACHE.get(backend_terms)
+    if cached is None:
+        terms = tuple(sorted(ALL_BLACKLIST | set(backend_terms)))
+        # Single words that may match with one differing sound: hard insults
+        # only. Descriptive words ("short", "ugly") must match exactly.
+        fuzzy = frozenset(
+            term for term in HARD_TRIGGERS
+            if " " not in term and term not in DESCRIPTIVE_TERMS
+        )
+        # Lexicon pattern variants match exactly (spelling folded), never
+        # "close enough": hundreds of fuzzy targets would invent insults.
+        # Curated core forms ("patyon tika") keep sound-alike matching.
+        exact_only = LEXICON.generated - _CORE_CURATED
+        cached = (terms, fuzzy - exact_only, exact_only)
+        _CORRECTION_CACHE.clear()
+        _CORRECTION_CACHE[backend_terms] = cached
+    return cached
+
+
+def correct_for_matching(transcript: str):
+    """Mishearing/sound-alike correction used before every match."""
+
+    terms, fuzzy, exact_only = _correction_terms()
+    return correct_transcript(
+        transcript,
+        terms,
+        fuzzy_terms=fuzzy,
+        exact_terms=exact_only,
+        soundalike=SOUNDALIKE_ENABLED,
+        mishearings=MISHEARINGS_ENABLED,
+    )
+
+
 def check_transcript(transcript: str) -> dict:
+    original_transcript = transcript
+    correction = correct_for_matching(transcript)
+    if correction.corrections:
+        # Match, judge context and severity on the corrected words. The
+        # caller keeps the original transcript as the evidence of record.
+        transcript = correction.text
+        print(
+            "[SOUNDALIKE] corrections="
+            + ",".join(f"{c.kind}:{c.term}" for c in correction.corrections)
+        )
     text = clean_text(transcript)
 
     # Match the original source so a phrase cannot be assembled across a strong
@@ -927,6 +1075,8 @@ def check_transcript(transcript: str) -> dict:
         "context_suppressed_all": bool(
             candidate_terms and not all_detected and suppressed_terms
         ),
+        "match_text": transcript if transcript != original_transcript else "",
+        "corrections": [item.evidence() for item in correction.corrections],
     }
 
 

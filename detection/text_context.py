@@ -9,7 +9,9 @@ from detection.transcript_quality import normalize_transcript
 
 
 _DIRECT_TARGET_TOKENS = frozenset({
-    "ka", "mo", "ikaw", "imo", "imong", "nimo", "you", "your", "you're",
+    "ka", "mo", "ikaw", "imo", "imong", "nimo",
+    "nimong", "kamo", "ninyo", "niyo", "ninyong", "inyo", "inyong", "kag",
+    "mog", "nimog", "ninyog", "you", "your", "you're",
     # Synthetic, identity-free token used by tests/integrations for a named target.
     "classmate",
 })
@@ -39,10 +41,52 @@ def _contains_sequence(tokens: tuple[str, ...], sequence: tuple[str, ...]) -> bo
     )
 
 
+_NEGATORS = frozenset({"dili", "di", "not", "hindi"})
+# Words that may sit between the negator and the insult: "dili man ka bogo".
+_NEGATION_FILLERS = frozenset({
+    "ka", "man", "gyud", "jud", "ikaw", "mo", "kamo", "pud", "sad", "baya",
+    "na", "ba", "you", "are", "re", "ra",
+})
+
+
+def _occurrences(tokens, term_tokens):
+    length = len(term_tokens)
+    return [
+        index for index in range(len(tokens) - length + 1)
+        if tokens[index:index + length] == term_tokens
+    ]
+
+
+def _negated(index: int, tokens: tuple[str, ...]) -> bool:
+    cursor = index - 1
+    while cursor >= 0 and tokens[cursor] in _NEGATION_FILLERS:
+        cursor -= 1
+    return cursor >= 0 and tokens[cursor] in _NEGATORS
+
+
+def _negation_reason(term: str, tokens: tuple[str, ...]) -> str | None:
+    """"dili ka bogo" (you're NOT stupid) is not an insult.
+
+    Only when every occurrence is directly negated; terms that contain the
+    negator themselves ("dili ka apil") are never touched.
+    """
+
+    term_tokens = tuple(term.split())
+    if not term_tokens or set(term_tokens) & _NEGATORS:
+        return None
+    found = _occurrences(tokens, term_tokens)
+    if found and all(_negated(index, tokens) for index in found):
+        return "negated"
+    return None
+
+
 def _suppression_reason(
     term: str,
     tokens: tuple[str, ...],
 ) -> str | None:
+    negation = _negation_reason(term, tokens)
+    if negation:
+        return negation
     if term not in _AMBIGUOUS_TERMS or set(tokens) & _DIRECT_TARGET_TOKENS:
         return None
 

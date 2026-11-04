@@ -60,6 +60,14 @@ class TextEvidence:
     # Wall-clock start of the spoken utterance, when known. observed_at is the
     # utterance end; together they bound when the words were actually said.
     spoken_started_at: datetime | None = None
+    # The transcript after mishearing/sound-alike correction (see
+    # detection/soundalike.py). Severity and targeting judge this text; the
+    # payload always carries the original ``transcript``.
+    match_text: str = ""
+
+    @property
+    def decision_text(self) -> str:
+        return self.match_text or self.transcript
 
     def __post_init__(self):
         _aware(self.observed_at, "observed_at")
@@ -70,7 +78,11 @@ class TextEvidence:
         _finite(self.observed_monotonic, "observed_monotonic")
         if self.baseline_severity not in SEVERITY_LEVELS:
             raise ValueError("baseline_severity is invalid")
-        if len(self.transcript) > 10_000 or len(self.normalized_transcript) > 10_000:
+        if (
+            len(self.transcript) > 10_000
+            or len(self.normalized_transcript) > 10_000
+            or len(self.match_text) > 10_000
+        ):
             raise ValueError("transcript evidence exceeds its bound")
         for name in (
             "matched_terms",

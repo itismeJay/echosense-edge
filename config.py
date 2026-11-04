@@ -521,7 +521,33 @@ ACOUSTIC_DEGRADED_MODE = parse_boolean(
 )
 
 # Whisper model for faster-whisper: a size name ("base") or a local model dir.
-WHISPER_MODEL = str(os.environ.get("ECHOSENSE_WHISPER_MODEL") or "base").strip()
+# A path (anything with a slash) is resolved against the repo root, so
+# "models/sapinsapin_whisper-small-pld-ceb-ct2-int8" works on Mac and Pi.
+# Pick by Bisaya recall: tools/evaluate_testset.py ranks configs that way.
+_whisper_model = str(os.environ.get("ECHOSENSE_WHISPER_MODEL") or "base").strip()
+WHISPER_MODEL = (
+    str(project_path(_whisper_model))
+    if "/" in _whisper_model or "\\" in _whisper_model
+    else _whisper_model
+)
+# Whisper decode policy (model/language_restricted_engine.py):
+#   tl     always Tagalog (closest Whisper language to Bisaya; default,
+#          best Bisaya recall on every model tested)
+#   auto   detect, restricted to English/Tagalog
+#   en     always English
+#   tl+en  Tagalog, then English only when Tagalog matched no monitored term
+WHISPER_LANGUAGE = str(
+    os.environ.get("ECHOSENSE_WHISPER_LANGUAGE") or "tl"
+).strip().lower()
+# Neutral context prompt. Never put monitored words here: Whisper then
+# "hears" them in music and silence.
+WHISPER_PROMPT = str(os.environ.get("ECHOSENSE_WHISPER_PROMPT") or "").strip()
+# Gain before Whisper: off, peak (normalize peak) or rms (speech loudness).
+WHISPER_GAIN = str(os.environ.get("ECHOSENSE_WHISPER_GAIN") or "off").strip().lower()
+# Sound-alike correction of Whisper mishearings before term matching.
+SOUNDALIKE_MATCH = parse_boolean(
+    os.environ.get("ECHOSENSE_SOUNDALIKE_MATCH"), default=True,
+)
 
 # Legacy Vosk models (model/vosk_detect.py, not used by the live runtime)
 VOSK_FILIPINO_MODEL = str(project_path(

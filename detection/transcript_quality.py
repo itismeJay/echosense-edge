@@ -34,9 +34,25 @@ class TranscriptQualityResult:
 
 
 def _normalized_characters(value: object) -> str:
-    """Normalize Unicode form/case without compatibility-folding word content."""
+    """Normalize Unicode form/case without compatibility-folding word content.
 
-    return unicodedata.normalize("NFC", str(value or "")).lower()
+    Accents on Latin letters are dropped: Bisaya-tuned Whisper models write
+    stress marks ("gágà ka", "Pangít") that the word lists never carry.
+    Marks on non-Latin letters are kept.
+    """
+
+    decomposed = unicodedata.normalize("NFD", str(value or ""))
+    kept = []
+    for character in decomposed:
+        if (
+            unicodedata.combining(character)
+            and kept
+            and kept[-1].isascii()
+            and kept[-1].isalpha()
+        ):
+            continue
+        kept.append(character)
+    return unicodedata.normalize("NFC", "".join(kept)).lower()
 
 
 def _is_word_character(character: str) -> bool:

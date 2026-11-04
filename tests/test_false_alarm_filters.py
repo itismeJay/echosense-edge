@@ -315,7 +315,7 @@ class PipelineTests(unittest.TestCase):
         result, alerts = self.run_utterance(
             "Bobo ka!", metadata([(" Bobo", 0.93), (" ka!", 0.88)])
         )
-        self.assertEqual(result["detected_words"], ["bobo"])
+        self.assertEqual(result["detected_words"], ["bobo ka", "bobo"])
         self.assertEqual(len(alerts), 1)
 
     def test_threat_still_alerts_with_music_playing(self):
@@ -395,7 +395,7 @@ class PipelineTests(unittest.TestCase):
 
     def test_without_decode_metrics_the_word_gated_path_is_unchanged(self):
         result, alerts = self.run_utterance("Bobo ka!", None)
-        self.assertEqual(result["detected_words"], ["bobo"])
+        self.assertEqual(result["detected_words"], ["bobo ka", "bobo"])
         self.assertEqual(len(alerts), 1)
 
 
@@ -433,7 +433,24 @@ class EngineTests(unittest.TestCase):
         self.addCleanup(setattr, module, "_whisper_model", original)
         return engine
 
+    def use_language_mode(self, mode):
+        import config
+
+        original = config.WHISPER_LANGUAGE
+        config.WHISPER_LANGUAGE = mode
+        self.addCleanup(setattr, config, "WHISPER_LANGUAGE", original)
+
+    def test_default_mode_forces_tagalog_for_bisaya(self):
+        import config
+
+        self.assertEqual(config.WHISPER_LANGUAGE, "tl")
+        engine = self.make_engine()
+        result = engine.transcribe(np.zeros(16000, np.float32), use_prompt=True)
+        self.assertEqual(engine.model.calls[0]["language"], "tl")
+        self.assertEqual(result.info.language_probability, 1.0)
+
     def test_decodes_without_the_hint_list_and_with_word_probabilities(self):
+        self.use_language_mode("auto")
         engine = self.make_engine()
         result = engine.transcribe(np.zeros(16000, np.float32), use_prompt=True)
         call = engine.model.calls[0]
@@ -454,9 +471,12 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(engine.model.calls[0]["language"], "en")
 
     def test_recorder_never_receives_the_hint_list(self):
+        # Only the neutral ECHOSENSE_WHISPER_PROMPT may reach Whisper, never
+        # the monitored-term hint list.
         source = (ROOT / "model" / "whisper_stt.py").read_text()
-        self.assertIn("initial_prompt=None,", source)
+        self.assertIn("initial_prompt=WHISPER_PROMPT or None,", source)
         self.assertNotIn("initial_prompt=initial_prompt", source)
+        self.assertNotIn("initial_prompt=build_initial_prompt", source)
 
 
 if __name__ == "__main__":

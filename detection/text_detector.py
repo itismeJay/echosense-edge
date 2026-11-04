@@ -118,7 +118,11 @@ class TextDetector:
         hard_hits = tuple(dict.fromkeys(result.get("hard_hits") or ()))[:50]
         soft_hits = tuple(dict.fromkeys(result.get("soft_hits") or ()))[:50]
         laughter = bool(result.get("is_casual"))
-        direct_target = has_direct_target_evidence(transcript)
+        # Corrected text (mishearings, sound-alikes) decides severity and
+        # targeting; the original transcript stays the evidence of record.
+        match_text = str(result.get("match_text") or "")[:10_000]
+        decision_text = match_text or transcript
+        direct_target = has_direct_target_evidence(decision_text)
 
         repeated = False
         if quality_accepted and detected:
@@ -144,7 +148,7 @@ class TextDetector:
         # utterance here and across the incident in fusion.
         severity = calculate_severity(
             detected,
-            transcript=transcript,
+            transcript=decision_text,
             laughter_present=laughter,
         )
         context_suppressed = bool(result.get("context_suppressed_all"))
@@ -202,6 +206,7 @@ class TextDetector:
             laughter_present=laughter,
             qualifies_to_open=qualifies,
             spoken_started_at=spoken_started_at,
+            match_text=match_text if match_text != transcript else "",
         )
         self.evidence_count += 1
         print(

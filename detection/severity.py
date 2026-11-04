@@ -10,6 +10,8 @@ from dataclasses import dataclass
 import re
 from typing import Iterable
 
+from detection.lexicon import LEXICON, SELF_HARM as _LEX_SELF_HARM, THREAT as _LEX_THREAT
+
 
 LOW = "LOW"
 MEDIUM = "MEDIUM"
@@ -29,8 +31,9 @@ SELF_HARM_DIRECTIVES = frozenset({
     "kill yourself",
     "go kill yourself",
     "go die",
+    "magpakamatay ka",
     "patay ka na sana",
-})
+}) | LEXICON.texts(_LEX_SELF_HARM)
 
 THREAT_LIKE_PHRASES = frozenset({
     "kill you",
@@ -44,11 +47,31 @@ THREAT_LIKE_PHRASES = frozenset({
     "bungoan tika",
     "suntukan ta",
     "sampalan tika",
-})
+    "bunalan tika",
+    "bunalan ka nako",
+    "sumbagon tika",
+    "patyon taka",
+    "tadyakan tika",
+    "tadyakan taka",
+    "sagpaon tika",
+    "sagpaon taka",
+    "kulatahon tika",
+    "sumbagon taka",
+    "sumbagon ka nako",
+    "bunalan taka",
+    "sipaon tika",
+    "sipaon taka",
+    "hulata ko sa gawas",
+    # Pressure not to report bullying: treated as a threat signal.
+    "ayaw pagsumbong",
+}) | LEXICON.texts(_LEX_THREAT)
 
 SEVERE_DIRECT_HARASSMENT_TERMS = frozenset({
     "yawa",
     "giatay",
+    "giatay ka",
+    "yawaa",
+    "bayot ka",
     "bilat",
     "kayat",
     "iyot",
@@ -68,7 +91,6 @@ SEVERE_DIRECT_HARASSMENT_TERMS = frozenset({
     "agta",
     "negra",
     "negro",
-    "bungi",
     "kulisap ang buhok",
     "mukha kang unggoy",
 })
@@ -80,6 +102,19 @@ MEDIUM_DIRECT_HARASSMENT_TERMS = frozenset({
     "buang",
     "buang ka",
     "buang kaayo",
+    "amaw",
+    "amaw ka",
+    "amawa",
+    "buanga",
+    "bogoa",
+    "animala",
+    "ulaga",
+    "ulaga ka",
+    "buwang",
+    "walay utok",
+    "hinay ug utok",
+    "mananap ka",
+    "pisti ka",
     "gago",
     "gaga",
     "bobo",
@@ -133,6 +168,67 @@ LOW_RISK_MONITORED_TERMS = frozenset({
     "malaking tenga",
 })
 
+# Soft, descriptive words ("ugly", "too short", "fat") that are everyday
+# speech about things and people. An incident made only of these is sent
+# only when aimed at someone (ka/mo/ikaw/you...) or said in a time-linked
+# aggressive tone; see detection/fusion.py. Hard insults, slurs, threats and
+# self-harm terms are never in this set.
+DESCRIPTIVE_TERMS = frozenset(LOW_RISK_MONITORED_TERMS | {
+    "pangid",
+    "panget",
+    "baduy",
+    "jologs",
+    "too short",
+    "short",
+    "small",
+    "tall",
+    "thin",
+    "skinny",
+    "chubby",
+    "dark",
+    "taba",
+    "mataba",
+    "itim",
+    "liit",
+    "gamay",
+    "taas",
+    "kalansay",
+    "duling",
+    "kulot",
+    "hugaw",
+    "dugyot",
+    # Grade 6 Bisaya body/poverty words: everyday as descriptions ("itom
+    # nga lapis", "tambok nga manok", "adobong baboy"), bullying when aimed.
+    "tambok",
+    "itom",
+    "pandak",
+    "niwang",
+    "pangit",
+    "baho",
+    "buktot",
+    "bungi",
+    "pobre",
+    "kutohon",
+    "baboy",
+    "leche",
+    # Everyday phrases ("walay kwarta ko", "ayaw ug duol sa kalayo",
+    # "layo diri ang balay"): exclusion only when aimed or shouted.
+    "walay kwarta",
+    "layo diri",
+    "ayaw ug duol",
+    "dakog tiyan",
+    "dako og tiyan",
+    # Everyday nouns that insult only when aimed: charcoal, lice, a big nose
+    # ("itom ang uling", "tambal sa kuto", "dakog ilong ang elepante").
+    "uling",
+    "kuto",
+    "dakog ilong",
+    "palayo diri",
+    "weird",
+    "slow",
+    "lazy",
+})
+
 HIGH_SEVERITY_TERMS = frozenset(
     SELF_HARM_DIRECTIVES
     | THREAT_LIKE_PHRASES
@@ -149,6 +245,19 @@ _DIRECT_TARGET_TOKENS = frozenset({
     "imo",
     "imong",
     "nimo",
+    # Bisaya "you" forms, plural and joined with "ug" (kag = ka ug):
+    # "mura kag baboy", "tamboka ninyo", "dakoa nimog tiyan".
+    "nimong",
+    "kamo",
+    "ninyo",
+    "niyo",
+    "ninyong",
+    "inyo",
+    "inyong",
+    "kag",
+    "mog",
+    "nimog",
+    "ninyog",
     "you",
     "your",
     "you're",
@@ -224,12 +333,35 @@ def _normalize_term(value: object) -> str:
     return " ".join(str(value or "").strip().lower().split())
 
 
+_YOUR_FORMS = frozenset({"imong", "imo", "nimo", "inyong", "inyo", "ninyo", "niyo"})
+
+
+def _target_tokens(tokens) -> set:
+    """Target words, except the exclamative "ka" in "ka itom sa langit"
+    (how dark the sky): "ka ADJ sa/ang X" where X is not "your"."""
+
+    tokens = list(tokens)
+    found = set()
+    for index, token in enumerate(tokens):
+        if token not in _DIRECT_TARGET_TOKENS:
+            continue
+        if (
+            token == "ka"
+            and index + 2 < len(tokens)
+            and tokens[index + 2] in ("sa", "ang")
+            and (index + 3 >= len(tokens) or tokens[index + 3] not in _YOUR_FORMS)
+        ):
+            continue
+        found.add(token)
+    return found
+
+
 def has_direct_target_evidence(transcript: object) -> bool:
-    tokens = {
+    tokens = [
         token.lower()
         for token in _WORD_PATTERN.findall(str(transcript or "").lower())
-    }
-    return bool(tokens & _DIRECT_TARGET_TOKENS)
+    ]
+    return bool(_target_tokens(tokens))
 
 
 def _tokens(text: object) -> tuple[str, ...]:
@@ -273,7 +405,7 @@ def _context_downgrade(tokens, terms) -> str | None:
         for index in _sequence_positions(tokens, sequence)
     ):
         return "negated_or_instructional"
-    if set(tokens) & _DIRECT_TARGET_TOKENS:
+    if _target_tokens(tokens):
         return None
     if set(tokens) & _SELF_DIRECTED_TOKENS or any(
         _sequence_positions(tokens, sequence)
@@ -445,6 +577,32 @@ def calculate_severity(
         return decision(MEDIUM, reasons, supporting)
     reasons.append("held_low:no_aggression")
     return decision(LOW, reasons, supporting)
+
+
+# Intensifiers that keep a descriptive phrase descriptive ("pangit kaayo",
+# "too short", "so ugly"). Target words (ka/mo/you) are deliberately absent.
+_INTENSIFIERS = frozenset({
+    "kaayo", "kayo", "kaau", "kau", "jud", "gyud", "pud", "sad", "na",
+    "so", "very", "too", "really", "super", "ang", "ng", "napaka", "masyado",
+})
+
+
+def _is_descriptive_term(term: str) -> bool:
+    if term in DESCRIPTIVE_TERMS:
+        return True
+    tokens = term.split()
+    return (
+        any(token in DESCRIPTIVE_TERMS for token in tokens)
+        and all(token in DESCRIPTIVE_TERMS or token in _INTENSIFIERS for token in tokens)
+    )
+
+
+def is_descriptive_only(monitored_terms: Iterable[object]) -> bool:
+    """True when every term is a soft descriptive word (see DESCRIPTIVE_TERMS),
+    optionally with an intensifier ("pangit kaayo", "too short")."""
+
+    terms = {_normalize_term(term) for term in monitored_terms or ()} - {""}
+    return bool(terms) and all(_is_descriptive_term(term) for term in terms)
 
 
 def contains_high_severity_term(monitored_terms: Iterable[object]) -> bool:

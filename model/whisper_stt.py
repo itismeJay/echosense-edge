@@ -9,7 +9,14 @@ import unicodedata
 import numpy as np
 
 from audio.audio_event import float32_samples_to_int16
-from config import DETECTION_RUNTIME, SHOW_TRANSCRIPT_TEXT, WHISPER_MODEL
+from config import (
+    DETECTION_RUNTIME,
+    SHOW_TRANSCRIPT_TEXT,
+    WHISPER_GAIN,
+    WHISPER_LANGUAGE,
+    WHISPER_MODEL,
+    WHISPER_PROMPT,
+)
 from detection.latency import LATENCY
 from detection.false_alarm_filters import (
     DecodeMetrics,
@@ -28,6 +35,7 @@ from model.language_restricted_engine import register as register_restricted_eng
 from model.monitored_terms import classify_transcript_language, get_backend_terms
 from model.realtimestt_audio_adapter import RealtimeSTTAudioEventAdapter
 from model.result_queue import BoundedResultQueue
+from model.stt_version import stt_model_version
 
 # Whisper decodes with NO initial_prompt. A prompt listing the monitored terms
 # made Whisper "hear" those words in music, video audio and quiet rooms. The
@@ -283,6 +291,36 @@ def _is_supported_transcription(text: str, whisper_language) -> bool:
         language in _SUPPORTED_WHISPER_LANGUAGES
         and _uses_supported_latin_script(text)
     )
+
+
+def _retry_in_language(recorder, audio_event, language):
+    """Decode one finalized event again in ``language`` (no prompt)."""
+
+    if audio_event is None or not hasattr(recorder, "perform_final_transcription"):
+        return "", None, None
+    missing = object()
+    previous_language = getattr(recorder, "language", missing)
+    try:
+        recorder.language = language
+        text = recorder.perform_final_transcription(
+            audio_event.samples, use_prompt=False,
+        )
+        detected = getattr(recorder, "detected_language", None)
+        confidence = getattr(recorder, "detected_language_probability", None)
+    except Exception as exc:
+        print(f"[LANGUAGE_GUARD] retry_failed={type(exc).__name__}")
+        return "", None, None
+    finally:
+        if previous_language is missing:
+            try:
+                del recorder.language
+            except AttributeError:
+                pass
+        else:
+            recorder.language = previous_language
+    if not _is_supported_transcription(text, detected):
+        return "", None, None
+    return text, detected, confidence
 
 
 def _retry_in_regional_language(recorder, audio_event):
@@ -549,6 +587,21 @@ def _run_transcription_cycle(recorder, audio_event_adapter):
     else:
         LATENCY.mark(utterance_id, "whisper_done")
 
+    if (
+        text
+        and WHISPER_LANGUAGE == "tl+en"
+        and not check_transcript(text).get("detected_words")
+    ):
+        english, english_language, english_probability = _retry_in_language(
+            recorder, audio_event, "en",
+        )
+        if english and check_transcript(english).get("detected_words"):
+            print("[LANGUAGE_GUARD] english_fallback=matched")
+            text = english
+            detected_language = english_language
+            detected_language_probability = english_probability
+        LATENCY.mark(utterance_id, "whisper_done", english_fallback="true")
+
     return (
         text,
         audio_event,
@@ -564,7 +617,15 @@ def _recorder_loop():
         from RealtimeSTT import AudioToTextRecorder
 
         print(f"[STT] Loading RealtimeSTT with Whisper {WHISPER_MODEL}...")
-        print("[STT] initial_prompt=none (dictionary used for matching only)")
+        print(
+            "[STT] initial_prompt="
+            + ("neutral_context" if WHISPER_PROMPT else "none")
+            + " (dictionary used for matching only)"
+        )
+        print(
+            f"[STT] model={stt_model_version()} language={WHISPER_LANGUAGE} "
+            f"gain={WHISPER_GAIN}"
+        )
         _recording_limiter = RealtimeSTTRecordingLimiter(
             DETECTION_RUNTIME.max_stt_utterance_seconds
         )
@@ -587,7 +648,11 @@ def _recorder_loop():
             use_microphone=False,
             # VAD remains permissive for short/quiet classroom utterances.
             silero_sensitivity=0.6,
-            webrtc_sensitivity=1,
+            # WebRTC 3 (strictest): at 1 it marked a quiet room as speech 63%
+            # of the time, so recordings ran to the 15 s cap and Whisper
+            # transcribed room hum. 3 marked it 1% and still caught all 82
+            # recorded test phrases (2026-11-04).
+            webrtc_sensitivity=3,
             post_speech_silence_duration=0.45,
             min_length_of_recording=0.5,
             min_gap_between_recordings=0.1,
@@ -597,7 +662,7 @@ def _recorder_loop():
             # No hint list (see the note at the top of this module). Realtime
             # transcription remains disabled so only one Whisper model competes
             # for Pi CPU.
-            initial_prompt=None,
+            initial_prompt=WHISPER_PROMPT or None,
         )
         try:
             _recorder = AudioToTextRecorder(

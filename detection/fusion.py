@@ -13,6 +13,7 @@ from detection.severity import (
     MEDIUM,
     SEVERITY_ORDER,
     calculate_severity,
+    is_descriptive_only,
     is_targeted,
 )
 
@@ -98,7 +99,7 @@ def _targeted_utterances(text_items):
     return sum(
         1
         for item in text_items
-        if is_targeted(item.detected_terms, item.transcript)
+        if is_targeted(item.detected_terms, item.decision_text)
     )
 
 
@@ -111,11 +112,11 @@ def _fuse_text(text_item, acoustic_evidence, targeted_count, config):
     linked_qualifying = [item for item in linked if item.qualifies_to_open]
     strong = strong_acoustic(linked, config) if linked_qualifying else False
     repeated_in_incident = targeted_count >= 2 and is_targeted(
-        text_item.detected_terms, text_item.transcript,
+        text_item.detected_terms, text_item.decision_text,
     )
     decision = calculate_severity(
         text_item.detected_terms,
-        transcript=text_item.transcript,
+        transcript=text_item.decision_text,
         repeated=repeated_in_incident,
         acoustic_aggressive=bool(linked_qualifying),
         laughter_present=text_item.laughter_present,
@@ -180,6 +181,14 @@ def fuse_event_evidence(
             corroborated = corroborated or linked
         if qualifying_acoustic and not corroborated:
             supporting.append("unlinked_acoustic_evidence_ignored")
+        # Soft descriptive words ("ugly", "too short") are everyday speech:
+        # send them only when aimed at someone or said in an aggressive tone.
+        descriptive_only = is_descriptive_only(
+            term for item in qualifying_text for term in item.detected_terms
+        )
+        if descriptive_only and not targeted_count and not corroborated:
+            deliver = False
+            reasons.append("descriptive_untargeted:never_sent")
     else:
         # Sound never creates an alert by itself: kept in the local log only.
         level = LOW

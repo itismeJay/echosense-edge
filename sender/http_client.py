@@ -257,6 +257,17 @@ def heartbeat_headers(device_id=ECHOSENSE_DEVICE_ID, device_key=ECHOSENSE_DEVICE
     return {"X-EchoSense-Device-Id": device_id, "X-EchoSense-Device-Key": device_key}
 
 
+def model_versions():
+    """The models this edge really runs, so Settings shows the truth."""
+
+    from model.stt_version import stt_model_version, yamnet_version
+
+    return {
+        "stt_model_version": stt_model_version(),
+        "yamnet_version": yamnet_version(),
+    }
+
+
 def _heartbeat_loop(interval, info_provider=None):
     while True:
         time.sleep(interval)
@@ -266,9 +277,10 @@ def _heartbeat_loop(interval, info_provider=None):
         # if the backend ignores the body the heartbeat still works.
         info = {}
         try:
-            info = info_provider() if info_provider else {}
+            info = dict(info_provider() if info_provider else {})
         except Exception:
             info = {}
+        info.update(model_versions())
         try:
             response = requests.post(
                 f"{API_URL}/system-settings/heartbeat",
