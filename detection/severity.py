@@ -168,6 +168,17 @@ LOW_RISK_MONITORED_TERMS = frozenset({
     "malaking tenga",
 })
 
+# Vulgar insults that are bullying even when not aimed with ka/mo or shouted.
+# They are at least MEDIUM; negated or self-directed use is still held LOW.
+MEDIUM_FLOOR_TERMS = frozenset({
+    "bahog baba",
+    "baho og baba",
+    "baho ug baba",
+    "baho imong baba",
+    "baho kaayo imong baba",
+    "ka baho sa imong baba",
+})
+
 # Soft, descriptive words ("ugly", "too short", "fat") that are everyday
 # speech about things and people. An incident made only of these is sent
 # only when aimed at someone (ka/mo/ikaw/you...) or said in a time-linked
@@ -506,6 +517,9 @@ def calculate_severity(
         "low_risk_monitored_term": tuple(
             term for term in terms if term in LOW_RISK_MONITORED_TERMS
         ),
+        "vulgar_insult": tuple(
+            term for term in terms if term in MEDIUM_FLOOR_TERMS
+        ),
     }
     categories = {
         category: matched
@@ -559,7 +573,8 @@ def calculate_severity(
         return decision(LOW, reasons, supporting, context)
 
     targeted = direct_target
-    if laughter_present and not strong_acoustic and not repeated:
+    vulgar_floor = "vulgar_insult" in categories
+    if laughter_present and not strong_acoustic and not repeated and not vulgar_floor:
         reasons.append("held_low:playful_context")
         return decision(LOW, reasons, supporting)
 
@@ -574,6 +589,11 @@ def calculate_severity(
             reasons.append("promoted_by:direct_target_pattern")
         if acoustic_aggressive:
             reasons.append("promoted_by:time_linked_aggressive_tone")
+        return decision(MEDIUM, reasons, supporting)
+    if vulgar_floor:
+        reasons.append("medium_floor:vulgar_insult")
+        if laughter_present:
+            reasons.append("laughter_ignored:vulgar_insult")
         return decision(MEDIUM, reasons, supporting)
     reasons.append("held_low:no_aggression")
     return decision(LOW, reasons, supporting)
