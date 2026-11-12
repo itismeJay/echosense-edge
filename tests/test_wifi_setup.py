@@ -140,6 +140,7 @@ class DashboardWifiStatusTests(unittest.TestCase):
             mock.patch.object(edge_main, "get_ip", return_value="192.168.1.20"),
             mock.patch.object(edge_main, "get_ssid", return_value="School"),
             mock.patch.object(edge_main, "get_mac", return_value="aa:bb:cc:dd:ee:ff"),
+            mock.patch.object(edge_main, "_remote_scan_supported", return_value=False),
         ):
             info = edge_main.get_network_info()
         self.assertEqual(info["wifi_status"], "connected")

@@ -28,6 +28,7 @@ ROLLBACK_SECONDS = 120.0
 REACHABILITY_RETRY_SECONDS = 5.0
 NOT_SUPPORTED = "not_supported_on_this_device"
 ACTIONS = ("add", "update", "remove", "set_priority", "connect_now")
+SCAN_LIMIT = 50
 
 
 class CommandError(Exception):
@@ -162,6 +163,8 @@ class WifiCommandRunner:
         self.logger(
             f"[WIFI_REMOTE] command received id={command_id} action={action} network={network}"
         )
+        if action == "scan":
+            return self._scan_result(command_id)
         try:
             if action not in ACTIONS:
                 raise CommandError("unknown_action")
@@ -177,6 +180,43 @@ class WifiCommandRunner:
         self.logger(
             f"[WIFI_REMOTE] command id={command_id} action={action} "
             f"status={result['status']} error={result.get('error') or 'none'}"
+        )
+        return result
+
+    def _scan_result(self, command_id: str) -> dict:
+        """Rescan while staying connected and list nearby networks."""
+
+        try:
+            self.manager.rescan()
+            visible = self.manager.scan(rescan=False)
+            try:
+                known = {p.ssid for p in self.manager.list_saved()}
+            except Exception:
+                known = set()
+            best = {}
+            for network in visible:
+                ssid = str(network.ssid or "")
+                if not ssid.strip():
+                    continue  # hidden network
+                if ssid not in best or network.signal > best[ssid].signal:
+                    best[ssid] = network
+            ordered = sorted(best.values(), key=lambda n: (-n.signal, n.ssid.casefold()))
+            networks = [
+                {
+                    "ssid": n.ssid,
+                    "signal": max(0, min(100, int(n.signal))),
+                    "security": n.security if n.secured else "open",
+                    "known": n.ssid in known,
+                }
+                for n in ordered[:SCAN_LIMIT]
+            ]
+            result = {"status": "applied", "networks": networks}
+        except Exception as exc:
+            result = {"status": "failed", "error": _code(exc)}
+        result["current_ssid"] = self._current_ssid()
+        self.logger(
+            f"[WIFI_REMOTE] command id={command_id} action=scan status={result['status']} "
+            f"networks={len(result.get('networks') or [])} error={result.get('error') or 'none'}"
         )
         return result
 
@@ -321,12 +361,18 @@ class WifiCommandRunner:
             self.logger(f"[WIFI_REMOTE] rollback_error={_code(exc)}")
 
 
+def remote_scan_supported() -> bool:
+    from config import PLATFORM
+
+    return PLATFORM in ("raspberrypi", "linux") and bool(shutil.which("nmcli"))
+
+
 def build_runner():
-    from config import API_URL, NETWORK_INTERFACE, PLATFORM
+    from config import API_URL, NETWORK_INTERFACE
     from sender.http_client import device_auth_headers
 
     manager = None
-    if PLATFORM in ("raspberrypi", "linux") and shutil.which("nmcli"):
+    if remote_scan_supported():
         from provisioning.wifi_setup.networkmanager import NetworkManager
 
         manager = NetworkManager(

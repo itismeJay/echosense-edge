@@ -7,6 +7,7 @@ from provisioning.wifi_setup.networkmanager import (
     CommandResult,
     ConnectionStatus,
     NetworkManager,
+    NetworkManagerError,
     SavedNetwork,
     WifiNetwork,
 )
@@ -176,6 +177,55 @@ class RemoteCommandTests(unittest.TestCase):
         manager.set_priority.assert_called_once()
         self.assertEqual(self.session.post.call_count, 2)
 
+    def test_scan_reports_known_deduped_strongest_first(self):
+        saved = [SavedNetwork("School", SCHOOL, "School", active=True)]
+        manager = fake_manager(saved, current=connected("School", SCHOOL))
+        manager.scan.return_value = [
+            WifiNetwork("Cafe", 40, "--"),
+            WifiNetwork("School", 55, "WPA2"),
+            WifiNetwork("", 99, "WPA2"),
+            WifiNetwork("School", 80, "WPA2"),
+            WifiNetwork("Lab", 80, "WPA1 WPA2"),
+        ]
+        runner = self.runner(manager, [{"id": "s1", "action": "scan"}])
+        runner.poll_once()
+        url, body = self.session.posts[0]
+        self.assertTrue(url.endswith("/device/wifi/commands/s1/result"))
+        self.assertEqual(body["status"], "applied")
+        self.assertEqual(body["current_ssid"], "School")
+        self.assertEqual(body["networks"], [
+            {"ssid": "Lab", "signal": 80, "security": "WPA1 WPA2", "known": False},
+            {"ssid": "School", "signal": 80, "security": "WPA2", "known": True},
+            {"ssid": "Cafe", "signal": 40, "security": "open", "known": False},
+        ])
+        manager.rescan.assert_called_once()
+        manager.scan.assert_called_once_with(rescan=False)
+        manager.activate_saved.assert_not_called()
+        manager.forget.assert_not_called()
+
+    def test_scan_caps_at_fifty(self):
+        manager = fake_manager([])
+        manager.scan.return_value = [WifiNetwork(f"N{i:03}", i % 101, "WPA2") for i in range(80)]
+        runner = self.runner(manager, [{"id": "s2", "action": "scan"}])
+        runner.poll_once()
+        networks = self.session.posts[0][1]["networks"]
+        self.assertEqual(len(networks), 50)
+        self.assertEqual(networks[0]["signal"], 79)
+
+    def test_scan_failure_is_reported(self):
+        manager = fake_manager([])
+        manager.scan.side_effect = NetworkManagerError("nmcli_exit_10")
+        runner = self.runner(manager, [{"id": "s3", "action": "scan"}])
+        runner.poll_once()
+        self.assertEqual(self.session.posts[0][1], {"status": "failed", "error": "nmcli_exit_10"})
+
+    def test_mac_scan_reports_not_supported(self):
+        runner = self.runner(None, [{"id": "s4", "action": "scan"}])
+        runner.poll_once()
+        self.assertEqual(
+            self.session.posts[0][1], {"status": "failed", "error": NOT_SUPPORTED}
+        )
+
     def test_mac_without_networkmanager_reports_not_supported(self):
         runner = self.runner(None, [
             {"id": "c9", "action": "add", "ssid": "School", "password": SECRET},
@@ -209,6 +259,24 @@ class SaveNetworkAdapterTests(unittest.TestCase):
         self.assertEqual(final[-4:], [
             "connection.autoconnect", "yes", "connection.autoconnect-priority", "5",
         ])
+
+    def test_rescan_then_list_without_rescan_stays_connected(self):
+        calls = []
+
+        def runner(args, *, timeout=30, input_text=None):
+            calls.append(list(args))
+            if "rescan" in args and "list" not in args:
+                return CommandResult(10, "", "Scanning not allowed while already scanning")
+            return CommandResult(0, "*:School:80:WPA2\n:Ca\\:fe:40:\n::90:WPA2\n: :50:WPA2\n")
+
+        manager = NetworkManager("wlan0", runtime_directory="/nonexistent", runner=runner)
+        self.assertFalse(manager.rescan())
+        networks = manager.scan(rescan=False)
+        self.assertEqual(calls[0][-4:], ["wifi", "rescan", "ifname", "wlan0"])
+        self.assertIn("no", calls[1][calls[1].index("--rescan") + 1:][:1])
+        self.assertEqual([(n.ssid, n.signal, n.secured) for n in networks],
+                         [("School", 80, True), ("Ca:fe", 40, False)])
+        self.assertFalse(any(a in ("connect", "up", "down", "disconnect") for c in calls for a in c))
 
 
 if __name__ == "__main__":

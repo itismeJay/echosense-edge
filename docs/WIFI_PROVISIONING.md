@@ -53,7 +53,15 @@ The authenticated device heartbeat preserves its existing device credentials,
 - `wifi_change_method`: `local_portal`;
 - `wifi_local_url`: the current LAN portal URL, or `http://10.42.0.1/` when
   disconnected;
-- `wifi_remote_scan_supported`: always `false`.
+- `wifi_remote_scan_supported`: `true` when NetworkManager is available (Pi),
+  `false` on the Mac.
+
+The dashboard command `{"action": "scan"}` makes the box run `nmcli device wifi
+rescan` and list nearby networks without leaving its current network. The
+result is `{"status": "applied", "networks": [{"ssid", "signal" (0-100),
+"security" ("open" or e.g. "WPA2"), "known"}], "current_ssid"}`: at most 50,
+one entry per SSID, strongest first, hidden SSIDs omitted. The Mac reports
+`{"status": "failed", "error": "not_supported_on_this_device"}`.
 
 The dashboard should show the last reported SSID and online state. When the
 browser can reach `wifi_local_url`, **Change Wi-Fi** opens the authenticated

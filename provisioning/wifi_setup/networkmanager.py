@@ -217,18 +217,29 @@ class NetworkManager:
             ),
         }
 
-    def scan(self) -> list[WifiNetwork]:
+    def rescan(self) -> bool:
+        """Ask NetworkManager for a fresh scan; the client link stays up.
+
+        nmcli refuses while a scan is already running, which is harmless.
+        """
+        result = self._nmcli(
+            "device", "wifi", "rescan", "ifname", self.interface,
+            timeout=20, check=False,
+        )
+        return result.returncode == 0
+
+    def scan(self, *, rescan: bool = True) -> list[WifiNetwork]:
         result = self._nmcli(
             "-t", "--escape", "yes",
             "-f", "IN-USE,SSID,SIGNAL,SECURITY",
-            "device", "wifi", "list", "--rescan", "yes",
+            "device", "wifi", "list", "--rescan", "yes" if rescan else "no",
             "ifname", self.interface,
             timeout=20,
         )
         by_ssid = {}
         for line in result.stdout.splitlines():
             fields = _split_escaped(line)
-            if len(fields) != 4 or not fields[1]:
+            if len(fields) != 4 or not fields[1].strip():
                 continue
             try:
                 signal = max(0, min(100, int(fields[2] or 0)))

@@ -102,8 +102,17 @@ def get_network_info():
         "wifi_local_url": (
             f"http://{ip_address}/" if connected else "http://10.42.0.1/"
         ),
-        "wifi_remote_scan_supported": False,
+        "wifi_remote_scan_supported": _remote_scan_supported(),
     }
+
+
+def _remote_scan_supported():
+    try:
+        from provisioning.wifi_setup.remote_commands import remote_scan_supported
+
+        return remote_scan_supported()
+    except Exception:
+        return False
 
 
 def print_network_banner(prefix="[NETWORK]"):
