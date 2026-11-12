@@ -123,7 +123,7 @@ class Grade6RecordingTests(unittest.TestCase):
             ("Banalante", "HIGH"), ("Lécheque", "MEDIUM"),
             ("Sa lingkapaw ka.", "MEDIUM"), ("Palayo diricaw", "MEDIUM"),
             ("Póbrika.", "MEDIUM"), ("Pandacas", "MEDIUM"),
-            ("Ayáw ug duál nákò.", "LOW"),
+            ("Ayáw ug duál nákò.", "MEDIUM"),  # social exclusion
         ):
             with self.subTest(heard=heard):
                 self.assertEqual(sent(heard), (True, level), check_transcript(heard))

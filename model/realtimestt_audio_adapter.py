@@ -32,6 +32,12 @@ class RealtimeSTTAudioEventAdapter:
         with self._lock:
             self._pending_event = None
 
+    def pending_event_id(self) -> str:
+        """Id of the event being transcribed now (tone logs), never consumed."""
+        with self._lock:
+            event = self._pending_event
+        return event.event_id if event is not None else "unavailable"
+
     def consume_pending(self) -> AudioEvent | None:
         with self._lock:
             event = self._pending_event

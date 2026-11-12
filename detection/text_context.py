@@ -12,7 +12,10 @@ from detection.transcript_quality import normalize_transcript
 _DIRECT_TARGET_TOKENS = frozenset({
     "ka", "mo", "ikaw", "imo", "imong", "nimo",
     "nimong", "kamo", "ninyo", "niyo", "ninyong", "inyo", "inyong", "kag",
-    "mog", "nimog", "ninyog", "you", "your", "you're",
+    "mog", "nimog", "ninyog", "tika", "taka", "imu", "imung", "imuha",
+    "imuhang", "imoha", "imohang", "nimu", "kanimo", "kanimu", "kaw",
+    "iyo", "iyong", "kayo",
+    "you", "your", "you're", "youre", "ur", "u",
     # Synthetic, identity-free token used by tests/integrations for a named target.
     "classmate",
 })
@@ -45,11 +48,12 @@ def _contains_sequence(tokens: tuple[str, ...], sequence: tuple[str, ...]) -> bo
     )
 
 
-_NEGATORS = frozenset({"dili", "di", "not", "hindi"})
+_NEGATORS = frozenset({"dili", "di", "dli", "not", "hindi", "di'", "isn't", "aren't"})
 # Words that may sit between the negator and the insult: "dili man ka bogo".
 _NEGATION_FILLERS = frozenset({
     "ka", "man", "gyud", "jud", "ikaw", "mo", "kamo", "pud", "sad", "baya",
-    "na", "ba", "you", "are", "re", "ra",
+    "na", "ba", "you", "are", "re", "ra", "lagi", "bitaw", "sab", "jud",
+    "talaga", "naman", "so", "really",
 })
 
 

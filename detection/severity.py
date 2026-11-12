@@ -106,6 +106,24 @@ SEVERE_DIRECT_HARASSMENT_TERMS = frozenset({
     "mukha kang unggoy",
 })
 
+# Social exclusion: MEDIUM even about a third person ("ayaw siya pasakya",
+# "dili ta mokuyog niya", "huwag mo siyang isali"). Phrases with an everyday
+# meaning ("layo diri ang balay") stay in DESCRIPTIVE_TERMS and are
+# subtracted below, so they still need a target or angry tone.
+_CURATED_EXCLUSION_TERMS = frozenset({
+    # Bisaya
+    "walay ganahan nimo", "dili ka gusto sa tanan", "dili ka gusto",
+    "uli sa inyo oy", "dili ka among friend", "exclude na ta siya",
+    "ayaw siya apila", "ayaw siya iapil", "ayaw pagpakita diri",
+    "wala kay labot", "dili ka among barkada", "pahawa diri", "dili ka apil",
+    "walay gustong makig uban sa imo",
+    # Tagalog
+    "wala kang amigo",
+    # English
+    "nobody cares", "you don't belong", "you don t belong",
+})
+SOCIAL_EXCLUSION_REASON = "Social exclusion"
+
 MEDIUM_DIRECT_HARASSMENT_TERMS = frozenset({
     "bogo",
     "bugok",
@@ -251,6 +269,16 @@ DESCRIPTIVE_TERMS = frozenset(LOW_RISK_MONITORED_TERMS | {
     "lazy",
 })
 
+SOCIAL_EXCLUSION_TERMS = frozenset(
+    _CURATED_EXCLUSION_TERMS
+    | frozenset(
+        phrase.text
+        for root in LEXICON.roots
+        if root.name == "exclusion"
+        for phrase in root.phrases
+    )
+) - DESCRIPTIVE_TERMS
+
 HIGH_SEVERITY_TERMS = frozenset(
     SELF_HARM_DIRECTIVES
     | THREAT_LIKE_PHRASES
@@ -280,19 +308,58 @@ _DIRECT_TARGET_TOKENS = frozenset({
     "mog",
     "nimog",
     "ninyog",
+    # Bisaya "I ... you" and Davao/texting spellings: "patyon tika",
+    # "sumbagon taka", "imung nawong", "kanimo".
+    "tika",
+    "taka",
+    "imu",
+    "imung",
+    "imuha",
+    "imuhang",
+    "imoha",
+    "imohang",
+    "nimu",
+    "nimung",
+    "kanimo",
+    "kanimu",
+    # Tagalog: "ikaw/ka/mo" above, plus "iyo/iyong/kayo".
+    "iyo",
+    "iyong",
+    "kayo",
     "you",
     "your",
     "you're",
     "youre",
+    "yours",
     "ur",
     "u",
     "classmate",
 })
 
+# Intensifiers/articles that may sit between the target word and the insult:
+# "you're such a fucking idiot", "ur so dumb", "ikaw talaga ay tanga",
+# "bogo gyud kaayo ka". Skipped when measuring the target distance only.
+_TARGET_FILLERS = frozenset({
+    # English
+    "so", "such", "a", "an", "really", "very", "fucking", "fuckin", "freaking",
+    "freakin", "frickin", "damn", "total", "totally", "complete", "absolute",
+    "big", "little", "are", "is", "re", "just", "being", "too", "the", "one",
+    # Bisaya / Davao
+    "kaayo", "gyud", "jud", "gid", "man", "lagi", "baya", "bitaw", "sad",
+    "pud", "sab", "ra", "na", "oy", "uy", "ba", "pa", "diay", "bya",
+    # Tagalog
+    "talaga", "napaka", "sobrang", "sobra", "naman", "nga", "ay", "pala",
+})
+
 # Context rules that keep mild/medium terms at LOW. They never apply to
 # threat-like, self-harm, or severe terms.
 _SELF_DIRECTED_TOKENS = frozenset({
-    "ko", "ako", "akoa", "nako", "i'm", "im", "me", "myself",
+    # Bisaya / Davao
+    "ko", "ako", "akoa", "nako", "akong", "akoang", "nakong", "kaugalingon",
+    # Tagalog
+    "akin", "aking", "sarili",
+    # English
+    "i'm", "im", "me", "myself",
 })
 _SELF_DIRECTED_SEQUENCES = (("i", "am"),)
 _NEGATION_TOKENS = frozenset({
@@ -387,20 +454,24 @@ def has_direct_target_evidence(transcript: object, terms: Iterable[object] = ())
     located in the text, the whole utterance counts (legacy behaviour).
     """
 
-    tokens = tuple(
-        token.lower()
-        for token in _WORD_PATTERN.findall(str(transcript or "").lower())
-    )
+    raw_tokens = _tokens(transcript)
+    if not raw_tokens:
+        return False
+    # Distance ignores intensifiers ("you're such a fucking idiot"); the
+    # exclamative check in _target_tokens still sees the original order.
+    tokens = tuple(token for token in raw_tokens if token not in _TARGET_FILLERS)
     spans = []
     for term in (_normalize_term(item) for item in terms or ()):
-        term_tokens = tuple(_tokens(term)) if term else ()
+        term_tokens = tuple(
+            token for token in _tokens(term) if token not in _TARGET_FILLERS
+        ) if term else ()
         if term_tokens:
             spans.extend(
                 (index, index + len(term_tokens))
                 for index in _sequence_positions(tokens, term_tokens)
             )
     if not spans:
-        return bool(_target_tokens(tokens))
+        return bool(_target_tokens(raw_tokens))
     for start, end in spans:
         window = tokens[max(0, start - TARGET_WINDOW_TOKENS):end + TARGET_WINDOW_TOKENS]
         if _target_tokens(window):
@@ -568,6 +639,9 @@ def calculate_severity(
         "vulgar_insult": tuple(
             term for term in terms if term in MEDIUM_FLOOR_TERMS
         ),
+        "social_exclusion": tuple(
+            term for term in terms if term in SOCIAL_EXCLUSION_TERMS
+        ),
     }
     categories = {
         category: matched
@@ -614,7 +688,11 @@ def calculate_severity(
         reasons.append("high:threat_or_self_harm_term")
         return decision(HIGH, reasons, supporting, "Threat or self-harm words")
 
+    exclusion = "social_exclusion" in categories
     context = _context_downgrade(tokens, terms)
+    if context and exclusion and context != "negated_or_instructional":
+        # "ayaw ug duol nako" is exclusion, not self-talk.
+        context = None
     if context:
         reasons.append(f"held_low:{context}")
         if angry_tone:
@@ -631,6 +709,11 @@ def calculate_severity(
     if direct_target and repeated:
         reasons.append("promoted_by:targeted_repetition")
         return decision(HIGH, reasons, supporting, "Insult aimed at someone, repeated")
+    if exclusion:
+        reasons.append("medium_floor:social_exclusion")
+        if angry_tone:
+            reasons.append("promoted_by:angry_tone")
+        return decision(MEDIUM, reasons, supporting, SOCIAL_EXCLUSION_REASON)
     if direct_target:
         reasons.append("promoted_by:direct_target_pattern")
         if laughter_present:

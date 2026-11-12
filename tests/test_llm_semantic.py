@@ -14,6 +14,7 @@ from detection.fusion import (
     BANTER_REASON,
     DISTRESS_REASON,
     MEANING_REASON,
+    MEANING_REVIEW_REASON,
     REPEATED_REASON,
     THREAT_REVIEW_REASON,
     fuse_event_evidence,
@@ -23,6 +24,9 @@ from detection.llm_semantic import (
     OUTPUT_SCHEMA,
     ClaudeSemanticClient,
     RepetitionTracker,
+    SYSTEM_PROMPT,
+    insult_families,
+    meaning_family,
     SemanticGate,
     SemanticInput,
     parse_judgement,
@@ -35,7 +39,7 @@ from sender.payload_v2 import build_alert_payload_v2
 WALL = datetime(2026, 11, 13, 1, 0, tzinfo=timezone.utc)
 INSULT = "bobo ka"
 THREAT = "patyon tika"
-NO_WORD = "Ayaw siya pasakya sa among grupo"
+NO_WORD = "Ayaw siya isulod sa among team"
 GAME_THREAT = "patyon tika sa chess unya"
 STORY_THREAT = "sa kwento ingon niya patyon tika"
 LAUGH_THREAT = "patyon tika, hahaha"
@@ -242,6 +246,14 @@ class GateTests(unittest.TestCase):
         self.assertEqual(SemanticGate.from_environment(
             {"ECHOSENSE_SEMANTIC_MODE": "bogus"}, log=lambda _l: None).mode, "off")
 
+    def test_openrouter_pins_anthropic_and_sends_no_temperature(self):
+        gate = SemanticGate.from_environment(
+            {"OPENROUTER_API_KEY": "or-test"}, log=lambda _l: None,
+        )
+        body = gate.client.extra_body
+        self.assertEqual(body["provider"], {"order": ["anthropic"], "allow_fallbacks": False})
+        self.assertNotIn("temperature", body)
+
     def test_modes_choose_which_utterances_are_sent(self):
         for mode, text, expected in (
             ("off", INSULT, 0), ("on_match", NO_WORD, 0),
@@ -273,7 +285,9 @@ class FusionTableTests(unittest.TestCase):
             (INSULT, judgement("friendly_slang", 0.9), True, "LOW", BANTER_REASON),
             (INSULT, judgement("banter", 0.7), True, "MEDIUM", None),
             (INSULT, judgement("insult", 0.9, targeted=True), True, "MEDIUM", None),
-            (INSULT, judgement("insult", 0.9, targeted=True, distress=True), True, "HIGH", DISTRESS_REASON),
+            # Claude's distress flag alone (no reaction utterance) never bumps.
+            (INSULT, judgement("insult", 0.9, targeted=True, distress=True), True, "MEDIUM", None),
+            (THREAT, judgement("threat", 0.95, targeted=True, distress=True), True, "HIGH", None),
             (THREAT, judgement("banter", 0.99), True, "HIGH", None),
             (THREAT, judgement("quoting", 0.95), True, "HIGH", None),
             (THREAT, judgement("none", 0.95), True, "HIGH", None),
@@ -284,8 +298,11 @@ class FusionTableTests(unittest.TestCase):
             (GAME_THREAT, judgement("friendly_slang", 0.99), True, "HIGH", None),
             (LAUGH_THREAT, judgement("banter", 0.99), True, "HIGH", None),
             (NO_WORD, judgement("exclusion", 0.9, targeted=True), True, "MEDIUM", MEANING_REASON),
-            (NO_WORD, judgement("threat", 0.9, targeted=True), True, "HIGH", MEANING_REASON),
-            (NO_WORD, judgement("insult", 0.8, targeted=True), False, None, None),
+            (NO_WORD, judgement("threat", 0.95, targeted=True), True, "HIGH", MEANING_REASON),
+            (NO_WORD, judgement("threat", 0.9, targeted=True), True, "MEDIUM", MEANING_REASON),
+            (NO_WORD, judgement("insult", 0.8, targeted=True), True, "LOW", MEANING_REVIEW_REASON),
+            (NO_WORD, judgement("threat", 0.85, targeted=True), True, "LOW", MEANING_REVIEW_REASON),
+            (NO_WORD, judgement("insult", 0.74, targeted=True), False, None, None),
             (NO_WORD, judgement("insult", 0.95, targeted=False), False, None, None),
             (NO_WORD, judgement("banter", 0.95, targeted=True), False, None, None),
         ]
@@ -378,6 +395,57 @@ class FusionTableTests(unittest.TestCase):
         self.assertEqual(fuse(evidence, acoustic=(crying(10.2),)).level, "HIGH")
 
 
+class VictimDistressTests(unittest.TestCase):
+    def _incident(self, *texts, answer=None):
+        detector = TextDetector(semantic_gate=gate_for(FakeClient(answer), mode="all"))
+        items = [
+            analyze(text, at=10 + index, detector=detector)
+            for index, text in enumerate(texts)
+        ]
+        return items, fuse_event_evidence(tuple(items), (), duration_seconds=2.0)
+
+    def test_reaction_in_a_different_utterance_raises_one_level(self):
+        for reaction in ("tama na oy", "ayaw na palihug", "undang na",
+                         "huwag po", "tigil na", "stop it please"):
+            with self.subTest(reaction=reaction):
+                items, decision = self._incident(
+                    INSULT, reaction, answer=judgement("insult", 0.9, targeted=True),
+                )
+                self.assertTrue(items[1].victim_reaction)
+                self.assertEqual(decision.level, "HIGH")
+                self.assertIn(DISTRESS_REASON, decision.reasons)
+                self.assertIn("victim_reaction_in_incident", decision.supporting_evidence)
+
+    def test_threat_alone_is_not_distress(self):
+        items, decision = self._incident(
+            INSULT, answer=judgement("insult", 0.9, targeted=True, distress=True),
+        )
+        self.assertNotIn(DISTRESS_REASON, decision.reasons)
+        self.assertIn("semantic_victim_distress:unconfirmed", decision.supporting_evidence)
+
+    def test_own_utterance_reaction_words_do_not_count(self):
+        # "please" inside the insult itself is not a listener's reaction.
+        items, decision = self._incident(
+            "bogo ka please", answer=judgement("insult", 0.9, targeted=True),
+        )
+        self.assertNotIn(DISTRESS_REASON, decision.reasons)
+
+    def test_previous_turn_reaction_needs_claude_agreement(self):
+        detector = TextDetector(semantic_gate=gate_for(
+            FakeClient(judgement("insult", 0.9, targeted=True, distress=True)),
+            mode="all",
+        ))
+        analyze("ayaw na ko samoka", at=0, detector=detector)
+        evidence = analyze(INSULT, at=20, detector=detector)
+        self.assertTrue(evidence.reaction_in_previous_turns)
+        decision = fuse(evidence)
+        self.assertEqual(decision.level, "HIGH")
+        self.assertIn("victim_reaction_in_previous_turns", decision.supporting_evidence)
+
+    def test_prompt_forbids_inferring_distress_from_the_threat(self):
+        self.assertIn("Never infer distress from the insult or threat itself", SYSTEM_PROMPT)
+
+
 class FallbackTests(unittest.TestCase):
     def test_fallback_equals_lexicon_only(self):
         for text in (INSULT, THREAT, "yawa"):
@@ -415,13 +483,35 @@ class RepetitionTests(unittest.TestCase):
                    for at in (0, 400, 1100)]
         self.assertFalse(results[-1].pattern_repeated)
 
-    def test_similar_means_shared_term_or_same_harmful_label(self):
+    def test_similar_means_same_insult_family_not_same_label(self):
         tracker = RepetitionTracker()
-        self.assertEqual(tracker.observe({"bobo"}, None, 0), 1)
-        self.assertEqual(tracker.observe({"tanga"}, None, 1), 1)
-        self.assertEqual(tracker.observe((), "exclusion", 2), 1)
-        self.assertEqual(tracker.observe({"bobo", "ka"}, None, 3), 2)
-        self.assertEqual(tracker.observe((), "exclusion", 4), 2)
+        self.assertEqual(tracker.observe(insult_families({"bobo"}), 0), 1)
+        self.assertEqual(tracker.observe(insult_families({"tanga"}), 1), 1)
+        self.assertEqual(tracker.observe(meaning_family("exclusion", "dili ka apil"), 2), 1)
+        self.assertEqual(tracker.observe(insult_families({"bobo", "bobo ka"}), 3), 2)
+        self.assertEqual(tracker.observe(meaning_family("exclusion", "Dili ka apil!"), 4), 2)
+        self.assertEqual(tracker.observe(meaning_family("exclusion", "layo diri"), 5), 1)
+
+    def test_phrase_variants_share_their_lexicon_root(self):
+        self.assertEqual(
+            insult_families({"bogo ka"}), insult_families({"bogoa nimo"}),
+        )
+
+    def test_different_insults_with_the_same_label_do_not_repeat(self):
+        # Live test: bugok, bulok, pangit were escalated as "repeated 3+".
+        detector = TextDetector(semantic_gate=gate_for(
+            FakeClient(judgement("insult", 0.9, targeted=True)), mode="all",
+        ))
+        results = [
+            analyze(text, at=at, detector=detector)
+            for at, text in ((0, "bugok ka"), (60, "bulok ka"), (120, "pangit ka"))
+        ]
+        self.assertEqual([item.pattern_repeated for item in results], [False] * 3)
+        again = [
+            analyze(text, at=at, detector=detector)
+            for at, text in ((180, "bugok ka"), (240, "bugoka nimo"))
+        ]
+        self.assertTrue(again[-1].pattern_repeated)
 
 
 class PayloadTests(unittest.TestCase):

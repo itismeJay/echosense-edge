@@ -98,6 +98,10 @@ patterns:
     - "{t} ka nako unya"
     - "{t} tika ugma"
     - "{t} ka"
+    - "tika {t}"            # reversed order: "tika patyon", "taka sumbagon"
+    - "taka {t}"
+    - "tika {t} unya"
+    - "tika gyud {t}"
 
 categories:
 
@@ -344,6 +348,117 @@ categories:
           - kutohon ang iro
           - naay tambal sa kuto
 
+      buta:
+        meaning: blind (as a taunt)
+        kind: phrase_only
+        priority: low
+        extra:
+          - buta ka
+          - buta ka ba
+          - buta man ka
+          - buta gyud ka
+          - buta kaayo ka
+          - ka buta nimo
+          - buta jud ka
+          - buta baya ka
+          - buta ka oy
+          - ikaw ang buta
+          - pagkabuta nimo
+        everyday:
+          - buta ang iyang lolo
+          - nabuta ang suga
+          - tabangi ang buta nga tigulang
+
+      laay:
+        meaning: boring (as a put-down)
+        kind: phrase_only
+        priority: low
+        extra:
+          - laay ka
+          - laay kaayo ka
+          - laay man ka
+          - laay gyud ka
+          - ka laay nimo
+          - kalaay nimo
+          - laay jud ka
+          - laay baya ka
+          - kapoy ka kauban
+          - laay ka kauban
+          - ikaw ang pinakalaay
+        everyday:
+          - laay kaayo ko karon
+          - laay ang klase karon
+          - laay kaayo ang salida
+
+      baga og nawong:
+        meaning: shameless / thick-faced
+        kind: phrase_only
+        priority: medium
+        extra:
+          - baga og nawong ka
+          - baga ug nawong ka
+          - baga kag nawong
+          - baga kaayo kag nawong
+          - baga kaayo og nawong ka
+          - baga og nawong nimo
+          - baga ug nawong nimo
+          - kabaga sa imong nawong
+          - kabaga sa nawong nimo
+          - baga jud kag nawong
+        everyday:
+          - baga og panit ang mangga
+
+      animals:
+        meaning: calling someone an animal (dog, cat, cow, crocodile, rat)
+        kind: phrase_only
+        priority: medium
+        extra:
+          - iro ka
+          - iro ka oy
+          - iro gyud ka
+          - iro man ka
+          - mura kag iro
+          - murag iro ka
+          - mura man kag iro
+          - iring ka
+          - iring ka oy
+          - iring gyud ka
+          - iring man ka
+          - mura kag iring
+          - murag iring ka
+          - mura man kag iring
+          - buaya ka
+          - buaya ka oy
+          - buaya gyud ka
+          - buaya man ka
+          - mura kag buaya
+          - murag buaya ka
+          - mura man kag buaya
+          - ilaga ka
+          - ilaga ka oy
+          - ilaga gyud ka
+          - ilaga man ka
+          - mura kag ilaga
+          - murag ilaga ka
+          - mura man kag ilaga
+          - baka gyud ka
+          - baka man ka
+          - mura kag baka
+          - murag baka ka
+          - mura man kag baka
+        end_only:
+          - baka ka              # Tagalog "baka ka mahulog" = you might fall
+          - baka ka oy
+        everyday:
+          - naa koy iro sa balay
+          - ang iring nikaon sa isda
+          - ang baka sa uma
+          - baka ka mahulog diha
+          - baka ka ma-late
+          - naay buaya sa zoo
+          - naay ilaga sa kusina
+          - gipakaon nako ang iro ug iring
+
       dakog ilong:
         meaning: big nose
         kind: phrase_only
@@ -378,6 +493,9 @@ categories:
           - promdi kaayo mo
           - ka promdi nimo
           - taga bukid kaayo ka
+          - gikan ka sa bukid
+          - gikan man ka sa bukid
+          - taga bukid man ka
           - ignorante kaayo ka
         everyday:
           - bisaya kaayo ang kanta
@@ -431,6 +549,60 @@ categories:
         priority: high
         everyday:
           - dili ka amaw
+
+      tonto:
+        meaning: stupid
+        kind: adjective
+        exclamative: tontoa
+        priority: medium
+        everyday:
+          - dili ka tonto
+
+      mangmang:
+        meaning: ignorant / stupid
+        kind: adjective
+        priority: medium
+        everyday:
+          - dili ka mangmang
+
+      kimaw:
+        meaning: stupid / slow (slang)
+        kind: adjective
+        priority: low
+        everyday:
+          - dili ka kimaw
+
+      walay buot:
+        meaning: senseless / no manners
+        kind: phrase_only
+        priority: medium
+        extra:
+          - walay buot ka
+          - wala kay buot
+          - way buot ka
+          - wa kay buot
+          - walay buot kaayo ka
+          - way buot kaayo ka
+          - walay buot gyud ka
+          - wala gyud kay buot
+          - wa jud kay buot
+          - walay buot man ka
+
+      shunga:
+        meaning: stupid (Tagalog slang)
+        kind: phrase_only
+        priority: medium
+        extra:
+          - shunga ka
+          - shunga mo
+          - ang shunga mo
+          - shunga ka talaga
+          - ang shunga mo talaga
+          - ikaw ang shunga
+          - shunga ka ba
+          - napaka shunga mo
+          - ang shunga shunga mo
+          - shunga mo naman
 
       bobo:
         meaning: stupid (Tagalog, used in Davao)
@@ -577,6 +749,30 @@ categories:
           - wa may nangutana nimo
           - nobody ra ka
           - nobody ka
+          - ayaw nag apil
+          - ayaw nag apil diri
+          - ayaw na pag apil
+          - dili ka namo amigo
+          - dili ka namo friend
+          - di ka namo amigo
+          - di ka namo friend
+          - dili ka among amigo
+          - ayaw siyag ibanan
+          - ayaw siya ibanan
+          - ayaw siya ubana
+          - dili ta mokuyog niya
+          - di ta mokuyog niya
+          - dili ta mouban niya
+          - ayaw siya pasakya
+          - ayaw siya pasakya sa grupo
+          - ayaw siya pasakya sa among grupo
+          # Tagalog
+          - huwag mo siyang isali
+          - wag mo siyang isali
+          - huwag niyo siyang isali
+          - wag niyo siyang isali
+          - wag nyo siyang isali
+          - huwag ninyo siyang isali
         everyday:
           - layo diri ang balay
           - ayaw ug duol sa kalayo
@@ -783,6 +979,21 @@ categories:
         meaning: will whip you
         kind: threat
         priority: low
+      dunggabon:
+        meaning: will stab you
+        kind: threat
+        priority: high
+      pusilon:
+        meaning: will shoot you
+        kind: threat
+        priority: high
+      ihawon:
+        meaning: will slaughter you
+        kind: threat
+        priority: medium
+        everyday:
+          - ihawon na ang baboy ugma
+          - ihawon nila ang manok
       outside:
         meaning: fight outside / pressure not to report
         kind: phrase_only
@@ -792,6 +1003,11 @@ categories:
           - hulata ko sa gawas
           - hulata ko sa gawas unya
           - abangan tika sa gawas
+          - abangan tika
+          - abangan taka
+          - abangan tika unya
+          - abangan ka nako
+          - abangan ka nako unya
           - kita ta sa gawas
           - away ta
           - away ta sa gawas

@@ -19,11 +19,14 @@ from detection.evidence import (
 )
 from detection.latency import LATENCY
 from detection.llm_semantic import (
-    MEANING_MIN_CONFIDENCE,
+    meaning_only_severity,
     RecentTurns,
     RepetitionTracker,
+    insult_families,
+    meaning_family,
     SemanticGate,
     has_game_story_words,
+    has_victim_reaction,
     semantic_input,
 )
 from detection.semantic import SemanticAnalyzer
@@ -331,6 +334,10 @@ class TextDetector:
         language = str(result.get("language") or "unknown").lower()
         previous_turns = self._recent_turns.previous(mono)
         game_story_context = has_game_story_words(decision_text, *previous_turns)
+        reaction_in_previous_turns = any(
+            has_victim_reaction(turn) for turn in previous_turns
+        )
+        victim_reaction = has_victim_reaction(decision_text, audio_tags)
         handle = None
         if self.semantic_gate.wants(
             has_match=bool(detected), quality_accepted=quality_accepted,
@@ -376,6 +383,8 @@ class TextDetector:
             tone_signals=tone_signals,
             audio_tags=audio_tags,
             game_story_context=game_story_context,
+            reaction_in_previous_turns=reaction_in_previous_turns,
+            victim_reaction=victim_reaction,
         )
         return PendingText(fields=fields, reasons=reasons, handle=handle)
 
@@ -397,26 +406,26 @@ class TextDetector:
             and judgement.ok
             and judgement.label in LLM_HARMFUL_LABELS
             and judgement.targeted
-            and judgement.confidence >= MEANING_MIN_CONFIDENCE
+            and meaning_only_severity(judgement.label, judgement.confidence)
         )
         if opened_by_meaning:
             qualifies = True
-            fields["baseline_severity"] = (
-                "HIGH" if judgement.label == "threat" else "MEDIUM"
+            fields["baseline_severity"] = meaning_only_severity(
+                judgement.label, judgement.confidence,
             )
             reasons.append(DETECTED_BY_MEANING_REASON)
         pattern_repeated = False
         if qualifies:
-            harmful_label = (
-                judgement.label
-                if judgement is not None and judgement.ok
-                and judgement.label in LLM_HARMFUL_LABELS and judgement.targeted
-                else None
-            )
+            # Same insult family only (lexicon root / canonical term); a
+            # by-meaning alert repeats only with the same sentence.
+            families = insult_families(fields["qualification_terms"])
+            if not families and opened_by_meaning:
+                families = meaning_family(
+                    judgement.label,
+                    fields.get("match_text") or fields.get("transcript"),
+                )
             pattern_repeated = self._repetition.repeated(
-                fields["qualification_terms"],
-                harmful_label,
-                fields["observed_monotonic"],
+                families, fields["observed_monotonic"],
             )
         if judgement is not None and judgement.status == "fallback":
             reasons.append(f"semantic_fallback:{judgement.fallback_reason[:60]}")

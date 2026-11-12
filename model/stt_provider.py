@@ -359,11 +359,15 @@ class HybridTranscriptionExecutor:
     """ElevenLabs always; the wrapped Whisper executor only in outage mode."""
 
     def __init__(self, whisper_executor, settings, *, client=None, health=None,
-                 clock=time.monotonic, sample_rate=16000, tone_analyzer=None):
+                 clock=time.monotonic, sample_rate=16000, tone_analyzer=None,
+                 event_id_provider=None):
         self.whisper = whisper_executor
         # model/emotion_recognizer.ToneAnalyzer: emotion2vec + YAMNet shout/
         # laughter + speech RMS, run in parallel with the STT request.
         self.tone_analyzer = tone_analyzer
+        # Returns the AudioEvent id of the clip being transcribed, so the
+        # [EMOTION] log line names its utterance.
+        self.event_id_provider = event_id_provider
         self.settings = settings
         self.sample_rate = sample_rate
         self._clock = clock
@@ -392,7 +396,9 @@ class HybridTranscriptionExecutor:
         # An explicit language is a re-decode of the same clip: no new tone.
         future = None
         if self.tone_analyzer is not None and not language:
-            future = self.tone_analyzer.start(audio, self.sample_rate)
+            future = self.tone_analyzer.start(
+                audio, self.sample_rate, event_id=self._current_event_id(),
+            )
         result = self._transcribe(audio, language, use_prompt)
         if future is not None:
             tone = self.tone_analyzer.collect(future)
@@ -402,6 +408,12 @@ class HybridTranscriptionExecutor:
                 metadata["tone"] = tone
             result.metadata = metadata
         return result
+
+    def _current_event_id(self):
+        try:
+            return str(self.event_id_provider() or "unavailable")
+        except Exception:
+            return "unavailable"
 
     def _transcribe(self, audio, language=None, use_prompt=True):
         started = self._clock()

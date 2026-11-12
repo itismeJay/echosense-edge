@@ -813,6 +813,7 @@ def _recorder_loop():
         )
         executor = HybridTranscriptionExecutor(
             executor, _STT_SETTINGS, tone_analyzer=_make_tone_analyzer(),
+            event_id_provider=_audio_event_adapter.pending_event_id,
         )
         _transcription_executor = executor
         if executor.uses_elevenlabs:

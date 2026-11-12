@@ -13,6 +13,7 @@ from detection.llm_semantic import (
     BANTER_MIN_CONFIDENCE,
     THREAT_REVIEW_LABELS,
     THREAT_REVIEW_MIN_CONFIDENCE,
+    meaning_only_severity,
 )
 from detection.soundalike import FUZZY_PROVENANCE
 from detection import tone_vote
@@ -43,6 +44,7 @@ CRYING_MIN_SCORE = 0.3
 BANTER_REASON = "possible joking/banter \u2014 check context"
 ANGRY_BANTER_REASON = "angry insult (AI suggested joking \u2014 check)"
 MEANING_REASON = "detected by meaning"
+MEANING_REVIEW_REASON = "possible concern \u2014 check context"
 DISTRESS_REASON = "possible victim distress"
 REPEATED_REASON = "repeated"
 THREAT_REVIEW_REASON = "possible game/story talk \u2014 check context"
@@ -180,7 +182,7 @@ def _bump(level):
     return {LOW: MEDIUM, MEDIUM: HIGH, HIGH: HIGH}[level]
 
 
-def _semantic_evidence(judgement, *, banter, repeated):
+def _semantic_evidence(judgement, *, banter, repeated, distress=False):
     items = []
     if judgement is not None:
         if judgement.ok:
@@ -190,7 +192,11 @@ def _semantic_evidence(judgement, *, banter, repeated):
                 f"semantic_targeted:{str(judgement.targeted).lower()}",
             ])
             if judgement.victim_distress:
-                items.append("semantic_victim_distress:true")
+                # Claude's flag counts only with a reaction in another utterance.
+                items.append(
+                    "semantic_victim_distress:"
+                    + ("true" if distress else "unconfirmed")
+                )
             if judgement.reason:
                 items.append(f"semantic_reason:{judgement.reason[:160]}")
             items.append(f"semantic_model:{judgement.model_id[:60]}")
@@ -205,15 +211,18 @@ def _semantic_evidence(judgement, *, banter, repeated):
 
 def apply_semantic_rules(
     level, text_item, acoustic_evidence, categories, summary,
-    *, angry_tone=False, targeted=False,
+    *, angry_tone=False, targeted=False, others=(),
 ):
     """Claude-judgement and repetition rules on top of the lexicon decision.
 
     Lexicon threat         HIGH; banter/quoting >= 0.9 + game/story word -> MEDIUM
     word + banter >= 0.8   LOW "possible joking/banter" (never dropped),
                            unless angry tone + targeted: stays HIGH
-    meaning-only           threat HIGH, else MEDIUM (set by the caller)
-    distress / crying      +1 level
+    meaning-only           conf >= 0.90 MEDIUM (threat >= 0.95 HIGH), 0.75-0.90
+                           LOW "possible concern", below 0.75 no alert (caller)
+    distress / crying      +1 level (reaction in a different utterance:
+                           ``others`` in this incident, or a previous turn
+                           Claude also flagged; or YAMNet crying after)
     3+ similar in 10 min   +1 level
     Returns (level, reasons, supporting, summary).
     """
@@ -254,9 +263,22 @@ def apply_semantic_rules(
             level = LOW
             reasons.append(BANTER_REASON)
             summary = "Possible joking/banter \u2014 check context"
-    distress = bool(ok and judgement.victim_distress)
+    # Distress needs an actual reaction in a DIFFERENT utterance: one in
+    # this incident ("tama na", "stop", crying tag), or a previous turn that
+    # Claude also read as distress. Never inferred from the threat itself.
+    reaction_now = any(
+        other is not text_item and getattr(other, "victim_reaction", False)
+        for other in others
+    )
+    distress = reaction_now or bool(
+        ok and judgement.victim_distress and text_item.reaction_in_previous_turns
+    )
     crying = crying_after(text_item, acoustic_evidence)
     if distress or crying:
+        if reaction_now:
+            supporting.append("victim_reaction_in_incident")
+        elif distress:
+            supporting.append("victim_reaction_in_previous_turns")
         level = _bump(level)
         reasons.append(DISTRESS_REASON)
         if crying:
@@ -273,11 +295,12 @@ def apply_semantic_rules(
         level = MEDIUM
     supporting.extend(_semantic_evidence(
         judgement, banter=banter, repeated=text_item.pattern_repeated,
+        distress=distress,
     ))
     return level, reasons, supporting, summary
 
 
-def _fuse_meaning_only(text_item, acoustic_evidence, config):
+def _fuse_meaning_only(text_item, acoustic_evidence, config, others=()):
     """No monitored word: Claude found a targeted insult/threat/exclusion/shaming."""
 
     linked = linked_acoustic(
@@ -285,15 +308,19 @@ def _fuse_meaning_only(text_item, acoustic_evidence, config):
     )
     vote = _tone_for(text_item, linked)
     judgement = text_item.llm
-    level = HIGH if judgement.label == "threat" else MEDIUM
+    level = meaning_only_severity(judgement.label, judgement.confidence) or LOW
     summary = f"Detected by meaning: {judgement.label} (no monitored word)"
+    reasons = [MEANING_REASON]
+    if level == LOW:
+        reasons.append(MEANING_REVIEW_REASON)
+        summary = f"Possible concern \u2014 check context ({judgement.label}, no monitored word)"
     level, extra_reasons, extra_supporting, summary = apply_semantic_rules(
-        level, text_item, acoustic_evidence, {}, summary,
+        level, text_item, acoustic_evidence, {}, summary, others=others,
     )
     supporting = list(vote.evidence()) + extra_supporting
     return (
         level,
-        [MEANING_REASON] + extra_reasons,
+        reasons + extra_reasons,
         supporting,
         {},
         vote,
@@ -302,9 +329,9 @@ def _fuse_meaning_only(text_item, acoustic_evidence, config):
     )
 
 
-def _fuse_text(text_item, acoustic_evidence, targeted_count, config):
+def _fuse_text(text_item, acoustic_evidence, targeted_count, config, others=()):
     if text_item.opened_by_meaning and text_item.llm is not None:
-        return _fuse_meaning_only(text_item, acoustic_evidence, config)
+        return _fuse_meaning_only(text_item, acoustic_evidence, config, others)
     linked = linked_acoustic(
         (text_item,),
         acoustic_evidence,
@@ -338,6 +365,7 @@ def _fuse_text(text_item, acoustic_evidence, targeted_count, config):
         level, text_item, acoustic_evidence, decision.term_categories, summary,
         angry_tone=vote.angry_tone,
         targeted=is_targeted(text_item.decision_terms, text_item.decision_text),
+        others=others,
     )
     reasons.extend(semantic_reasons)
     supporting = list(decision.supporting_evidence)
@@ -402,7 +430,9 @@ def fuse_event_evidence(
             (
                 item_level, item_reasons, item_supporting, item_categories,
                 vote, item_summary, linked,
-            ) = _fuse_text(item, acoustic_evidence, targeted_count, config)
+            ) = _fuse_text(
+                item, acoustic_evidence, targeted_count, config, text_evidence,
+            )
             any_linked = any_linked or linked
             if level is None or SEVERITY_ORDER[item_level] > SEVERITY_ORDER[level]:
                 level = item_level

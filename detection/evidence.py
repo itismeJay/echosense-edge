@@ -230,6 +230,11 @@ class TextEvidence:
     # An explicit game/story word (ML, chess, laro, kwento, movie...) in this
     # utterance or the previous turns of the last 60 s.
     game_story_context: bool = False
+    # A previous turn (last 60 s, a different utterance) was a listener's
+    # reaction: "tama na", "ayaw na", "stop", "huwag", crying tag.
+    reaction_in_previous_turns: bool = False
+    # This utterance itself is such a reaction (see has_victim_reaction).
+    victim_reaction: bool = False
 
     @property
     def decision_text(self) -> str:

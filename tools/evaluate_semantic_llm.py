@@ -35,9 +35,11 @@ from detection.text_detector import TextDetector  # noqa: E402
 FIXTURES = PROJECT_ROOT / "tests" / "fixtures"
 SPLIT_FILES = {
     "ceb": "cebuano_classroom_original_200.jsonl",
-    "eng": "english_classroom_250.jsonl",
     "tgl": "tagalog_classroom_250.jsonl",
+    "eng": "english_classroom_250.jsonl",
 }
+# Report order: Bisaya first, then Tagalog, then English.
+LANGUAGE_ORDER = {"ceb": 0, "tgl": 1, "tl": 1, "eng": 2, "en": 2}
 ASR_KEY = "ElevenLabs scribe_v3 [ceb +wordkeyterms]"
 WALL = datetime(2026, 11, 13, tzinfo=timezone.utc)
 # Haiku 5.5 list price, USD per million tokens (prompts under 100K tokens).
@@ -146,7 +148,10 @@ def table(name, before, after):
     print("| lang | n | precision before→after | recall before→after "
           "| false alerts before→after | false ≥MEDIUM before→after |")
     print("|---|---|---|---|---|---|")
-    languages = sorted({r["language"] for r in before})
+    languages = sorted(
+        {r["language"] for r in before},
+        key=lambda code: (LANGUAGE_ORDER.get(code, 9), code),
+    )
     for language in languages + ["all"]:
         pick = (lambda r: True) if language == "all" else (lambda r: r["language"] == language)
         b = metrics([r for r in before if pick(r)])
