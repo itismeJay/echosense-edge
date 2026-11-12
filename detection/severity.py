@@ -69,6 +69,8 @@ THREAT_LIKE_PHRASES = frozenset({
     "ayaw pagsumbong",
     "lagot ka", "lagot ka sa akin", "lagot ka sa'kin", "lagot ka sa kin",
     "bubugbugin kita", "bubugbugin ka", "bugbugin kita",
+    "susuntukin kita", "susuntukin ka", "sasapakin kita",
+    "bugbugon tika", "bugbugon taka", "bugbugon ka nako", "bugbogon tika",
     "ayaw mong masaktan", "gusto mong masaktan", "gusto mo bang masaktan",
     "gusto mong masuntok", "gusto mo bang masuntok",
     "gusto mong masampal", "gusto mo bang masampal",

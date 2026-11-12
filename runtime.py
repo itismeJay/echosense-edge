@@ -29,6 +29,7 @@ from detection.acoustic_detector import (
 )
 from detection.coordinator import CoordinatorAudioWorker, EventCoordinator
 from detection.latency import LATENCY
+from detection.llm_semantic import SemanticGate
 from detection.semantic import SemanticAnalyzer
 from detection.text_detector import TextDetector, TextDetectorWorker
 from model.school_config import start_school_config_sync
@@ -156,8 +157,12 @@ class EdgeRuntime:
             pre_trigger_buffer=self.source.pre_trigger,
             finalizer=self._finalize,
         )
+        # Claude banter/bullying classifier (ECHOSENSE_SEMANTIC_MODE, default
+        # all). Without ANTHROPIC_API_KEY it logs once and stays lexicon-only.
+        self.semantic_gate = SemanticGate.from_environment()
         text_detector = TextDetector(
             history_size=self.config.evidence_history_size,
+            semantic_gate=self.semantic_gate,
             semantic_analyzer=SemanticAnalyzer(
                 classifier=self.semantic_classifier,
                 enabled=SEMANTIC_RUNTIME.enabled,
@@ -240,6 +245,9 @@ class EdgeRuntime:
         for worker in reversed(self.workers):
             safely(type(worker).__name__, worker.stop)
         safely("realtimestt", stop_recorder)
+        gate = getattr(self, "semantic_gate", None)
+        if gate is not None:
+            safely("semantic_llm", gate.shutdown)
         if self.coordinator is not None:
             safely(
                 "coordinator",

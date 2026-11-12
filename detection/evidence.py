@@ -18,6 +18,21 @@ SEMANTIC_LABELS = frozenset({
     "repeated_harassment",
     "uncertain",
 })
+# Labels of the Claude semantic classifier (detection/llm_semantic.py).
+LLM_LABELS = frozenset({
+    "insult",
+    "threat",
+    "exclusion",
+    "shaming",
+    "banter",
+    "friendly_slang",
+    "profanity_exclamation",
+    "quoting",
+    "self_directed",
+    "none",
+})
+LLM_HARMFUL_LABELS = frozenset({"insult", "threat", "exclusion", "shaming"})
+LLM_STATUSES = frozenset({"off", "skipped", "classified", "fallback"})
 SEMANTIC_STATUSES = frozenset({
     "disabled",
     "unavailable",
@@ -122,6 +137,43 @@ class SemanticEvidence:
 
 
 @dataclass(frozen=True, slots=True)
+class LLMJudgement:
+    """One Claude classification of an utterance (or why there is none).
+
+    ``status`` is ``classified`` only for a validated answer. ``fallback``
+    means the call failed or timed out and the detector stayed lexicon-only.
+    """
+
+    status: str = "off"
+    label: str = "none"
+    targeted: bool = False
+    victim_distress: bool = False
+    confidence: float = 0.0
+    reason: str = ""
+    model_id: str = ""
+    latency_ms: float = 0.0
+    fallback_reason: str = ""
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+    @property
+    def ok(self) -> bool:
+        return self.status == "classified"
+
+    def __post_init__(self):
+        if self.status not in LLM_STATUSES:
+            raise ValueError("llm status is invalid")
+        if self.label not in LLM_LABELS:
+            raise ValueError("llm label is invalid")
+        _finite(self.confidence, "llm confidence")
+        _finite(self.latency_ms, "llm latency_ms")
+        if not 0.0 <= self.confidence <= 1.0:
+            raise ValueError("llm confidence must be between zero and one")
+        if len(self.reason) > 200 or len(self.fallback_reason) > 100:
+            raise ValueError("llm reason exceeds its bound")
+
+
+@dataclass(frozen=True, slots=True)
 class TextEvidence:
     observed_at: datetime
     observed_monotonic: float
@@ -166,6 +218,18 @@ class TextEvidence:
     # detection/tone_vote.py; tone alone never opens an incident.
     tone_signals: dict | None = None
     audio_tags: tuple[str, ...] = ()
+    # Claude semantic judgement (detection/llm_semantic.py), or None when the
+    # classifier is off. Used by fusion (banter, meaning-only, distress).
+    llm: LLMJudgement | None = None
+    # True when no monitored word matched but Claude found a targeted
+    # insult/threat/exclusion/shaming with high confidence.
+    opened_by_meaning: bool = False
+    # Same device: a similar insult seen 3+ times within 10 minutes (this one
+    # included). Raises severity one level in fusion.
+    pattern_repeated: bool = False
+    # An explicit game/story word (ML, chess, laro, kwento, movie...) in this
+    # utterance or the previous turns of the last 60 s.
+    game_story_context: bool = False
 
     @property
     def decision_text(self) -> str:
@@ -211,6 +275,8 @@ class TextEvidence:
             self.semantic, SemanticEvidence
         ):
             raise TypeError("semantic must be SemanticEvidence")
+        if self.llm is not None and not isinstance(self.llm, LLMJudgement):
+            raise TypeError("llm must be LLMJudgement")
         if self.tone_signals is not None and not isinstance(self.tone_signals, dict):
             raise TypeError("tone_signals must be a dict")
         if len(self.audio_tags) > 20:

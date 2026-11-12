@@ -1,15 +1,30 @@
+# Runtime packages for Mac (Python 3.11) and Raspberry Pi 5 (aarch64, Python 3.11).
+# Pinned versions were checked for cp311 manylinux aarch64 wheels on PyPI (2026-11-13).
 pyaudio
-numpy
-ai-edge-litert
-faster-whisper
-# RealtimeSTT handles mic capture + WebRTC/Silero VAD + faster-whisper streaming
-# (replaces audio/capture.py + audio/vad.py for the live path). silero-vad ships
-# the VAD model locally so RealtimeSTT never falls back to interactive torch.hub.
+numpy==2.4.6
+requests==2.34.2          # ElevenLabs speech-to-text (model/stt_provider.py) + backend
+PyYAML==6.0.3             # lexicon/bisaya_bullying.yaml
+rapidfuzz==3.14.6
+
+# YAMNet (model/yamnet_infer.py). 2.x has no cp311 aarch64 wheel, so the Pi gets 1.4.0
+# (same ai_edge_litert.interpreter API).
+ai-edge-litert==2.3.0; platform_machine != "aarch64"
+ai-edge-litert==1.4.0; platform_machine == "aarch64"
+
+# emotion2vec_plus_base tone vote (model/emotion_recognizer.py).
+onnxruntime==1.31.0
+
+# Claude Haiku semantic layer (detection/llm_semantic.py), direct or via OpenRouter.
+anthropic==2.8.0
+
+# Whisper fallback STT. RealtimeSTT handles VAD + streaming; silero-vad ships the
+# VAD model locally so RealtimeSTT never falls back to interactive torch.hub.
+faster-whisper==1.2.1
+ctranslate2==4.8.3
 RealtimeSTT==1.0.2
 silero-vad
-noisereduce
-rapidfuzz
-requests
+noisereduce==3.0.3
+scipy==1.17.1
+
 # vosk — legacy ASR path (model/vosk_detect.py), no longer used at runtime
 vosk
-PyYAML>=6.0

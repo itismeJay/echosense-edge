@@ -170,17 +170,71 @@ def _finite_number(
     return number
 
 
-def _bounded_strings(values, field_name: str, *, required=False) -> list[str]:
+_MAX_LIST_ENTRIES = 50
+_MAX_ENTRY_CHARS = 200
+_MAX_EVIDENCE_CHARS = 16_000
+
+
+def _evidence_key(text: str) -> str:
+    return text.split(":", 1)[0] if ":" in text else text
+
+
+def _compact_strings(cleaned: list[str], limit: int = _MAX_LIST_ENTRIES) -> list[str]:
+    """Shrink a deduplicated list to ``limit`` entries without losing the alert.
+
+    Kept first: plain flags (no ``key:value``), then the first entry of every
+    distinct key, then the rest in order. The last slot becomes a summary such
+    as ``omitted_evidence:12 (semantic_confidence=5, emotion=4)``.
+    """
+    if len(cleaned) <= limit:
+        return cleaned
+    flags = [i for i, text in enumerate(cleaned) if ":" not in text]
+    seen_keys = set()
+    first_per_key = []
+    for i, text in enumerate(cleaned):
+        if ":" in text and _evidence_key(text) not in seen_keys:
+            seen_keys.add(_evidence_key(text))
+            first_per_key.append(i)
+    rest = [i for i in range(len(cleaned)) if i not in set(flags + first_per_key)]
+    keep = set((flags + first_per_key + rest)[: limit - 1])
+    omitted = [cleaned[i] for i in range(len(cleaned)) if i not in keep]
+    counts: dict[str, int] = {}
+    for text in omitted:
+        counts[_evidence_key(text)] = counts.get(_evidence_key(text), 0) + 1
+    detail = ", ".join(
+        f"{key}={count}"
+        for key, count in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    )
+    summary = f"omitted_evidence:{len(omitted)} ({detail})"
+    if len(summary) > _MAX_ENTRY_CHARS:
+        summary = summary[: _MAX_ENTRY_CHARS - 4] + "...)"
+    return [cleaned[i] for i in sorted(keep)] + [summary]
+
+
+def _bounded_strings(
+    values, field_name: str, *, required=False, compact=False
+) -> list[str]:
+    """Clean a string list; ``compact`` summarizes instead of raising.
+
+    Building an alert uses ``compact=True`` so a long incident is never
+    dropped; validating a finished body stays strict.
+    """
     cleaned = []
     for item in values or []:
         text = str(item or "").strip()
-        if not text or len(text) > 200:
+        if compact and len(text) > _MAX_ENTRY_CHARS:
+            text = text[: _MAX_ENTRY_CHARS - 3] + "..."
+        if not text or len(text) > _MAX_ENTRY_CHARS:
+            if compact:
+                continue
             raise AlertPayloadValidationError(
                 f"{field_name} entries must be 1 to 200 characters"
             )
         if text not in cleaned:
             cleaned.append(text)
-    if len(cleaned) > 50:
+    if compact:
+        cleaned = _compact_strings(cleaned)
+    if len(cleaned) > _MAX_LIST_ENTRIES:
         raise AlertPayloadValidationError(
             f"{field_name} may contain at most 50 entries"
         )
@@ -189,7 +243,7 @@ def _bounded_strings(values, field_name: str, *, required=False) -> list[str]:
     return cleaned
 
 
-def _severity_evidence(value, severity: str) -> dict:
+def _severity_evidence(value, severity: str, *, compact=False) -> dict:
     if value is None:
         raise AlertPayloadValidationError("severity_evidence is required")
     if not isinstance(value, dict):
@@ -209,12 +263,18 @@ def _severity_evidence(value, severity: str) -> dict:
         value.get("reasons"),
         "severity_evidence.reasons",
         required=True,
+        compact=compact,
     )
     supporting = _bounded_strings(
         value.get("supporting_evidence"),
         "severity_evidence.supporting_evidence",
+        compact=compact,
     )
     source_categories = value.get("term_categories") or {}
+    if compact and isinstance(source_categories, dict):
+        source_categories = dict(
+            list(source_categories.items())[:_MAX_LIST_ENTRIES]
+        )
     if not isinstance(source_categories, dict) or len(source_categories) > 50:
         raise AlertPayloadValidationError(
             "severity_evidence.term_categories must be a bounded object"
@@ -229,13 +289,23 @@ def _severity_evidence(value, severity: str) -> dict:
         term_categories[category_name] = _bounded_strings(
             terms,
             f"severity_evidence.term_categories.{category_name}",
+            compact=compact,
         )
-    total_characters = sum(len(item) for item in reasons + supporting)
-    total_characters += sum(
-        len(category) + sum(len(term) for term in terms)
-        for category, terms in term_categories.items()
-    )
-    if total_characters > 16_000:
+
+    def total_characters():
+        return sum(len(item) for item in reasons + supporting) + sum(
+            len(category) + sum(len(term) for term in terms)
+            for category, terms in term_categories.items()
+        )
+
+    if compact:
+        # Shed the least important detail first: supporting entries from
+        # the end (summary kept), then category term lists, never reasons.
+        while total_characters() > _MAX_EVIDENCE_CHARS and len(supporting) > 1:
+            supporting.pop(-2)
+        while total_characters() > _MAX_EVIDENCE_CHARS and term_categories:
+            term_categories.popitem()
+    if total_characters() > _MAX_EVIDENCE_CHARS:
         raise AlertPayloadValidationError(
             "severity_evidence exceeds 16000 total characters"
         )
@@ -249,16 +319,20 @@ def _severity_evidence(value, severity: str) -> dict:
     return evidence
 
 
-def _clean_terms(detected_words) -> list[str]:
+def _clean_terms(detected_words, *, compact=False) -> list[str]:
     terms = []
     for item in detected_words or []:
         term = str(item or "").strip()
+        if compact and (not term or len(term) > 200):
+            continue
         if not term or len(term) > 200:
             raise AlertPayloadValidationError(
                 "monitored terms must be 1 to 200 characters"
             )
         if term not in terms:
             terms.append(term)
+    if compact:
+        terms = terms[:_MAX_LIST_ENTRIES]
     if len(terms) > 50:
         raise AlertPayloadValidationError(
             "monitored_terms may contain at most 50 entries"
@@ -266,7 +340,7 @@ def _clean_terms(detected_words) -> list[str]:
     return terms
 
 
-def _clean_matched_terms(matched_terms) -> list[dict]:
+def _clean_matched_terms(matched_terms, *, compact=False) -> list[dict]:
     cleaned = []
     seen = set()
     for item in matched_terms or []:
@@ -306,6 +380,8 @@ def _clean_matched_terms(matched_terms) -> list[dict]:
             evidence["language"] = language
         cleaned.append(evidence)
         seen.add(identity)
+    if compact:
+        cleaned = cleaned[:_MAX_LIST_ENTRIES]
     if len(cleaned) > 50:
         raise AlertPayloadValidationError(
             "matched_terms may contain at most 50 entries"
@@ -525,10 +601,11 @@ def build_alert_payload_v2(
             "event_end_timestamp must not precede event_start_timestamp"
         )
 
-    monitored_terms = _clean_terms(detected_words)
+    monitored_terms = _clean_terms(detected_words, compact=True)
     evidence = _severity_evidence(
         severity_evidence,
         normalized_severity,
+        compact=True,
     )
     payload = {
         "event_id": canonical_event_id,
@@ -553,7 +630,7 @@ def build_alert_payload_v2(
             "complete" if str(transcribed_text or "").strip() else "unavailable"
         ),
         "language": str(language or "unknown").strip().lower(),
-        "matched_terms": _clean_matched_terms(matched_terms),
+        "matched_terms": _clean_matched_terms(matched_terms, compact=True),
         "test_mode": normalized_test_mode,
     }
     if payload["language"] not in LANGUAGE_VALUES:

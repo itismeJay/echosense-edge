@@ -37,3 +37,12 @@ models/
 data/identity.json
 data/device_credentials.json
 labels/
+
+# All device/runtime state in data/ (outboxes, cached school config, identity,
+# credentials). Never commit.
+data/*.sqlite3*
+data/school_config*.json
+data/identity*.json
+data/device_credentials*.json
+data/*
+!data/.gitkeep

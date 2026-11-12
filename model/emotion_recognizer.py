@@ -7,7 +7,7 @@ The ONNX file comes from tools/export_emotion2vec.py.
 
 ``ToneAnalyzer.start(samples)`` returns a future of a dict:
     emotion: {label, score, scores{label: p}, ms, status}
-    yamnet:  {shout_score, shout_label, laughter_score, laughter_label}
+    yamnet:  {shout_score, shout_label, laughter_score, laughter_label, crying_score}
     rms:     {utterance_rms, baseline_rms, ratio, baseline_count}
 
 Log lines: ``[EMOTION] label=angry score=0.82 ms=140``. Audio is never logged.
@@ -44,6 +44,7 @@ MAX_SECONDS = 8.0
 
 SHOUT_CLASSES = ("Shout", "Yell", "Screaming", "Children shouting", "Battle cry")
 LAUGHTER_CLASSES = ("Laughter", "Giggle", "Chuckle, chortle", "Snicker", "Belly laugh")
+CRYING_CLASSES = ("Crying, sobbing", "Baby cry, infant cry", "Whimper")
 
 
 def _flag(env, name, default):
@@ -194,11 +195,13 @@ def yamnet_class_maxima(samples, interpreter, class_names, runner=None):
     index = {name: i for i, name in enumerate(class_names)}
     shout_ids = [(name, index[name]) for name in SHOUT_CLASSES if name in index]
     laugh_ids = [(name, index[name]) for name in LAUGHTER_CLASSES if name in index]
+    cry_ids = [index[name] for name in CRYING_CLASSES if name in index]
     samples = np.asarray(samples, dtype=np.float32)
     if samples.size < YAMNET_INPUT_SIZE:
         samples = np.pad(samples, (0, YAMNET_INPUT_SIZE - samples.size))
     hop = YAMNET_INPUT_SIZE // 2
-    best = {"shout_score": 0.0, "shout_label": None, "laughter_score": 0.0, "laughter_label": None}
+    best = {"shout_score": 0.0, "shout_label": None, "laughter_score": 0.0,
+            "laughter_label": None, "crying_score": 0.0}
     for start in range(0, samples.size - YAMNET_INPUT_SIZE + 1, hop):
         window = np.ascontiguousarray(samples[start:start + YAMNET_INPUT_SIZE])
         _top, _score, scores = runner(interpreter, window, class_names)
@@ -208,8 +211,11 @@ def yamnet_class_maxima(samples, interpreter, class_names, runner=None):
         for name, i in laugh_ids:
             if float(scores[i]) > best["laughter_score"]:
                 best["laughter_score"], best["laughter_label"] = float(scores[i]), name
+        for i in cry_ids:
+            best["crying_score"] = max(best["crying_score"], float(scores[i]))
     best["shout_score"] = round(best["shout_score"], 4)
     best["laughter_score"] = round(best["laughter_score"], 4)
+    best["crying_score"] = round(best["crying_score"], 4)
     return best
 
 

@@ -7,13 +7,25 @@ from datetime import datetime, timezone
 import threading
 import time
 
+from dataclasses import dataclass
+
 from detection.evidence import (
+    LLM_HARMFUL_LABELS,
     DetectedTermProvenance,
+    LLMJudgement,
     MatchedTermEvidence,
     TextEvidence,
     TranscriptCorrectionEvidence,
 )
 from detection.latency import LATENCY
+from detection.llm_semantic import (
+    MEANING_MIN_CONFIDENCE,
+    RecentTurns,
+    RepetitionTracker,
+    SemanticGate,
+    has_game_story_words,
+    semantic_input,
+)
 from detection.semantic import SemanticAnalyzer
 from detection.severity import calculate_severity, has_direct_target_evidence
 from detection.soundalike import FUZZY_PROVENANCE
@@ -23,6 +35,17 @@ from detection.transcript_quality import assess_transcript_quality, phrase_match
 # utterance: severity is held at LOW for human review.
 FUZZY_REVIEW_REASON = "fuzzy_match:capped_low_needs_review"
 from model.blacklist import check_transcript
+
+DETECTED_BY_MEANING_REASON = "semantic:detected_by_meaning"
+
+
+@dataclass(slots=True)
+class PendingText:
+    """Text evidence fields computed before the semantic call returns."""
+
+    fields: dict
+    reasons: list
+    handle: object = None
 
 
 class TextDetector:
@@ -36,6 +59,7 @@ class TextDetector:
         repetition_window_seconds=60.0,
         history_size=128,
         semantic_analyzer=None,
+        semantic_gate=None,
     ):
         if repetition_window_seconds < 0 or history_size <= 0:
             raise ValueError("text history bounds are invalid")
@@ -46,6 +70,9 @@ class TextDetector:
         self._history = OrderedDict()
         self._lock = threading.Lock()
         self.semantic_analyzer = semantic_analyzer or SemanticAnalyzer()
+        self.semantic_gate = semantic_gate or SemanticGate(mode="off")
+        self._recent_turns = RecentTurns()
+        self._repetition = RepetitionTracker()
         self.evidence_count = 0
 
     def clear_context(self):
@@ -54,6 +81,8 @@ class TextDetector:
         with self._lock:
             self._history.clear()
         self.semantic_analyzer.clear()
+        self._recent_turns.clear()
+        self._repetition.clear()
 
     def analyze_transcript(
         self,
@@ -99,6 +128,15 @@ class TextDetector:
         observed_monotonic=None,
     ):
         """Convert one STT result to evidence; no sender is reachable here."""
+
+        return self.complete(self.prepare(
+            result,
+            observed_at=observed_at,
+            observed_monotonic=observed_monotonic,
+        ))
+
+    def prepare(self, result: dict, *, observed_at=None, observed_monotonic=None):
+        """Lexicon work plus starting the semantic call (does not wait for it)."""
 
         mono = float(
             self._monotonic_clock()
@@ -283,7 +321,33 @@ class TextDetector:
             if len(corrections) >= 50:
                 break
 
-        evidence = TextEvidence(
+        tone_signals = (
+            result.get("tone_signals")
+            if isinstance(result.get("tone_signals"), dict) else None
+        )
+        audio_tags = tuple(
+            str(tag)[:40] for tag in (result.get("audio_tags") or ())
+        )[:20]
+        language = str(result.get("language") or "unknown").lower()
+        previous_turns = self._recent_turns.previous(mono)
+        game_story_context = has_game_story_words(decision_text, *previous_turns)
+        handle = None
+        if self.semantic_gate.wants(
+            has_match=bool(detected), quality_accepted=quality_accepted,
+        ) and transcript.strip():
+            handle = self.semantic_gate.submit(semantic_input(
+                decision_text,
+                previous_turns=previous_turns,
+                language=language,
+                matched_terms=tuple(detected),
+                tone_signals=tone_signals,
+                audio_tags=audio_tags,
+                laughter=laughter,
+            ))
+        if quality_accepted:
+            self._recent_turns.remember(decision_text, mono)
+
+        fields = dict(
             observed_at=wall,
             observed_monotonic=mono,
             transcript=transcript,
@@ -301,7 +365,6 @@ class TextDetector:
             quality_reasons=quality_reasons,
             quality_warnings=quality_warnings,
             baseline_severity=baseline_level,
-            reasons=tuple(dict.fromkeys(reasons)),
             laughter_present=laughter,
             qualifies_to_open=qualifies,
             spoken_started_at=spoken_started_at,
@@ -310,19 +373,69 @@ class TextDetector:
             corrections=tuple(corrections),
             qualification_terms=qualification_terms,
             semantic=semantic,
-            tone_signals=(
-                result.get("tone_signals")
-                if isinstance(result.get("tone_signals"), dict) else None
-            ),
-            audio_tags=tuple(
-                str(tag)[:40] for tag in (result.get("audio_tags") or ())
-            )[:20],
+            tone_signals=tone_signals,
+            audio_tags=audio_tags,
+            game_story_context=game_story_context,
         )
+        return PendingText(fields=fields, reasons=reasons, handle=handle)
+
+    def complete(self, pending: PendingText) -> TextEvidence:
+        """Wait for the semantic judgement (bounded) and build the evidence."""
+
+        fields = pending.fields
+        reasons = list(pending.reasons)
+        judgement = None
+        if pending.handle is not None:
+            judgement = self.semantic_gate.resolve(pending.handle)
+        elif self.semantic_gate.available:
+            judgement = LLMJudgement(status="skipped")
+        qualifies = fields["qualifies_to_open"]
+        opened_by_meaning = bool(
+            not qualifies
+            and fields["quality_accepted"]
+            and judgement is not None
+            and judgement.ok
+            and judgement.label in LLM_HARMFUL_LABELS
+            and judgement.targeted
+            and judgement.confidence >= MEANING_MIN_CONFIDENCE
+        )
+        if opened_by_meaning:
+            qualifies = True
+            fields["baseline_severity"] = (
+                "HIGH" if judgement.label == "threat" else "MEDIUM"
+            )
+            reasons.append(DETECTED_BY_MEANING_REASON)
+        pattern_repeated = False
+        if qualifies:
+            harmful_label = (
+                judgement.label
+                if judgement is not None and judgement.ok
+                and judgement.label in LLM_HARMFUL_LABELS and judgement.targeted
+                else None
+            )
+            pattern_repeated = self._repetition.repeated(
+                fields["qualification_terms"],
+                harmful_label,
+                fields["observed_monotonic"],
+            )
+        if judgement is not None and judgement.status == "fallback":
+            reasons.append(f"semantic_fallback:{judgement.fallback_reason[:60]}")
+        evidence = TextEvidence(**{
+            **fields,
+            "qualifies_to_open": qualifies,
+            "reasons": tuple(dict.fromkeys(reasons))[:100],
+            "llm": judgement,
+            "opened_by_meaning": opened_by_meaning,
+            "pattern_repeated": pattern_repeated,
+        })
         self.evidence_count += 1
         print(
             f"[TEXT_EVIDENCE] count={self.evidence_count} "
-            f"qualifies={str(qualifies).lower()} severity={severity.level} "
-            f"terms={len(detected)}"
+            f"qualifies={str(qualifies).lower()} "
+            f"severity={evidence.baseline_severity} "
+            f"terms={len(evidence.detected_terms)}"
+            + (" by_meaning=true" if opened_by_meaning else "")
+            + (" repeated_pattern=true" if pattern_repeated else "")
         )
         return evidence
 
@@ -339,26 +452,53 @@ def _record_latency(utterance_id, submission):
 
 
 class TextDetectorWorker:
-    """Consume the bounded STT FIFO and submit evidence off the main thread."""
+    """Consume the bounded STT FIFO and submit evidence off the main thread.
 
-    def __init__(self, detector, result_consumer, evidence_consumer):
+    With the semantic classifier on, one thread prepares utterances and starts
+    their Claude calls while a second waits for each judgement in arrival
+    order, so several calls overlap and evidence order is preserved.
+    """
+
+    def __init__(self, detector, result_consumer, evidence_consumer, *, max_in_flight=4):
         self.detector = detector
         self.result_consumer = result_consumer
         self.evidence_consumer = evidence_consumer
         self._stop_event = threading.Event()
-        self._thread = None
+        self._threads = []
+        self._pending = None
+        self._max_in_flight = max(1, int(max_in_flight))
         self.error = None
 
+    @property
+    def _thread(self):
+        return self._threads[0] if self._threads else None
+
     def start(self):
-        if self._thread is not None and self._thread.is_alive():
+        if any(thread.is_alive() for thread in self._threads):
             return
         self._stop_event.clear()
         self.error = None
-        self._thread = threading.Thread(
-            target=self._run,
-            name="text-detector",
-        )
-        self._thread.start()
+        pipelined = bool(getattr(
+            getattr(self.detector, "semantic_gate", None), "available", False,
+        ))
+        if pipelined:
+            import queue
+
+            self._pending = queue.Queue(maxsize=self._max_in_flight)
+            self._threads = [
+                threading.Thread(target=self._run_prepare, name="text-detector"),
+                threading.Thread(target=self._run_complete, name="text-semantic"),
+            ]
+        else:
+            self._pending = None
+            self._threads = [threading.Thread(target=self._run, name="text-detector")]
+        for thread in self._threads:
+            thread.start()
+
+    def _fail(self, exc):
+        self.error = exc
+        self._stop_event.set()
+        print(f"[TEXT] worker_error={type(exc).__name__}")
 
     def _run(self):
         try:
@@ -370,13 +510,44 @@ class TextDetectorWorker:
                 submission = self.evidence_consumer(evidence)
                 _record_latency(result.get("event_id"), submission)
         except Exception as exc:
-            self.error = exc
-            self._stop_event.set()
-            print(f"[TEXT] worker_error={type(exc).__name__}")
+            self._fail(exc)
+
+    def _run_prepare(self):
+        import queue
+
+        try:
+            while not self._stop_event.is_set():
+                result = self.result_consumer(timeout=0.2)
+                if result is None:
+                    continue
+                pending = self.detector.prepare(result)
+                while not self._stop_event.is_set():
+                    try:
+                        self._pending.put((result, pending), timeout=0.2)
+                        break
+                    except queue.Full:
+                        continue
+        except Exception as exc:
+            self._fail(exc)
+
+    def _run_complete(self):
+        import queue
+
+        try:
+            while not self._stop_event.is_set():
+                try:
+                    result, pending = self._pending.get(timeout=0.2)
+                except queue.Empty:
+                    continue
+                evidence = self.detector.complete(pending)
+                submission = self.evidence_consumer(evidence)
+                _record_latency(result.get("event_id"), submission)
+        except Exception as exc:
+            self._fail(exc)
 
     def stop(self):
         self._stop_event.set()
-        if self._thread is not None:
-            self._thread.join(timeout=5.0)
-        self._thread = None
+        for thread in self._threads:
+            thread.join(timeout=5.0)
+        self._threads = []
         self.detector.clear_context()

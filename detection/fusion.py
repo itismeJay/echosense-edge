@@ -8,6 +8,12 @@ from datetime import timedelta
 from config import DetectionRuntimeConfig
 from detection import school_policy
 from detection.evidence import AcousticEvidence, TextEvidence
+from detection.llm_semantic import (
+    BANTER_LABELS,
+    BANTER_MIN_CONFIDENCE,
+    THREAT_REVIEW_LABELS,
+    THREAT_REVIEW_MIN_CONFIDENCE,
+)
 from detection.soundalike import FUZZY_PROVENANCE
 from detection import tone_vote
 from detection.text_detector import FUZZY_REVIEW_REASON
@@ -28,6 +34,19 @@ _DEFAULT_CONFIG = DetectionRuntimeConfig()
 # terms remain observable exact evidence, but need targeting, repetition, or
 # time-linked aggressive acoustics before an alert leaves the device.
 AMBIGUOUS_SHORT_TERMS = frozenset({"iyot"})
+
+# YAMNet classes that mean someone is crying, and the score that counts.
+CRYING_CLASSES = frozenset({"Crying, sobbing", "Baby cry, infant cry", "Whimper"})
+CRYING_MIN_SCORE = 0.3
+
+# Plain-language severity reasons added by the semantic rules.
+BANTER_REASON = "possible joking/banter \u2014 check context"
+ANGRY_BANTER_REASON = "angry insult (AI suggested joking \u2014 check)"
+MEANING_REASON = "detected by meaning"
+DISTRESS_REASON = "possible victim distress"
+REPEATED_REASON = "repeated"
+THREAT_REVIEW_REASON = "possible game/story talk \u2014 check context"
+_THREAT_CATEGORIES = ("threat_like_phrase", "self_harm_directive")
 
 
 @dataclass(frozen=True, slots=True)
@@ -144,7 +163,148 @@ def _tone_for(text_item, linked, thresholds=None):
     )
 
 
+def crying_after(text_item, acoustic_evidence) -> bool:
+    """YAMNet heard crying in a window that starts at or after the words."""
+
+    spoken = text_item.spoken_started_at or text_item.observed_at
+    return any(
+        item.yamnet_ran
+        and item.yamnet_label in CRYING_CLASSES
+        and item.yamnet_score >= CRYING_MIN_SCORE
+        and item.interval_started_at >= spoken
+        for item in acoustic_evidence
+    )
+
+
+def _bump(level):
+    return {LOW: MEDIUM, MEDIUM: HIGH, HIGH: HIGH}[level]
+
+
+def _semantic_evidence(judgement, *, banter, repeated):
+    items = []
+    if judgement is not None:
+        if judgement.ok:
+            items.extend([
+                f"semantic_label:{judgement.label}",
+                f"semantic_confidence:{judgement.confidence:.2f}",
+                f"semantic_targeted:{str(judgement.targeted).lower()}",
+            ])
+            if judgement.victim_distress:
+                items.append("semantic_victim_distress:true")
+            if judgement.reason:
+                items.append(f"semantic_reason:{judgement.reason[:160]}")
+            items.append(f"semantic_model:{judgement.model_id[:60]}")
+        elif judgement.status == "fallback":
+            items.append(
+                f"semantic_fallback:lexicon_only:{judgement.fallback_reason[:60]}"
+            )
+    items.append(f"semantic_banter:{str(banter).lower()}")
+    items.append(f"semantic_repeated:{str(repeated).lower()}")
+    return items
+
+
+def apply_semantic_rules(
+    level, text_item, acoustic_evidence, categories, summary,
+    *, angry_tone=False, targeted=False,
+):
+    """Claude-judgement and repetition rules on top of the lexicon decision.
+
+    Lexicon threat         HIGH; banter/quoting >= 0.9 + game/story word -> MEDIUM
+    word + banter >= 0.8   LOW "possible joking/banter" (never dropped),
+                           unless angry tone + targeted: stays HIGH
+    meaning-only           threat HIGH, else MEDIUM (set by the caller)
+    distress / crying      +1 level
+    3+ similar in 10 min   +1 level
+    Returns (level, reasons, supporting, summary).
+    """
+
+    judgement = text_item.llm
+    ok = judgement is not None and judgement.ok
+    reasons, supporting = [], []
+    # Similarity-window (fuzzy) guesses keep their LOW review cap.
+    lexicon_threat = (
+        any(categories.get(name) for name in _THREAT_CATEGORIES)
+        and not fuzzy_only(text_item)
+    )
+    banter = False
+    if lexicon_threat:
+        level = HIGH
+        if (
+            ok
+            and judgement.label in THREAT_REVIEW_LABELS
+            and judgement.confidence >= THREAT_REVIEW_MIN_CONFIDENCE
+            and text_item.game_story_context
+        ):
+            level = MEDIUM
+            reasons.append(THREAT_REVIEW_REASON)
+            summary = "Threat words in game/story talk \u2014 check context"
+    elif (
+        ok
+        and not text_item.opened_by_meaning
+        and judgement.label in BANTER_LABELS
+        and judgement.confidence >= BANTER_MIN_CONFIDENCE
+    ):
+        banter = True
+        if angry_tone and targeted:
+            # Angry voice aimed at someone outweighs Claude's "joking".
+            level = HIGH
+            reasons.append(ANGRY_BANTER_REASON)
+            summary = "Angry insult (AI suggested joking \u2014 check)"
+        else:
+            level = LOW
+            reasons.append(BANTER_REASON)
+            summary = "Possible joking/banter \u2014 check context"
+    distress = bool(ok and judgement.victim_distress)
+    crying = crying_after(text_item, acoustic_evidence)
+    if distress or crying:
+        level = _bump(level)
+        reasons.append(DISTRESS_REASON)
+        if crying:
+            supporting.append("yamnet_crying_after_insult")
+        summary = f"{summary}; possible victim distress" if summary else DISTRESS_REASON
+    if text_item.pattern_repeated:
+        level = _bump(level)
+        reasons.append(REPEATED_REASON)
+        summary = (
+            f"{summary}; repeated 3+ times in 10 minutes"
+            if summary else "Repeated 3+ times in 10 minutes"
+        )
+    if lexicon_threat and SEVERITY_ORDER[level] < SEVERITY_ORDER[MEDIUM]:
+        level = MEDIUM
+    supporting.extend(_semantic_evidence(
+        judgement, banter=banter, repeated=text_item.pattern_repeated,
+    ))
+    return level, reasons, supporting, summary
+
+
+def _fuse_meaning_only(text_item, acoustic_evidence, config):
+    """No monitored word: Claude found a targeted insult/threat/exclusion/shaming."""
+
+    linked = linked_acoustic(
+        (text_item,), acoustic_evidence, config.corroboration_window_seconds,
+    )
+    vote = _tone_for(text_item, linked)
+    judgement = text_item.llm
+    level = HIGH if judgement.label == "threat" else MEDIUM
+    summary = f"Detected by meaning: {judgement.label} (no monitored word)"
+    level, extra_reasons, extra_supporting, summary = apply_semantic_rules(
+        level, text_item, acoustic_evidence, {}, summary,
+    )
+    supporting = list(vote.evidence()) + extra_supporting
+    return (
+        level,
+        [MEANING_REASON] + extra_reasons,
+        supporting,
+        {},
+        vote,
+        summary,
+        bool([item for item in linked if item.qualifies_to_open]),
+    )
+
+
 def _fuse_text(text_item, acoustic_evidence, targeted_count, config):
+    if text_item.opened_by_meaning and text_item.llm is not None:
+        return _fuse_meaning_only(text_item, acoustic_evidence, config)
     linked = linked_acoustic(
         (text_item,),
         acoustic_evidence,
@@ -174,7 +334,14 @@ def _fuse_text(text_item, acoustic_evidence, targeted_count, config):
         level = LOW
         reasons.append(FUZZY_REVIEW_REASON)
         summary = "Possible monitored word (uncertain match), needs review"
+    level, semantic_reasons, semantic_supporting, summary = apply_semantic_rules(
+        level, text_item, acoustic_evidence, decision.term_categories, summary,
+        angry_tone=vote.angry_tone,
+        targeted=is_targeted(text_item.decision_terms, text_item.decision_text),
+    )
+    reasons.extend(semantic_reasons)
     supporting = list(decision.supporting_evidence)
+    supporting.extend(semantic_supporting)
     supporting.extend(vote.evidence())
     if repeated_in_incident:
         supporting.append("targeted_repetition_within_incident")

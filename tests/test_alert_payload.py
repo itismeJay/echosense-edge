@@ -9,6 +9,7 @@ from sender.payload_v2 import (
     AlertPayloadValidationError,
     REVIEW_MESSAGE,
     build_alert_payload_v2,
+    validate_alert_payload_v2,
 )
 from tests.schema_v2_fixtures import DEVICE_ID, schema_v2_payload
 
@@ -152,6 +153,48 @@ class AlertPayloadV2Tests(unittest.TestCase):
         self.assertTrue(payload["direct_address_evidence"]["detected"])
         self.assertNotIn("acoustic_trigger_evidence", payload)
         self.assertEqual(payload["trigger_type"], "KEYWORD")
+
+    def test_five_utterance_incident_is_summarized_not_dropped(self):
+        supporting = ["direct_target_pattern", "repeated_monitored_evidence"]
+        reasons = ["term_category:insult", "targeted_angry_tone"]
+        for n in range(5):
+            supporting += [
+                f"emotion:angry:0.{70 + n}",
+                f"angry_score:0.{60 + n}",
+                f"shout_score:0.{50 + n}",
+                f"rms_ratio:{1.5 + n / 10:.2f}",
+                f"semantic_label:insult_{n}",
+                f"semantic_confidence:0.{80 + n}",
+                f"semantic_targeted:true_{n}",
+                f"semantic_banter:false_{n}",
+                f"semantic_repeated:{n > 2}",
+                f"semantic_model:haiku_{n}",
+                f"semantic_reason:utterance {n} insults a classmate",
+                f"tone_ignored:utterance_{n}",
+                f"laughter_score:0.0{n}",
+            ]
+            reasons.append(f"utterance_{n}:" + "x" * 250)
+        self.assertGreater(len(supporting), 50)
+        payload = schema_v2_payload(
+            severity="HIGH",
+            severity_evidence={
+                "level": "HIGH",
+                "reasons": reasons,
+                "term_categories": {"insult": ["synthetic"] * 3},
+                "supporting_evidence": supporting,
+            },
+        )
+
+        kept = payload["severity_evidence"]["supporting_evidence"]
+        self.assertEqual(len(kept), 50)
+        self.assertIn("direct_target_pattern", kept)
+        self.assertIn("repeated_monitored_evidence", kept)
+        self.assertIn("semantic_reason:utterance 0 insults a classmate", kept)
+        self.assertTrue(kept[-1].startswith("omitted_evidence:"))
+        self.assertTrue(payload["repetition_evidence"]["detected"])
+        self.assertTrue(all(len(r) <= 200 for r in payload["severity_reasons"]))
+        self.assertEqual(payload["severity_reasons"][0], "term_category:insult")
+        validate_alert_payload_v2(payload)
 
     def test_waveform_is_sparse_only_and_raw_pcm_is_rejected(self):
         waveform = list(range(40))

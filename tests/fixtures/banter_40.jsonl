@@ -1,0 +1,40 @@
+{"id": "1", "language": "ceb", "category": "normal", "kind": "friendly_slang", "expected_alert": false, "utterances": ["Yawa, nindot kaayo imong drawing oy!"]}
+{"id": "2", "language": "ceb", "category": "normal", "kind": "friendly_slang", "expected_alert": false, "utterances": ["Pisting yawa, nakadaog ta sa quiz bee!"]}
+{"id": "3", "language": "ceb", "category": "normal", "kind": "self_directed", "expected_alert": false, "utterances": ["Bogo kaayo ko oy, nalimtan nako akong assignment."]}
+{"id": "4", "language": "ceb", "category": "normal", "kind": "profanity_exclamation", "expected_alert": false, "utterances": ["Yawa, naulan na pud, wala koy payong."]}
+{"id": "5", "language": "ceb", "category": "normal", "kind": "quoting", "expected_alert": false, "utterances": ["Ma'am, gitawag ko niya og bogo ganina."]}
+{"id": "6", "language": "ceb", "category": "normal", "kind": "quoting", "expected_alert": false, "utterances": ["Ingon si Ma'am bawal mag-ingon og yawa sa klase."]}
+{"id": "7", "language": "ceb", "category": "normal", "kind": "banter", "expected_alert": false, "utterances": ["Buang ka oy, ang kataw-anan nimo! Joke lang, bes."]}
+{"id": "8", "language": "ceb", "category": "normal", "kind": "friendly_slang", "expected_alert": false, "utterances": ["Atay, ka-cute sa imong iring!"]}
+{"id": "9", "language": "ceb", "category": "normal", "kind": "banter", "expected_alert": false, "utterances": ["Hala ka, patyon tika sa chess unya ha, hahaha."]}
+{"id": "10", "language": "ceb", "category": "normal", "kind": "self_directed", "expected_alert": false, "utterances": ["Tambok na man ko kay daghan kog nakaon sa birthday ni Lola."]}
+{"id": "11", "language": "ceb", "category": "normal", "kind": "banter", "expected_alert": false, "utterances": ["Kinsa may nakakuha sa akong ballpen?", "Ako, bogo, naa ra sa imong bulsa, hahaha."]}
+{"id": "12", "language": "ceb", "category": "normal", "kind": "quoting", "expected_alert": false, "utterances": ["Ma'am, unsa man ang buot pasabot sa pulong nga bastos?"]}
+{"id": "13", "language": "ceb", "category": "normal", "kind": "profanity_exclamation", "expected_alert": false, "utterances": ["Pisti, nahulog akong ballpen."]}
+{"id": "14", "language": "ceb", "category": "normal", "kind": "friendly_slang", "expected_alert": false, "utterances": ["Animal ka, ang taas sa imong score! Char."]}
+{"id": "15", "language": "ceb", "category": "normal", "kind": "quoting", "expected_alert": false, "utterances": ["Giingnan ko niya nga pangit daw ko, pero joke ra to, amigo man mi."]}
+{"id": "16", "language": "ceb", "category": "normal", "kind": "banter", "expected_alert": false, "utterances": ["Libakera ka gyud, bes, hahaha, sige na isulti na ang chika."]}
+{"id": "17", "language": "tgl", "category": "normal", "kind": "friendly_slang", "expected_alert": false, "utterances": ["Gago, ang galing mo sa basketball kanina!"]}
+{"id": "18", "language": "tgl", "category": "normal", "kind": "self_directed", "expected_alert": false, "utterances": ["Bobo ko talaga, mali na naman sagot ko."]}
+{"id": "19", "language": "tgl", "category": "normal", "kind": "quoting", "expected_alert": false, "utterances": ["Ma'am, sabi niya tanga daw ako."]}
+{"id": "20", "language": "tgl", "category": "normal", "kind": "profanity_exclamation", "expected_alert": false, "utterances": ["Putik, naiwan ko yung baon ko."]}
+{"id": "21", "language": "tgl", "category": "normal", "kind": "banter", "expected_alert": false, "utterances": ["Ulol, joke lang yun, ikaw talaga, tara kain tayo."]}
+{"id": "22", "language": "tgl", "category": "normal", "kind": "friendly_slang", "expected_alert": false, "utterances": ["Hayop ka, ang ganda ng boses mo!"]}
+{"id": "23", "language": "tgl", "category": "normal", "kind": "quoting", "expected_alert": false, "utterances": ["Sabi ng kontrabida sa kwento, papatayin daw niya ang hari."]}
+{"id": "24", "language": "tgl", "category": "normal", "kind": "self_directed", "expected_alert": false, "utterances": ["Ang pangit ng sulat-kamay ko, hindi ko mabasa."]}
+{"id": "25", "language": "tgl", "category": "normal", "kind": "banter", "expected_alert": false, "utterances": ["Biro lang, ang baho mo raw sabi ni Ana, char, ang bango mo nga eh."]}
+{"id": "26", "language": "tgl", "category": "normal", "kind": "profanity_exclamation", "expected_alert": false, "utterances": ["Lintik, ang hirap ng math exam."]}
+{"id": "27", "language": "tgl", "category": "normal", "kind": "banter", "expected_alert": false, "utterances": ["Uy, bakit ka late?", "Tanga, na-traffic ako, alam mo naman, hahaha."]}
+{"id": "28", "language": "tgl", "category": "normal", "kind": "friendly_slang", "expected_alert": false, "utterances": ["Gaga ka talaga, ikaw na ang best friend ko!"]}
+{"id": "29", "language": "eng", "category": "normal", "kind": "friendly_slang", "expected_alert": false, "utterances": ["Dude, you're insane, that goal was sick!"]}
+{"id": "30", "language": "eng", "category": "normal", "kind": "self_directed", "expected_alert": false, "utterances": ["I'm so stupid, I forgot my homework again."]}
+{"id": "31", "language": "eng", "category": "normal", "kind": "quoting", "expected_alert": false, "utterances": ["Ma'am, he called me an idiot during recess."]}
+{"id": "32", "language": "eng", "category": "normal", "kind": "profanity_exclamation", "expected_alert": false, "utterances": ["Damn, it's raining again."]}
+{"id": "33", "language": "eng", "category": "normal", "kind": "friendly_slang", "expected_alert": false, "utterances": ["Shut up, no way, you got a perfect score? That's awesome!"]}
+{"id": "34", "language": "eng", "category": "normal", "kind": "quoting", "expected_alert": false, "utterances": ["In the story, the bully said I'll kill you to the boy."]}
+{"id": "35", "language": "eng", "category": "normal", "kind": "banter", "expected_alert": false, "utterances": ["You're such a nerd, haha, teach me how you did that."]}
+{"id": "36", "language": "eng", "category": "normal", "kind": "profanity_exclamation", "expected_alert": false, "utterances": ["Stupid printer, it jammed again."]}
+{"id": "37", "language": "eng", "category": "normal", "kind": "quoting", "expected_alert": false, "utterances": ["We're not supposed to call anyone ugly, right, Ma'am?"]}
+{"id": "38", "language": "eng", "category": "normal", "kind": "banter", "expected_alert": false, "utterances": ["Who ate my chips?", "Me, loser, haha, I'll buy you new ones later."]}
+{"id": "39", "language": "eng", "category": "normal", "kind": "banter", "expected_alert": false, "utterances": ["I'm gonna kill you in Mobile Legends later, bro, get ready!"]}
+{"id": "40", "language": "eng", "category": "normal", "kind": "self_directed", "expected_alert": false, "utterances": ["Fatty me ate three cupcakes, haha, I'm so full."]}
