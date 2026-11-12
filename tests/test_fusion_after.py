@@ -1,6 +1,8 @@
 from dataclasses import replace
 import unittest
 
+from tests.tone_helpers import with_tone
+
 from config import DetectionRuntimeConfig
 from detection.fusion import fuse_event_evidence
 from tests.test_event_coordinator_after import acoustic_evidence, text_evidence
@@ -48,18 +50,24 @@ class FusionAfterTests(unittest.TestCase):
         )
         self.assertEqual(decision.level, "MEDIUM")
 
-    def test_text_plus_strong_acoustic_corroboration_can_promote(self):
+    def test_strong_shout_window_alone_does_not_promote(self):
         decision = fuse_event_evidence(
             (directed(),),
             (acoustic_evidence(score=0.82),),
             duration_seconds=5,
         )
-        self.assertEqual(decision.level, "HIGH")
-        self.assertIn(
-            "promoted_by:direct_target_and_strong_shout",
-            decision.reasons,
-        )
+        self.assertEqual(decision.level, "MEDIUM")
         self.assertIn("text_acoustic_corroboration", decision.supporting_evidence)
+
+    def test_targeted_insult_with_angry_tone_is_high(self):
+        decision = fuse_event_evidence(
+            (with_tone(directed()),),
+            (acoustic_evidence(score=0.82),),
+            duration_seconds=5,
+        )
+        self.assertEqual(decision.level, "HIGH")
+        self.assertIn("promoted_by:targeted_insult_angry_tone", decision.reasons)
+        self.assertTrue(decision.summary.startswith("Insult aimed at someone, said angrily"))
 
     def test_targeted_repetition_across_the_incident_is_high(self):
         second = replace(directed(1.0), transcript="bobo ka talaga")

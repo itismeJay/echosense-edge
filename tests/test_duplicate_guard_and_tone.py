@@ -4,6 +4,8 @@ from datetime import timedelta
 from dataclasses import replace
 import unittest
 
+from tests.tone_helpers import with_tone
+
 import numpy as np
 
 from config import DetectionRuntimeConfig, detection_runtime_config_from_environment
@@ -101,7 +103,7 @@ class DuplicateGuardTests(unittest.TestCase):
         self.assertEqual(harness.finalized[0].severity, MEDIUM)
         for window in windows(5.0, 6.5):
             harness.acoustic(window)
-        result = harness.text(say("bobo ka", 9.5, spoken_seconds=4.5))
+        result = harness.text(with_tone(say("bobo ka", 9.5, spoken_seconds=4.5)))
         self.assertTrue(result.opened)
         harness.finish(30)
         self.assertEqual(harness.finalized[-1].severity, HIGH)

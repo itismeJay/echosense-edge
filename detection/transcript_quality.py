@@ -31,6 +31,9 @@ class TranscriptQualityResult:
     longest_repeated_run: int
     reason_codes: tuple[str, ...]
     warnings: tuple[str, ...]
+    # Text the detector matches. Equal to the transcript unless a repeated
+    # tail was trimmed; the transcript itself is never changed.
+    checked_text: str = ""
 
 
 def _normalized_characters(value: object) -> str:
@@ -177,23 +180,64 @@ def _has_repeated_phrase_pattern(tokens: tuple[str, ...]) -> bool:
     return False
 
 
-def assess_transcript_quality(value: object) -> TranscriptQualityResult:
-    """Identify low-quality or possibly artifact-like decoding conservatively.
+# A Whisper loop at the end of real speech: "ang pangit mo ang mga mga mga".
+_TAIL_PHRASE_MAX_TOKENS = 3
+_TAIL_MIN_REPEATS = 3
 
-    These signals are filters, not evidence that Whisper hallucinated and not
-    proof of any real-world behavior.
+
+def _repeated_tail_cut(tokens: tuple[str, ...]):
+    """Index after the first copy of a looping tail, or None.
+
+    A tail is one word repeated more than the allowed run, or a 2-3 word
+    phrase repeated 3+ times. One copy is kept. ``None`` when there is no such
+    tail or nothing but the loop was said (the whole transcript repeats).
     """
 
-    original = str(value or "")
-    normalized = normalize_transcript(original)
-    tokens = tuple(normalized.split())
+    count = len(tokens)
+    cut = None
+    for length in range(1, _TAIL_PHRASE_MAX_TOKENS + 1):
+        unit = tokens[count - length:]
+        if len(unit) < length:
+            break
+        start = count
+        while start - length >= 0 and tokens[start - length:start] == unit:
+            start -= length
+        repeats = (count - start) // length
+        needed = (
+            TRANSCRIPT_MAX_REPEATED_TOKEN_RUN + 1 if length == 1 else _TAIL_MIN_REPEATS
+        )
+        # Something other than the loop's own words must precede it, else
+        # the whole transcript is repetition ("alpha beta alpha beta ...").
+        if repeats >= needed and set(tokens[:start]) - set(unit):
+            keep = start + length
+            cut = keep if cut is None else min(cut, keep)
+    return cut
+
+
+def _trimmed_text(segments, keep: int) -> str:
+    kept = []
+    for segment in segments:
+        if keep <= 0:
+            break
+        kept.append(" ".join(segment[:keep]))
+        keep -= len(segment)
+    return ". ".join(kept)
+
+
+_REPETITION_REASONS = frozenset({
+    "excessive_token_repetition",
+    "repeated_phrase_pattern",
+    "low_unique_token_ratio",
+})
+
+
+def _assess_tokens(original, normalized, tokens):
     token_count = len(tokens)
     unique_token_count = len(set(tokens))
     unique_ratio = unique_token_count / token_count if token_count else 0.0
     repetition_ratio = 1.0 - unique_ratio if token_count else 0.0
     longest_run = _longest_repeated_run(tokens)
     reasons: list[str] = []
-    warnings: list[str] = []
 
     if not original.strip():
         reasons.append("empty_transcript")
@@ -220,6 +264,43 @@ def assess_transcript_quality(value: object) -> TranscriptQualityResult:
         and "repeated_phrase_pattern" not in reasons
     ):
         reasons.append("excessive_token_repetition")
+    return (
+        reasons, token_count, unique_token_count, repetition_ratio, longest_run,
+    )
+
+
+def assess_transcript_quality(value: object) -> TranscriptQualityResult:
+    """Identify low-quality or possibly artifact-like decoding conservatively.
+
+    These signals are filters, not evidence that Whisper hallucinated and not
+    proof of any real-world behavior. When repetition would reject the
+    utterance and it is only a looping tail after real words ("ang pangit mo
+    ang mga mga mga"), the tail is trimmed to one copy (``checked_text``) and
+    the rest is judged. A transcript that is repetition throughout is still
+    rejected. ``normalized_text`` and the caller's transcript stay complete.
+    """
+
+    original = str(value or "")
+    checked = original
+    normalized = normalize_transcript(original)
+    tokens = tuple(normalized.split())
+    reasons, token_count, unique_token_count, repetition_ratio, longest_run = (
+        _assess_tokens(original, normalized, tokens)
+    )
+    warnings: list[str] = []
+    if reasons and set(reasons) <= _REPETITION_REASONS:
+        segments = transcript_token_segments(original)
+        flat = tuple(token for segment in segments for token in segment)
+        cut = _repeated_tail_cut(flat) if flat == tokens else None
+        if cut is not None:
+            trimmed = _assess_tokens(original, normalized, tokens[:cut])
+            if not trimmed[0]:
+                checked = _trimmed_text(segments, cut)
+                (
+                    reasons, token_count, unique_token_count,
+                    repetition_ratio, longest_run,
+                ) = trimmed
+                warnings.append("repeated_tail_trimmed")
 
     if not reasons and longest_run == TRANSCRIPT_MAX_REPEATED_TOKEN_RUN:
         warnings.append("suspicious_repetition_below_rejection_threshold")
@@ -234,4 +315,5 @@ def assess_transcript_quality(value: object) -> TranscriptQualityResult:
         longest_repeated_run=longest_run,
         reason_codes=("accepted",) if accepted else tuple(reasons),
         warnings=tuple(warnings),
+        checked_text=checked,
     )

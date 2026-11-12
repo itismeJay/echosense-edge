@@ -128,6 +128,9 @@ def normalize_yamnet_label(value: str) -> str:
 _NORMALIZED_AGGRESSIVE_CLASSES = frozenset(
     normalize_yamnet_label(label) for label in AGGRESSIVE_CLASSES
 )
+_NORMALIZED_LAUGHTER_CLASSES = frozenset({
+    normalize_yamnet_label("Laughter"),
+})
 
 
 # YAMNet's tflite graph expects exactly 15600 samples (0.975s @ 16kHz) per call.
@@ -147,6 +150,23 @@ def is_aggressive_sound(class_name: str, score: float, threshold: float) -> bool
     ):
         return False
     return normalize_yamnet_label(class_name) in _NORMALIZED_AGGRESSIVE_CLASSES
+
+
+def is_laughter_sound(class_name: str, score: float, threshold: float) -> bool:
+    """Match only the class-map's exact laughter event above threshold."""
+
+    try:
+        numeric_score = float(score)
+        numeric_threshold = float(threshold)
+    except (TypeError, ValueError):
+        return False
+    if (
+        not math.isfinite(numeric_score)
+        or not math.isfinite(numeric_threshold)
+        or numeric_score < numeric_threshold
+    ):
+        return False
+    return normalize_yamnet_label(class_name) in _NORMALIZED_LAUGHTER_CLASSES
 
 
 def _scan_windows(interpreter, audio_np, class_names, window_runner):

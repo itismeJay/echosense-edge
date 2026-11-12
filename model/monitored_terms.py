@@ -347,6 +347,72 @@ def build_matched_terms(
     return evidence
 
 
+_CORRECTION_PROVENANCE = frozenset({
+    "trusted_alias",
+    "explicit_mishearing",
+    "fuzzy_soundalike",
+    "fuzzy",
+    "unsupported_correction",
+})
+_PROVENANCE_RISK = {
+    "trusted_alias": 0,
+    "explicit_mishearing": 1,
+    "fuzzy_soundalike": 2,
+    "fuzzy": 2,
+    "unsupported_correction": 3,
+}
+
+
+def build_term_provenance(
+    original_text: object,
+    corrected_text: object,
+    detected_terms: Sequence[str],
+    corrections: Sequence[Mapping] = (),
+) -> list[dict]:
+    """Describe how each detected term reached the matching text.
+
+    ``match_type`` remains the backend dictionary's word/phrase shape. This
+    separate field answers the ASR question: whether Whisper emitted the term,
+    a safe spelling fold produced it, or a less certain correction produced it.
+    Unknown alignment is never promoted to an original exact match.
+    """
+
+    evidence = []
+    for source_term in detected_terms or ():
+        term = normalize_text(source_term)
+        if not term:
+            continue
+        if phrase_matches(term, original_text):
+            provenance = "original_exact"
+        else:
+            relevant = []
+            for correction in corrections or ():
+                if not isinstance(correction, Mapping):
+                    continue
+                corrected = normalize_text(correction.get("term"))
+                if not corrected or not (
+                    phrase_matches(term, corrected)
+                    or phrase_matches(corrected, term)
+                ):
+                    continue
+                value = str(correction.get("provenance") or "").strip().lower()
+                if value not in _CORRECTION_PROVENANCE:
+                    value = (
+                        "explicit_mishearing"
+                        if correction.get("kind") == "mishearing"
+                        else "fuzzy_soundalike"
+                    )
+                relevant.append(value)
+            if relevant:
+                provenance = max(relevant, key=_PROVENANCE_RISK.__getitem__)
+            elif phrase_matches(term, corrected_text):
+                provenance = "unsupported_correction"
+            else:
+                provenance = "unsupported_correction"
+        evidence.append({"term": term, "provenance": provenance})
+    return evidence
+
+
 def _real_confidence(value: object) -> Optional[float]:
     if isinstance(value, bool):
         return None

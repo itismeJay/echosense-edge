@@ -1,0 +1,200 @@
+{"id":"1","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Yawa, bugoa gyud nimo oy, di ka kasabot?"]}
+{"id":"2","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Pisti ka, ayaw nag apil diri kay samok kaayo ka."]}
+{"id":"3","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Hoy bogo, unsa man na imong gibuhat?"]}
+{"id":"4","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Gago ka, nganong ikaw man among kauban?"]}
+{"id":"5","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Pangit kaayo kag nawong oy, hahaha!"]}
+{"id":"6","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Bai, ayaw na siya apila, bogo man na siya."]}
+{"id":"7","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["Yawa ka, sumbagon tika ron, suwayi ko."]}
+{"id":"8","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Hilom diha, wa man kay pulos sa among grupo."]}
+{"id":"9","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Pisti, baho kaayo ka, pagpalayo diri."]}
+{"id":"10","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Bogo kaayo ka, balik na lang Grade 1 oy."]}
+{"id":"11","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Hoy, tan-awa ninyo ning bugoa, hahaha!"]}
+{"id":"12","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Way ganahan makig-amigo nimo, ayaw nag duol."]}
+{"id":"13","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Yawa, ikaw gyud hinungdan nganong napildi ta."]}
+{"id":"14","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["Pagawas diha, kulatahon tika unya."]}
+{"id":"15","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Ayaw na siya tagda, loser kaayo na siya."]}
+{"id":"16","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Pisti ka, mura kag way utok pirmi."]}
+{"id":"17","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["Kung mosumbong ka sa teacher, bantay ka nako."]}
+{"id":"18","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Hoy tambok, di ka kasigo diri oy."]}
+{"id":"19","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Ayaw pag-recite kay sayop ra gihapon imong tubag."]}
+{"id":"20","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Yawa, paghilom, wa may nangutana nimo."]}
+{"id":"21","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Di tika apilon sa among group chat kay samok ka."]}
+{"id":"22","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Hoy pobre, wa man gani kay ikapalit og snacks."]}
+{"id":"23","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["Animal ka, ayaw ko suwayi kay bunalan tika."]}
+{"id":"24","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Tan-awa iyang sapatos, guba na kaayo, hahaha!"]}
+{"id":"25","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["Kung di nimo ihatag imong baon, sumbagon tika."]}
+{"id":"26","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Pag-adto na lang sa lain nga grupo, wala mi ganahi nimo."]}
+{"id":"27","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Unsa man ka, buang? Sige man kag sayop."]}
+{"id":"28","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Yawa, kalain ba nimo og tingog, ayaw nag kanta."]}
+{"id":"29","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Hoy, ayaw diri lingkod kay di ka namo ka-level."]}
+{"id":"30","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Ngano nag-eskwela pa man ka nga bogo man kaayo ka?"]}
+{"id":"31","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"context_dependent","expected_alert":null,"utterances":["Bantay lang ka unya sa gawas, atong istoryahan na."]}
+{"id":"32","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Pagpalayo diha, wala kay labot sa amo."]}
+{"id":"33","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Hahaha, tan-awa iyang bag, murag gikan sa basurahan."]}
+{"id":"34","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Mas maayo pa wala ka niapil sa among project."]}
+{"id":"35","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["Pisti, kung di ka mohilom, sagpaon tika."]}
+{"id":"36","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Wala gyud kay amigo kay samok kaayo ka."]}
+{"id":"37","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Bai, ayaw mo pakig-uban ana niya, weird kaayo na."]}
+{"id":"38","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Yawa, di ka angay mahimong leader kay way kay utok."]}
+{"id":"39","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Hilom, ayaw pagbuot kay nobody ra ka diri."]}
+{"id":"40","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Pangit na gani kag nawong, bati pa gyud kag batasan."]}
+{"id":"41","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Pag-uli na lang, wala man gyuy nangita nimo diri."]}
+{"id":"42","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Grabe, bisan gamay nga problema di gyud ka kasabot, bogo!"]}
+{"id":"43","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["Hoy, himoa akong assignment, kung dili, bantay ka."]}
+{"id":"44","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Ayaw pagduol sa amo, di man ka namo gusto."]}
+{"id":"45","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Abi nimog bright ka? Bogo man diay ka."]}
+{"id":"46","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Yawa, kataw-anan kaayo ka kung mag-English ka."]}
+{"id":"47","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Wa kay pulos, sige ra kag pabug-at sa grupo."]}
+{"id":"48","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Di na namo ka apilon kay wa man kay gamit."]}
+{"id":"49","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"context_dependent","expected_alert":null,"utterances":["Suwayi kog tubag balik, tan-awon nato unsay mahitabo."]}
+{"id":"50","language":"ceb","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Pisti ka, ayaw na gyud pagpakita sa akong atubangan."]}
+{"id":"51","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bai, nahuman na nimo atong assignment?"]}
+{"id":"52","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Asa man ta mag-lunch unya?"]}
+{"id":"53","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yawa, kalisod ba aning math oy."]}
+{"id":"54","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pisti, nakalimot ko sa akong notebook."]}
+{"id":"55","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hoy, naa kay extra ballpen diha?"]}
+{"id":"56","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bai, unsa gani atong subject sunod?"]}
+{"id":"57","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Tara, adto ta sa canteen."]}
+{"id":"58","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Unsay answer nimo sa number five?"]}
+{"id":"59","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Grabe, daghana natog assignment oy."]}
+{"id":"60","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Naa na diay si ma'am?"]}
+{"id":"61","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pwede ko manghulam sa imong notes?"]}
+{"id":"62","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pisti, nag-uwan na sad, wa koy payong."]}
+{"id":"63","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bai, magduwa ta basketball unya?"]}
+{"id":"64","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Unsa diay inyong topic sa report?"]}
+{"id":"65","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yawa, nakalimot ko sa deadline."]}
+{"id":"66","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Naa kay internet diha? Hinay akong data."]}
+{"id":"67","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bai, kinsa atong leader sa group?"]}
+{"id":"68","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Kapoya gyud aning daghan kaayog project."]}
+{"id":"69","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hoy, adto sa ta sa library."]}
+{"id":"70","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Ugma na lang ta magpraktis."]}
+{"id":"71","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Unsa oras ta mag-dismiss?"]}
+{"id":"72","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bai, dalha imong PE uniform ugma."]}
+{"id":"73","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Naa koy pangutana about sa lesson."]}
+{"id":"74","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Unsa gani spelling anang word?"]}
+{"id":"75","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Wait sa bai, humanon lang nako ni."]}
+{"id":"76","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Mangayo sa kog tubig, uhaw kaayo ko."]}
+{"id":"77","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Naa ba tay quiz karong hapon?"]}
+{"id":"78","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yawa, na-lowbat akong cellphone."]}
+{"id":"79","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Unsay oras magsugod atong practice?"]}
+{"id":"80","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Kinsa'y magdala og cartolina ugma?"]}
+{"id":"81","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bai, pahulama ko sa imong ruler."]}
+{"id":"82","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Nag-study ka gabii para sa exam?"]}
+{"id":"83","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Grabe, init kaayo sa classroom."]}
+{"id":"84","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Unsa diay giingon ni sir ganina?"]}
+{"id":"85","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Adto ta sa covered court after class."]}
+{"id":"86","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pa-check daw ko sa akong answer."]}
+{"id":"87","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Okay ra ba kung diri ko molingkod?"]}
+{"id":"88","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Kinsa may absent karon?"]}
+{"id":"89","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Nag-announce na ba si ma'am sa scores?"]}
+{"id":"90","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hoy, sirado pa ba ang computer lab?"]}
+{"id":"91","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Naa ba moy meeting sa inyong grupo?"]}
+{"id":"92","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Sa Friday pa man ang submission, diba?"]}
+{"id":"93","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pisti, nawala akong eraser."]}
+{"id":"94","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Tara, apas ta kay magsugod na ang klase."]}
+{"id":"95","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Unsa'y assignment sa English?"]}
+{"id":"96","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Kadyot lang, isulat sa nako."]}
+{"id":"97","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Maayo pa mangutana ta sa teacher."]}
+{"id":"98","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bai, kabalo ka asa si Mark?"]}
+{"id":"99","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pwede makig-share sa imong libro?"]}
+{"id":"100","language":"ceb","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Human na ka? Tara, manguli na ta."]}
+{"id":"101","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yawa bai, pasar ta sa exam, hahaha!"]}
+{"id":"102","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pisti, nindota kaayo sa imong drawing oy!"]}
+{"id":"103","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Congrats bai, deserve gyud nimo na!"]}
+{"id":"104","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Grabe, perfect score ka, solid kaayo!"]}
+{"id":"105","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Salamat kaayo bai, dako kaayo kag tabang."]}
+{"id":"106","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hahaha, lingawa gyud nato ganina oy!"]}
+{"id":"107","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yawa, nakadaog ta sa basketball!"]}
+{"id":"108","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Nice kaayo imong presentation, bai!"]}
+{"id":"109","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Uy, happy birthday! Libre na diha!"]}
+{"id":"110","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Grabe, proud kaayo mi nimo!"]}
+{"id":"111","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bai, maayo kaayo ka mokanta!"]}
+{"id":"112","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yes! Wala tay assignment karon!"]}
+{"id":"113","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pisti, finally nahuman ra gyud atong project!"]}
+{"id":"114","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yawa bai, champion ta!"]}
+{"id":"115","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Ka-cute ba aning imong drawing oy!"]}
+{"id":"116","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hahaha, lingaw kaayo ka kuyog!"]}
+{"id":"117","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Good job bai, nice kaayo imong answer!"]}
+{"id":"118","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Uy, nindot kaayo imong bag!"]}
+{"id":"119","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Salamat sa pagtabang nako ganina."]}
+{"id":"120","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Grabe, daghan kaayo tag nahuman karon!"]}
+{"id":"121","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Tara, celebrate ta after class!"]}
+{"id":"122","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yawa, lingawa sa atong field trip oy!"]}
+{"id":"123","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Nice one bai, ikaw gyud!"]}
+{"id":"124","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Kaayo! Finally nasabtan na nako ang lesson!"]}
+{"id":"125","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Uy, nindot lagi imong haircut!"]}
+{"id":"126","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yehey, early dismissal ta karon!"]}
+{"id":"127","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bai, daog na pud ta, hahaha!"]}
+{"id":"128","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pisti, kalami sa imong baon oy!"]}
+{"id":"129","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Grabe, maayo kaayo atong performance!"]}
+{"id":"130","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Congrats, top one ka sa klase!"]}
+{"id":"131","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yawa bai, galing kaayo ka!"]}
+{"id":"132","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Salamat kaayo sa notes, lifesaver ka!"]}
+{"id":"133","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Uy, apil ka sa among team ha!"]}
+{"id":"134","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Excited na kaayo ko sa foundation day!"]}
+{"id":"135","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hahaha, grabe gyud ta mokatawa ganina."]}
+{"id":"136","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hoy, welcome back! Dugay ta wa nagkita!"]}
+{"id":"137","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Nice kaayo imong idea sa project!"]}
+{"id":"138","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bai, kabalo na gyud ko mo-solve ani!"]}
+{"id":"139","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pisti, happy kaayo ko kay pasado ko!"]}
+{"id":"140","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Uy, salamat sa imong libre!"]}
+{"id":"141","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Nindot gyud kaayo mag-group with you!"]}
+{"id":"142","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Wow, ikaw nagbuhat ana? Astig!"]}
+{"id":"143","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hahaha, maayo gyud ka mo-joke, bai!"]}
+{"id":"144","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yawa, gi-perfect nimo ang quiz!"]}
+{"id":"145","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Nice game bai, maayo kaayo ka!"]}
+{"id":"146","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yehey, naa na diay ta sa honors list!"]}
+{"id":"147","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Grabe, nindot kaayo ang result sa atong experiment!"]}
+{"id":"148","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hoy, salamat kaayo sa paghulat nako!"]}
+{"id":"149","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pisti, lingaw kaayo ang intrams karon!"]}
+{"id":"150","language":"ceb","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bai, proud ko nimo, padayon lang!"]}
+{"id":"151","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yawa, nganong daghan kaayog assignment?"]}
+{"id":"152","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pisti, kapoya na gyud aning adlaw oy."]}
+{"id":"153","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Grabe, kulbaan kaayo ko sa exam ugma."]}
+{"id":"154","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Murag di nako kaya ning project."]}
+{"id":"155","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Sus, nasuko gyud si ma'am ganina."]}
+{"id":"156","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Unsaon na lang nako akong grado ani?"]}
+{"id":"157","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yawa, naguba akong project!"]}
+{"id":"158","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Kapoy na kaayo ko, gusto na ko mouli."]}
+{"id":"159","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Murag maulaw ko mo-recite sa klase."]}
+{"id":"160","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pisti, nakalimot ko sa akong homework."]}
+{"id":"161","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Di ko ganahan sa nahitabo ganina."]}
+{"id":"162","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Grabe, sakit kaayo akong ulo."]}
+{"id":"163","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Naguol ko kay ubos akong score."]}
+{"id":"164","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Mahadlok ko nga mapakyas sa exam."]}
+{"id":"165","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yawa, wala na sad koy load."]}
+{"id":"166","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Sus, kalain sa panahon, kusog kaayog ulan."]}
+{"id":"167","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Ambot oy, wa gyud ko kasabot sa lesson."]}
+{"id":"168","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Murag sapoton na gyud ko aning internet."]}
+{"id":"169","language":"ceb","category":"other","source_category":"other","provisional_label":"context_dependent","expected_alert":null,"utterances":["Unsa ba oy, sige na lang kag saba diri."]}
+{"id":"170","language":"ceb","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["Please, ayaw sa ko samoka kay nagtuon ko."]}
+{"id":"171","language":"ceb","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["Bai, seryoso ko, dili ko ganahan ana nga joke."]}
+{"id":"172","language":"ceb","category":"other","source_category":"other","provisional_label":"reported_or_quoted_aggression","expected_alert":null,"utterances":["Wa ko nalingaw sa imong giingon ganina."]}
+{"id":"173","language":"ceb","category":"other","source_category":"other","provisional_label":"reported_or_quoted_aggression","expected_alert":null,"utterances":["Nasakitan ko sa imong giingon."]}
+{"id":"174","language":"ceb","category":"other","source_category":"other","provisional_label":"context_dependent","expected_alert":null,"utterances":["Ngano man nga wala ko ninyo giapil?"]}
+{"id":"175","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pwede mag-inusara sa ko karon?"]}
+{"id":"176","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Di lang sa ko mokuyog, kapoy ko."]}
+{"id":"177","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pisti, nahulog akong cellphone!"]}
+{"id":"178","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yawa, hapit ko malate sa klase!"]}
+{"id":"179","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Grabe, nakurat ko sa tingog sa bell."]}
+{"id":"180","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Sus, wa gyud ko katuo sa nahitabo."]}
+{"id":"181","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Murag lisod kaayo ning among group activity."]}
+{"id":"182","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Naguol ko kay absent akong amigo."]}
+{"id":"183","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bai, tabangi ko kay nalibog ko."]}
+{"id":"184","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Di ko sure kung sakto ba ning akong gibuhat."]}
+{"id":"185","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Unsa may buhaton nato kung ma-cancel ang klase?"]}
+{"id":"186","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hay, wala pa gyud nahuman ang among report."]}
+{"id":"187","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Murag suko si sir sa among grupo."]}
+{"id":"188","language":"ceb","category":"other","source_category":"other","provisional_label":"context_dependent","expected_alert":null,"utterances":["Masuko gyud ko kung kuhaon nimo akong gamit nga walay pananghid."]}
+{"id":"189","language":"ceb","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["Undangi na palihog, dili na ko komportable."]}
+{"id":"190","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Sorry bai, wala to nako tuyoa."]}
+{"id":"191","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pasensya na kung nasuko ko ganina."]}
+{"id":"192","language":"ceb","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["Di ko ganahan makiglalis karon."]}
+{"id":"193","language":"ceb","category":"other","source_category":"other","provisional_label":"context_dependent","expected_alert":null,"utterances":["Ngano man nga sige mog katawa?"]}
+{"id":"194","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Nabalaka ko kay nawala akong notebook."]}
+{"id":"195","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Murag dili ko ready sa presentation."]}
+{"id":"196","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Pisti, sayop akong napasa nga file."]}
+{"id":"197","language":"ceb","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yawa, kusog kaayo ang kilat!"]}
+{"id":"198","language":"ceb","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["Palihog, hinay-hinay lang kay nag-concentrate ko."]}
+{"id":"199","language":"ceb","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["Nasuko ko pero dili ko ganahan makig-away."]}
+{"id":"200","language":"ceb","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["Bai, istoryahon lang nato ni og tarong."]}

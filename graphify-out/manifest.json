@@ -1,0 +1,866 @@
+{
+  ".claude/settings.local.json": {
+    "mtime": 1785374108.2269902,
+    "seen": 1794320504.5056472,
+    "ast_hash": "a21a5ee06a96ebe9e748f64520cec72b",
+    "semantic_hash": ""
+  },
+  "audio/__init__.py": {
+    "mtime": 1779519840.448599,
+    "seen": 1794320504.5056489,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "audio/audio_event.py": {
+    "mtime": 1786338068.311646,
+    "seen": 1794320504.5056498,
+    "ast_hash": "0c15290ea0f4797571beb19afb7f6515",
+    "semantic_hash": ""
+  },
+  "audio/capture.py": {
+    "mtime": 1785374108.2280521,
+    "seen": 1794320504.5056498,
+    "ast_hash": "22903042d2175dd923dbb430e1aa3ede",
+    "semantic_hash": ""
+  },
+  "audio/led_indicator.py": {
+    "mtime": 1785374108.2282987,
+    "seen": 1794320504.505651,
+    "ast_hash": "f822c2092b87c8c9f82a31b5f6ceda16",
+    "semantic_hash": ""
+  },
+  "audio/shared_source.py": {
+    "mtime": 1786334957.7044873,
+    "seen": 1794320504.505651,
+    "ast_hash": "bd2f7de7de51024fa4a97a49fa98b489",
+    "semantic_hash": ""
+  },
+  "audio/vad.py": {
+    "mtime": 1785374108.2283678,
+    "seen": 1794320504.505652,
+    "ast_hash": "43bfa76594f1c3ef4b549a772cbd56c1",
+    "semantic_hash": ""
+  },
+  "audio/waveform.py": {
+    "mtime": 1785374108.2284365,
+    "seen": 1794320504.505653,
+    "ast_hash": "8158ed9a905b6e4199bd6717e60dc539",
+    "semantic_hash": ""
+  },
+  "config.py": {
+    "mtime": 1794185423.5960155,
+    "seen": 1794320504.505654,
+    "ast_hash": "e411d2c50a3929d5b22ceb96157219b6",
+    "semantic_hash": ""
+  },
+  "data/school_config.55059023b0fb.json": {
+    "mtime": 1794216444.8156223,
+    "seen": 1794320504.505654,
+    "ast_hash": "8ff21b5df85463b51e42fe686caf3f70",
+    "semantic_hash": ""
+  },
+  "data/school_config.5948df907a5b.json": {
+    "mtime": 1793833848.63904,
+    "seen": 1794320504.505655,
+    "ast_hash": "8ac59efd2dfd162fd9344b847e94ab83",
+    "semantic_hash": ""
+  },
+  "data/school_config.63a744e73e94.json": {
+    "mtime": 1793852565.9148018,
+    "seen": 1794320504.505655,
+    "ast_hash": "9d710a86b7cc141a1ffd1ce673267641",
+    "semantic_hash": ""
+  },
+  "data/school_config.8c15314d6c77.json": {
+    "mtime": 1793833904.3732681,
+    "seen": 1794320504.505656,
+    "ast_hash": "0f7601154b33db54f0af1df59ac3d10a",
+    "semantic_hash": ""
+  },
+  "data/school_config.b44d58e70603.json": {
+    "mtime": 1793823023.6735096,
+    "seen": 1794320504.505656,
+    "ast_hash": "e5538f9025464124772e40bea2f3f74c",
+    "semantic_hash": ""
+  },
+  "data/school_config.d4565110cde9.json": {
+    "mtime": 1793836388.1434045,
+    "seen": 1794320504.5056572,
+    "ast_hash": "d9c1cb5f3ecccc4c5392b314191c6e4b",
+    "semantic_hash": ""
+  },
+  "detection/__init__.py": {
+    "mtime": 1779519840.4488633,
+    "seen": 1794320504.5056572,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "detection/acoustic_detector.py": {
+    "mtime": 1794168554.3381371,
+    "seen": 1794320504.5056581,
+    "ast_hash": "b6bcb4168ae83184acf7eaeedb5a38e1",
+    "semantic_hash": ""
+  },
+  "detection/aggression.py": {
+    "mtime": 1785374108.2300818,
+    "seen": 1794320504.5056581,
+    "ast_hash": "08e4978667ac431ae973e3b16b5810c6",
+    "semantic_hash": ""
+  },
+  "detection/context_gate.py": {
+    "mtime": 1785374108.230342,
+    "seen": 1794320504.5056589,
+    "ast_hash": "c6347ed247051f13874fb261980076ce",
+    "semantic_hash": ""
+  },
+  "detection/coordinator.py": {
+    "mtime": 1794163305.4454236,
+    "seen": 1794320504.5056589,
+    "ast_hash": "137fdd7b27c6a69ab0dbb8ae03deffe0",
+    "semantic_hash": ""
+  },
+  "detection/evidence.py": {
+    "mtime": 1794168506.8950279,
+    "seen": 1794320504.5056589,
+    "ast_hash": "0c9a882a45f1c3bb1459a6f537573bdd",
+    "semantic_hash": ""
+  },
+  "detection/false_alarm_filters.py": {
+    "mtime": 1793766709.8730016,
+    "seen": 1794320504.5056598,
+    "ast_hash": "7b2b8d925e4339faae136be1701c4fab",
+    "semantic_hash": ""
+  },
+  "detection/fusion.py": {
+    "mtime": 1794168855.520098,
+    "seen": 1794320504.5056598,
+    "ast_hash": "4780c3ed771d1cac9eced228463492cd",
+    "semantic_hash": ""
+  },
+  "detection/latency.py": {
+    "mtime": 1792555208.3228748,
+    "seen": 1794320504.505661,
+    "ast_hash": "4395da79b942dba906720127448be561",
+    "semantic_hash": ""
+  },
+  "detection/lexicon.py": {
+    "mtime": 1793820392.6093545,
+    "seen": 1794320504.505661,
+    "ast_hash": "411c6b6a60b34609dfcff8f67bb02760",
+    "semantic_hash": ""
+  },
+  "detection/school_policy.py": {
+    "mtime": 1793816174.5472033,
+    "seen": 1794320504.505662,
+    "ast_hash": "de51a63ba3f1ffef2c946f41a8e00fe1",
+    "semantic_hash": ""
+  },
+  "detection/semantic.py": {
+    "mtime": 1794168506.8958528,
+    "seen": 1794320504.505662,
+    "ast_hash": "003d8857c3d6c1cff13c5cede73b489a",
+    "semantic_hash": ""
+  },
+  "detection/severity.py": {
+    "mtime": 1793852506.1166837,
+    "seen": 1794320504.505663,
+    "ast_hash": "b295145e3493cede15217146019c530c",
+    "semantic_hash": ""
+  },
+  "detection/soundalike.py": {
+    "mtime": 1794163480.349987,
+    "seen": 1794320504.505663,
+    "ast_hash": "19b5da03fec851c02efb10afab904d48",
+    "semantic_hash": ""
+  },
+  "detection/text_context.py": {
+    "mtime": 1794163323.1860766,
+    "seen": 1794320504.505663,
+    "ast_hash": "462652cfa2d88300388ddef347982a03",
+    "semantic_hash": ""
+  },
+  "detection/text_detector.py": {
+    "mtime": 1794168534.4652658,
+    "seen": 1794320504.505664,
+    "ast_hash": "ef160d8b90db9e70016117f73971cab1",
+    "semantic_hash": ""
+  },
+  "detection/thresholds.py": {
+    "mtime": 1792555137.1393287,
+    "seen": 1794320504.505664,
+    "ast_hash": "128f46642fe23063fc6a0d26555f7fce",
+    "semantic_hash": ""
+  },
+  "detection/transcript_quality.py": {
+    "mtime": 1793820373.4263508,
+    "seen": 1794320504.505665,
+    "ast_hash": "d4e3a238df4956073b374208fafbbf4a",
+    "semantic_hash": ""
+  },
+  "detection/upgrade_evaluation.py": {
+    "mtime": 1794182576.2239654,
+    "seen": 1794320504.505665,
+    "ast_hash": "e1bff5536ce0a6e3801112026fb654ff",
+    "semantic_hash": ""
+  },
+  "lexicon/bisaya_bullying.yaml": {
+    "mtime": 1793820392.6839314,
+    "seen": 1794320504.505666,
+    "ast_hash": "75e4254e44a0064d5e363657f08411ee",
+    "semantic_hash": ""
+  },
+  "main.py": {
+    "mtime": 1794218949.0902007,
+    "seen": 1794320504.505666,
+    "ast_hash": "8eccfb29f0a01b9d4454f8e67cdc8b24",
+    "semantic_hash": ""
+  },
+  "model/__init__.py": {
+    "mtime": 1779519840.4491763,
+    "seen": 1794320504.505666,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "model/blacklist.py": {
+    "mtime": 1794163331.3088758,
+    "seen": 1794320504.505667,
+    "ast_hash": "54a28dbcf5ad902876f6bc4b02645765",
+    "semantic_hash": ""
+  },
+  "model/language_restricted_engine.py": {
+    "mtime": 1794167132.301769,
+    "seen": 1794320504.505667,
+    "ast_hash": "ba81ce62b87e210c308bf5b609205892",
+    "semantic_hash": ""
+  },
+  "model/monitored_terms.py": {
+    "mtime": 1794163217.3453763,
+    "seen": 1794320504.5056682,
+    "ast_hash": "ade47bc3b2e252ab63dc335236e12949",
+    "semantic_hash": ""
+  },
+  "model/realtimestt_audio_adapter.py": {
+    "mtime": 1786338068.401295,
+    "seen": 1794320504.5056682,
+    "ast_hash": "7bf84dd50b485f291c56a504284787f5",
+    "semantic_hash": ""
+  },
+  "model/result_queue.py": {
+    "mtime": 1786338084.2274456,
+    "seen": 1794320504.505669,
+    "ast_hash": "d446679eaf925a8c02c09bc4048a35ba",
+    "semantic_hash": ""
+  },
+  "model/school_config.py": {
+    "mtime": 1793816275.2970247,
+    "seen": 1794320504.505669,
+    "ast_hash": "4d9059ffd474ff1fa7ac5a7615d70380",
+    "semantic_hash": ""
+  },
+  "model/semantic_nli.py": {
+    "mtime": 1794182281.6676269,
+    "seen": 1794320504.5056698,
+    "ast_hash": "ef46f3f885d2965073ceb6abbd3e1ae0",
+    "semantic_hash": ""
+  },
+  "model/stt_version.py": {
+    "mtime": 1793061368.6858463,
+    "seen": 1794320504.5056698,
+    "ast_hash": "cedce0a0cb99bce79e6a586728fa932b",
+    "semantic_hash": ""
+  },
+  "model/tone_analyzer.py": {
+    "mtime": 1792553311.4854991,
+    "seen": 1794320504.505671,
+    "ast_hash": "d040bb45ca3cfafaf594b5960cb7bbb3",
+    "semantic_hash": ""
+  },
+  "model/vosk_detect.py": {
+    "mtime": 1779519840.4494076,
+    "seen": 1794320504.505671,
+    "ast_hash": "886029af2008cc860ccd97a76f8c497a",
+    "semantic_hash": ""
+  },
+  "model/whisper_stt.py": {
+    "mtime": 1794166956.7160478,
+    "seen": 1794320504.505671,
+    "ast_hash": "725fa21578d7ebe08afea5dad66168be",
+    "semantic_hash": ""
+  },
+  "model/yamnet_infer.py": {
+    "mtime": 1794168554.3372695,
+    "seen": 1794320504.505672,
+    "ast_hash": "bc5c6985ab74ae9f22eca945be04c797",
+    "semantic_hash": ""
+  },
+  "provisioning/__init__.py": {
+    "mtime": 1793821871.72228,
+    "seen": 1794320504.505672,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "provisioning/activation.py": {
+    "mtime": 1793833852.9404476,
+    "seen": 1794320504.505673,
+    "ast_hash": "2d1523998de0ea24dcc00f32bb24ad29",
+    "semantic_hash": ""
+  },
+  "provisioning/identity.py": {
+    "mtime": 1793821857.2632084,
+    "seen": 1794320504.505673,
+    "ast_hash": "b0ca59f3fb29afdcbaaff9252e5b3414",
+    "semantic_hash": ""
+  },
+  "provisioning/wifi_setup/__init__.py": {
+    "mtime": 1794217078.2857625,
+    "seen": 1794320504.505674,
+    "ast_hash": "37253fe73bfe23ca7f7bf216b80d1533",
+    "semantic_hash": ""
+  },
+  "provisioning/wifi_setup/__main__.py": {
+    "mtime": 1794217230.0074546,
+    "seen": 1794320504.505674,
+    "ast_hash": "66e23472a39dc4903e527bee7d528eb9",
+    "semantic_hash": ""
+  },
+  "provisioning/wifi_setup/cli.py": {
+    "mtime": 1794217558.610981,
+    "seen": 1794320504.505675,
+    "ast_hash": "8c5a9b8878dc3397ce071363dffbb969",
+    "semantic_hash": ""
+  },
+  "provisioning/wifi_setup/controller.py": {
+    "mtime": 1794218801.9045677,
+    "seen": 1794320504.505675,
+    "ast_hash": "45f11c1d50e1dcd74c16994e39ce6504",
+    "semantic_hash": ""
+  },
+  "provisioning/wifi_setup/credentials.py": {
+    "mtime": 1794217350.5839097,
+    "seen": 1794320504.505675,
+    "ast_hash": "f81ded937f9c6be856e2ac3a2db4e1cc",
+    "semantic_hash": ""
+  },
+  "provisioning/wifi_setup/networkmanager.py": {
+    "mtime": 1794218890.7762825,
+    "seen": 1794320504.505676,
+    "ast_hash": "8654412064700beb1f64492f19444d7e",
+    "semantic_hash": ""
+  },
+  "provisioning/wifi_setup/portal.py": {
+    "mtime": 1794218949.09111,
+    "seen": 1794320504.505676,
+    "ast_hash": "da1dbf9911d127fe4d22f9abf48a3220",
+    "semantic_hash": ""
+  },
+  "provisioning/wifi_setup/service.py": {
+    "mtime": 1794218949.0906913,
+    "seen": 1794320504.505677,
+    "ast_hash": "cfbf9f4339bf750fba0a9e1fddd056f6",
+    "semantic_hash": ""
+  },
+  "provisioning/wifi_setup/validation.py": {
+    "mtime": 1794217078.2860527,
+    "seen": 1794320504.505677,
+    "ast_hash": "ce2d276986e25438189c3d71dfb17d01",
+    "semantic_hash": ""
+  },
+  "runtime.py": {
+    "mtime": 1794185493.7455354,
+    "seen": 1794320504.5056782,
+    "ast_hash": "3356837c992e012e8bf60693cc42e39a",
+    "semantic_hash": ""
+  },
+  "sender/__init__.py": {
+    "mtime": 1779519840.4496114,
+    "seen": 1794320504.5056782,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "sender/dashboard_test.py": {
+    "mtime": 1794185493.7432685,
+    "seen": 1794320504.5056782,
+    "ast_hash": "9bcde895a3aa4bd7b0f49f8f919c476e",
+    "semantic_hash": ""
+  },
+  "sender/delivery.py": {
+    "mtime": 1794185493.7438362,
+    "seen": 1794320504.5056791,
+    "ast_hash": "c7e704e9cc2694a74393398e0013c40d",
+    "semantic_hash": ""
+  },
+  "sender/http_client.py": {
+    "mtime": 1794185423.59788,
+    "seen": 1794320504.5056791,
+    "ast_hash": "d56c936314fe7f91e25493fc92be9826",
+    "semantic_hash": ""
+  },
+  "sender/incident_delivery.py": {
+    "mtime": 1794185423.5987585,
+    "seen": 1794320504.5056798,
+    "ast_hash": "6dc9b6c56f2cf1aed727bfe2459a819b",
+    "semantic_hash": ""
+  },
+  "sender/outbox.py": {
+    "mtime": 1793812536.9011497,
+    "seen": 1794320504.5056798,
+    "ast_hash": "91e40f4f0ba64d23d7cb41e5432272c5",
+    "semantic_hash": ""
+  },
+  "sender/outbox_admin.py": {
+    "mtime": 1793812583.393971,
+    "seen": 1794320504.5056808,
+    "ast_hash": "5f44f3575ab5632d9a0f7b5446cc2991",
+    "semantic_hash": ""
+  },
+  "sender/payload_v2.py": {
+    "mtime": 1794185423.5968573,
+    "seen": 1794320504.5056808,
+    "ast_hash": "3d161fecd2b00ffadd437387252460d7",
+    "semantic_hash": ""
+  },
+  "sender/shadow_log.py": {
+    "mtime": 1793057689.2257695,
+    "seen": 1794320504.505682,
+    "ast_hash": "d32366446c4a4e9a8c5d4c5688c72aff",
+    "semantic_hash": ""
+  },
+  "test_backend.py": {
+    "mtime": 1785374108.2366292,
+    "seen": 1794320504.505682,
+    "ast_hash": "b1d8e9ae3c55f3367af4214b8fc6ab87",
+    "semantic_hash": ""
+  },
+  "test_tone.py": {
+    "mtime": 1780302782.6552548,
+    "seen": 1794320504.505683,
+    "ast_hash": "d1a405889cdf797cb8545eed31126125",
+    "semantic_hash": ""
+  },
+  "tests/__init__.py": {
+    "mtime": 1785374108.2367253,
+    "seen": 1794320504.505683,
+    "ast_hash": "68b329da9893e34099c7d8ad5cb9c940",
+    "semantic_hash": ""
+  },
+  "tests/schema_v2_fixtures.py": {
+    "mtime": 1786304629.7135448,
+    "seen": 1794320504.505683,
+    "ast_hash": "d1a297c08bb9e2b268e4376ccf141313",
+    "semantic_hash": ""
+  },
+  "tests/test_accuracy_context.py": {
+    "mtime": 1792557992.882885,
+    "seen": 1794320504.505684,
+    "ast_hash": "d0e6de065cddf8afe7c11c0b8b02c6c7",
+    "semantic_hash": ""
+  },
+  "tests/test_acoustic_detector_after.py": {
+    "mtime": 1792553483.8935099,
+    "seen": 1794320504.505684,
+    "ast_hash": "0cda3016d89020f4a8a1e0189f3b2e7a",
+    "semantic_hash": ""
+  },
+  "tests/test_after_characterization.py": {
+    "mtime": 1792558027.4064782,
+    "seen": 1794320504.505685,
+    "ast_hash": "97b128dca8217ae24c0ead6bef3642c1",
+    "semantic_hash": ""
+  },
+  "tests/test_after_configuration.py": {
+    "mtime": 1792558027.405915,
+    "seen": 1794320504.505685,
+    "ast_hash": "321573713105d2d80cdc33b7c54ead3e",
+    "semantic_hash": ""
+  },
+  "tests/test_alert_payload.py": {
+    "mtime": 1794185609.6897376,
+    "seen": 1794320504.505686,
+    "ast_hash": "775166d01b843205246b5887ae2989a3",
+    "semantic_hash": ""
+  },
+  "tests/test_audio_alignment.py": {
+    "mtime": 1785374108.237003,
+    "seen": 1794320504.505686,
+    "ast_hash": "d8e20134b7e7e1deaa77344f83ecb8d8",
+    "semantic_hash": ""
+  },
+  "tests/test_audio_event.py": {
+    "mtime": 1785374108.237065,
+    "seen": 1794320504.505687,
+    "ast_hash": "7a2cea74eee3e738f39c98d222518d5c",
+    "semantic_hash": ""
+  },
+  "tests/test_backend_configuration.py": {
+    "mtime": 1786291238.1169064,
+    "seen": 1794320504.505687,
+    "ast_hash": "182bb5c1e0a66ea0cfbad895d5496f16",
+    "semantic_hash": ""
+  },
+  "tests/test_bisaya_priority.py": {
+    "mtime": 1793783737.9057698,
+    "seen": 1794320504.505687,
+    "ast_hash": "ee992dcd9e27303543f97bca0c90e4cb",
+    "semantic_hash": ""
+  },
+  "tests/test_dashboard_test_mode.py": {
+    "mtime": 1794185609.6934521,
+    "seen": 1794320504.505688,
+    "ast_hash": "345dc75bf9ca235d419e2ef285045e50",
+    "semantic_hash": ""
+  },
+  "tests/test_decode_gate_terms.py": {
+    "mtime": 1793766726.573282,
+    "seen": 1794320504.505688,
+    "ast_hash": "eea332d123744d795c2819ff0ef9cdd6",
+    "semantic_hash": ""
+  },
+  "tests/test_device_authentication.py": {
+    "mtime": 1786304752.837968,
+    "seen": 1794320504.5056891,
+    "ast_hash": "975b4c9276d7a8770f51e4c46eb6ef39",
+    "semantic_hash": ""
+  },
+  "tests/test_duplicate_guard_and_tone.py": {
+    "mtime": 1792558081.686185,
+    "seen": 1794320504.5056891,
+    "ast_hash": "2d4f118a4f8373e9cf0795fccc72a012",
+    "semantic_hash": ""
+  },
+  "tests/test_edge_env.py": {
+    "mtime": 1793057748.2539668,
+    "seen": 1794320504.50569,
+    "ast_hash": "d9031c8079ac15b088abdfe164a9b4f9",
+    "semantic_hash": ""
+  },
+  "tests/test_event_coordinator_after.py": {
+    "mtime": 1792558210.71188,
+    "seen": 1794320504.50569,
+    "ast_hash": "4c0fb6981350d01fd27c351d33ada45b",
+    "semantic_hash": ""
+  },
+  "tests/test_false_alarm_filters.py": {
+    "mtime": 1793783324.9253726,
+    "seen": 1794320504.5056908,
+    "ast_hash": "361b96ed7b50f93ade0a36ac9a295d79",
+    "semantic_hash": ""
+  },
+  "tests/test_false_positive_provenance.py": {
+    "mtime": 1794163580.2461889,
+    "seen": 1794320504.5056908,
+    "ast_hash": "4a2f3006611fe0e0fa5ccc9b29bbb451",
+    "semantic_hash": ""
+  },
+  "tests/test_fusion_after.py": {
+    "mtime": 1792558027.4069192,
+    "seen": 1794320504.5056908,
+    "ast_hash": "357ec66bb724c6cdc37be78cd6b936b9",
+    "semantic_hash": ""
+  },
+  "tests/test_heartbeat_headers.py": {
+    "mtime": 1793057518.937979,
+    "seen": 1794320504.505692,
+    "ast_hash": "218f61eb8de9f4dbe08f58a8e00e994f",
+    "semantic_hash": ""
+  },
+  "tests/test_incident_delivery_after.py": {
+    "mtime": 1794185664.807733,
+    "seen": 1794320504.505692,
+    "ast_hash": "c57ef3e4859eea2171d24969436bcb01",
+    "semantic_hash": ""
+  },
+  "tests/test_language_restriction.py": {
+    "mtime": 1794167140.7184484,
+    "seen": 1794320504.505693,
+    "ast_hash": "69be39a2c770d696f80e7da8c4dacac1",
+    "semantic_hash": ""
+  },
+  "tests/test_lexicon.py": {
+    "mtime": 1793820481.9222257,
+    "seen": 1794320504.505693,
+    "ast_hash": "5c7f698fda88c25b05b56807c0b70f50",
+    "semantic_hash": ""
+  },
+  "tests/test_live_validation.py": {
+    "mtime": 1794185609.6912096,
+    "seen": 1794320504.505694,
+    "ast_hash": "4afc2f87f9cd00062327ab793556b192",
+    "semantic_hash": ""
+  },
+  "tests/test_multilingual_detection.py": {
+    "mtime": 1785374108.2372856,
+    "seen": 1794320504.505694,
+    "ast_hash": "bce1d847ca54cc8276cdd0772c8432dd",
+    "semantic_hash": ""
+  },
+  "tests/test_outbox.py": {
+    "mtime": 1793812642.4423707,
+    "seen": 1794320504.5056949,
+    "ast_hash": "9203b8cc99b0386d222aab3cd5b5bc75",
+    "semantic_hash": ""
+  },
+  "tests/test_qr_setup.py": {
+    "mtime": 1793833852.9407444,
+    "seen": 1794320504.5056949,
+    "ast_hash": "e04857038b533c3a143a3980780b12e6",
+    "semantic_hash": ""
+  },
+  "tests/test_realtimestt_audio_adapter.py": {
+    "mtime": 1793057518.938239,
+    "seen": 1794320504.5056949,
+    "ast_hash": "01591701163aa0e9db3e4b51d1ccc4ed",
+    "semantic_hash": ""
+  },
+  "tests/test_realtimestt_worker_startup.py": {
+    "mtime": 1794167058.6122785,
+    "seen": 1794320504.505696,
+    "ast_hash": "d3856160172bfd7ee0f5125689ea310e",
+    "semantic_hash": ""
+  },
+  "tests/test_rejection_resync.py": {
+    "mtime": 1793812687.3420656,
+    "seen": 1794320504.505696,
+    "ast_hash": "81dd90af1b3b52f3b9f6636b96391d8b",
+    "semantic_hash": ""
+  },
+  "tests/test_runtime_after.py": {
+    "mtime": 1786335136.718979,
+    "seen": 1794320504.505697,
+    "ast_hash": "8bbc84e59875cc4b6e7e4db0289a24a0",
+    "semantic_hash": ""
+  },
+  "tests/test_school_config.py": {
+    "mtime": 1793816350.357826,
+    "seen": 1794320504.505697,
+    "ast_hash": "68b251ab07070fd21649a569b2244127",
+    "semantic_hash": ""
+  },
+  "tests/test_semantic_evaluation_tool.py": {
+    "mtime": 1794182534.554283,
+    "seen": 1794320504.505697,
+    "ast_hash": "ebd563774cf5ceb65ca0c07ac2f0a851",
+    "semantic_hash": ""
+  },
+  "tests/test_semantic_nli_adapter.py": {
+    "mtime": 1794182373.3676705,
+    "seen": 1794320504.505698,
+    "ast_hash": "03b798bfa809dbf82b5cd2c850a19070",
+    "semantic_hash": ""
+  },
+  "tests/test_semantic_upgrade.py": {
+    "mtime": 1794182604.5773115,
+    "seen": 1794320504.505698,
+    "ast_hash": "bc3f93d583abb29da83390a7d7e8ce81",
+    "semantic_hash": ""
+  },
+  "tests/test_severity_and_laughter.py": {
+    "mtime": 1792558065.4531262,
+    "seen": 1794320504.5056992,
+    "ast_hash": "71b33f4e3bf963a72fbbf7c066e96073",
+    "semantic_hash": ""
+  },
+  "tests/test_severity_policy_table.py": {
+    "mtime": 1792558100.9185145,
+    "seen": 1794320504.5056992,
+    "ast_hash": "19777f6c0a1c23637f8a2ced9ae3e99d",
+    "semantic_hash": ""
+  },
+  "tests/test_shared_audio_after.py": {
+    "mtime": 1792553716.271032,
+    "seen": 1794320504.5056992,
+    "ast_hash": "112d4f1297441bb1befc07aaf69196ec",
+    "semantic_hash": ""
+  },
+  "tests/test_soundalike.py": {
+    "mtime": 1794163355.8438497,
+    "seen": 1794320504.5057,
+    "ast_hash": "88067d3dafe0fe2c4e253c45a9141576",
+    "semantic_hash": ""
+  },
+  "tests/test_stt_pcm_bound_after.py": {
+    "mtime": 1786338200.9292967,
+    "seen": 1794320504.5057,
+    "ast_hash": "0d386beb0e86a9e082d60751b6f17a96",
+    "semantic_hash": ""
+  },
+  "tests/test_stt_settings.py": {
+    "mtime": 1793061661.067063,
+    "seen": 1794320504.505701,
+    "ast_hash": "4b8fd55e0f022de0ee4056c37c92c247",
+    "semantic_hash": ""
+  },
+  "tests/test_text_detector_after.py": {
+    "mtime": 1792558065.452845,
+    "seen": 1794320504.505701,
+    "ast_hash": "34fdfefdf011b31f0691a8a2020d09e9",
+    "semantic_hash": ""
+  },
+  "tests/test_text_pipeline_hardening.py": {
+    "mtime": 1786334632.788824,
+    "seen": 1794320504.5057018,
+    "ast_hash": "60d0b4987f17c5c5e5e1f05fabe4f218",
+    "semantic_hash": ""
+  },
+  "tests/test_text_quality_and_context.py": {
+    "mtime": 1786334632.9619594,
+    "seen": 1794320504.5057018,
+    "ast_hash": "1e9d6cdeea32406182c102328e57cbc4",
+    "semantic_hash": ""
+  },
+  "tests/test_transcript_privacy_after.py": {
+    "mtime": 1792558065.4524603,
+    "seen": 1794320504.5057018,
+    "ast_hash": "d61ffaede4b951fe4bd88ffd733922d8",
+    "semantic_hash": ""
+  },
+  "tests/test_transcript_visibility.py": {
+    "mtime": 1793057518.938549,
+    "seen": 1794320504.505703,
+    "ast_hash": "3b2e4416a17791f504f910257f877032",
+    "semantic_hash": ""
+  },
+  "tests/test_vulgar_insult_floor.py": {
+    "mtime": 1793840907.2032728,
+    "seen": 1794320504.505703,
+    "ast_hash": "6a76924ce84428eb94642059c320a11d",
+    "semantic_hash": ""
+  },
+  "tests/test_wifi_setup.py": {
+    "mtime": 1794218914.152232,
+    "seen": 1794320504.505704,
+    "ast_hash": "eec627bba674795ea9f75693e1c2b00b",
+    "semantic_hash": ""
+  },
+  "tools/dashboard_test_mode.py": {
+    "mtime": 1794185550.0206544,
+    "seen": 1794320504.505704,
+    "ast_hash": "3304eeb1197a8cd84af39692876cba30",
+    "semantic_hash": ""
+  },
+  "tools/evaluate_semantic_upgrade.py": {
+    "mtime": 1794182598.4240441,
+    "seen": 1794320504.5057049,
+    "ast_hash": "10d0424d709f7bfc12b2d8007d7fe8e7",
+    "semantic_hash": ""
+  },
+  "tools/evaluate_testset.py": {
+    "mtime": 1793733495.3646617,
+    "seen": 1794320504.5057049,
+    "ast_hash": "488f15bae3d687975a16e3145468e190",
+    "semantic_hash": ""
+  },
+  "tools/export_lexicon.py": {
+    "mtime": 1793820392.5820272,
+    "seen": 1794320504.505706,
+    "ast_hash": "b72bf3d15ab4edeb1db6be5eb4f1d066",
+    "semantic_hash": ""
+  },
+  "tools/live_validation.py": {
+    "mtime": 1794185423.599781,
+    "seen": 1794320504.505706,
+    "ast_hash": "31c6015f45a9ae4686f773eb1cca77f8",
+    "semantic_hash": ""
+  },
+  "tools/provision_box.py": {
+    "mtime": 1793822749.8410902,
+    "seen": 1794320504.505706,
+    "ast_hash": "14effbb1594bf6351484535cda936d95",
+    "semantic_hash": ""
+  },
+  "tools/record_testset.py": {
+    "mtime": 1793783827.5342312,
+    "seen": 1794320504.505707,
+    "ast_hash": "73a96b33c36794c9131803997c1b3d53",
+    "semantic_hash": ""
+  },
+  "AGENTS.md": {
+    "mtime": 1785374108.2276719,
+    "seen": 1794320504.505707,
+    "ast_hash": "78008c6d499eab0a766c6c05406f2b3f",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1793822589.9240656,
+    "seen": 1794320504.505708,
+    "ast_hash": "f0dc9bd138590d24b73ad0c645c50539",
+    "semantic_hash": ""
+  },
+  "SCHOOL_SETUP.md": {
+    "mtime": 1794217411.4122524,
+    "seen": 1794320504.505708,
+    "ast_hash": "db6d4b1e257e02bc5c2cc38153dbdf6f",
+    "semantic_hash": ""
+  },
+  "detection/common_words.txt": {
+    "mtime": 1793850444.1455986,
+    "seen": 1794320504.5057092,
+    "ast_hash": "80ee598c4361ed46093c38b990fd782f",
+    "semantic_hash": ""
+  },
+  "docs/DASHBOARD_TEST_MODE.md": {
+    "mtime": 1794215523.959722,
+    "seen": 1794320504.5057092,
+    "ast_hash": "2c2459001b08e9794f11be237faeead6",
+    "semantic_hash": ""
+  },
+  "docs/DEVICE_AUTHENTICATION.md": {
+    "mtime": 1786304845.3555233,
+    "seen": 1794320504.5057101,
+    "ast_hash": "e57655e2fd5e724a2fd346f6d2ea2d98",
+    "semantic_hash": ""
+  },
+  "docs/EXPERIMENTAL_SEMANTICS.md": {
+    "mtime": 1794182660.5476754,
+    "seen": 1794320504.5057101,
+    "ast_hash": "ed54e3e3516c0312cdf1eba7e75f2a1c",
+    "semantic_hash": ""
+  },
+  "docs/FALSE_ALERT_VALIDATION.md": {
+    "mtime": 1794163408.2965775,
+    "seen": 1794320504.505711,
+    "ast_hash": "4fc59a7c1234df5437d9a32c27483f4d",
+    "semantic_hash": ""
+  },
+  "docs/MULTILINGUAL_MODEL_RESEARCH.md": {
+    "mtime": 1794182857.6975403,
+    "seen": 1794320504.505711,
+    "ast_hash": "6eaf38f0e03a86b861a1d851b9691e60",
+    "semantic_hash": ""
+  },
+  "docs/OFFLINE_OUTBOX.md": {
+    "mtime": 1786304845.2680244,
+    "seen": 1794320504.505712,
+    "ast_hash": "0cc5894ca61e27b815bcb4cc21565850",
+    "semantic_hash": ""
+  },
+  "docs/SEVERITY_RULES.md": {
+    "mtime": 1794163408.297239,
+    "seen": 1794320504.505712,
+    "ast_hash": "581f8b5ddd808431c31e86a2b6d6a3a8",
+    "semantic_hash": ""
+  },
+  "docs/WIFI_PROVISIONING.md": {
+    "mtime": 1794218885.1666722,
+    "seen": 1794320504.505713,
+    "ast_hash": "d4717941c464e50983d32776c2440663",
+    "semantic_hash": ""
+  },
+  "docs/after_detection_architecture.md": {
+    "mtime": 1792558129.8312678,
+    "seen": 1794320504.505713,
+    "ast_hash": "a533123de9f81170954cf8780e67cd23",
+    "semantic_hash": ""
+  },
+  "requirements.txt": {
+    "mtime": 1793783842.0140433,
+    "seen": 1794320504.505713,
+    "ast_hash": "52ec710333dd298d3626bfaa2c3959c0",
+    "semantic_hash": ""
+  },
+  "tools/requirements-provision.txt": {
+    "mtime": 1793821907.5894716,
+    "seen": 1794320504.505714,
+    "ast_hash": "4d6406cc2242b4c4d6000293ef96ad6b",
+    "semantic_hash": ""
+  }
+}

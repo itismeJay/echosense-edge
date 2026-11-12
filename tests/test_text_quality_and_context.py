@@ -98,6 +98,36 @@ class TranscriptQualityRejectionTests(unittest.TestCase):
         self.assertFalse(result.accepted)
         self.assertIn("repeated_phrase_pattern", result.reason_codes)
 
+    def test_14b_repeated_tail_is_trimmed_and_the_rest_is_checked(self):
+        text = "Ang pangit mo ang mga mga mga mga mga mga mga."
+        result = assess_transcript_quality(text)
+        self.assertTrue(result.accepted)
+        self.assertIn("repeated_tail_trimmed", result.warnings)
+        self.assertEqual(result.checked_text, "ang pangit mo ang mga")
+        # The normalized transcript of record stays complete.
+        self.assertTrue(result.normalized_text.endswith("mga mga mga mga"))
+
+    def test_14c_repeated_phrase_tail_keeps_one_copy(self):
+        result = assess_transcript_quality(
+            "Tingnan sa sapatos niya sila sila sila sila."
+        )
+        self.assertTrue(result.accepted)
+        self.assertEqual(result.checked_text, "tingnan sa sapatos niya sila")
+
+    def test_14d_accepted_repetition_is_not_trimmed(self):
+        text = "ikaw bobo ka bobo ka bobo ka bobo ka"
+        result = assess_transcript_quality(text)
+        self.assertTrue(result.accepted)
+        self.assertEqual(result.checked_text, text)
+        self.assertNotIn("repeated_tail_trimmed", result.warnings)
+
+    def test_14e_transcript_that_is_only_repetition_is_still_rejected(self):
+        for text in ("mga mga mga mga mga", "alpha beta alpha alpha beta "
+                     "alpha beta alpha beta alpha"):
+            result = assess_transcript_quality(text)
+            self.assertFalse(result.accepted, text)
+            self.assertNotIn("repeated_tail_trimmed", result.warnings)
+
     def test_15_low_unique_ratio_is_rejected_only_when_long_enough(self):
         result = assess_transcript_quality(
             "alpha beta alpha alpha beta alpha beta alpha beta alpha"

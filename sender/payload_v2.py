@@ -352,10 +352,57 @@ def _acoustic_evidence(
     return evidence
 
 
+def _score(value, name):
+    return round(_finite_number(value, name, minimum=0.0, maximum=1.0), 4)
+
+
+def _tone_context_fields(tone_context) -> dict:
+    """Speech-emotion vote values that live inside tone_evidence."""
+
+    if tone_context is None:
+        return {}
+    if not isinstance(tone_context, dict):
+        raise AlertPayloadValidationError("tone_context must be an object")
+    fields = {}
+    for key in ("emotion_score", "angry_score", "shout_score"):
+        if tone_context.get(key) is not None:
+            fields[key] = _score(tone_context[key], f"tone_context.{key}")
+    if tone_context.get("rms_ratio") is not None:
+        fields["speech_loudness_ratio"] = round(
+            _finite_number(tone_context["rms_ratio"], "tone_context.rms_ratio", minimum=0.0),
+            3,
+        )
+    if "angry_tone" in tone_context:
+        fields["angry_tone"] = bool(tone_context["angry_tone"])
+    reason = str(tone_context.get("reason") or "").strip()
+    if reason:
+        if len(reason) > 300:
+            raise AlertPayloadValidationError("tone reason exceeds 300 characters")
+        fields["reason"] = reason
+    return fields
+
+
+def _laughter_context(tone_context, marker_present) -> dict | None:
+    laughter = (tone_context or {}).get("laughter") if isinstance(tone_context, dict) else None
+    laughter = laughter if isinstance(laughter, dict) else {}
+    if not (marker_present or laughter.get("detected")):
+        return None
+    context = {"detected": True}
+    if laughter.get("score") is not None:
+        context["score"] = _score(laughter["score"], "laughter.score")
+    sources = [str(item)[:40] for item in laughter.get("sources") or ()][:5]
+    if sources:
+        context["sources"] = sources
+    if "mocking" in laughter:
+        context["mocking"] = bool(laughter["mocking"])
+    return context
+
+
 def _tone_evidence(
     emotion,
     tone_data,
     role="supporting_only",
+    tone_context=None,
 ) -> dict | None:
     measurements = {}
     source = tone_data or {}
@@ -368,9 +415,11 @@ def _tone_evidence(
                 4,
             )
     label = str(emotion or "").strip()
-    if not measurements and label.casefold() in {"", "unknown"}:
+    context = _tone_context_fields(tone_context)
+    if not measurements and not context and label.casefold() in {"", "unknown"}:
         return None
     evidence = {"role": _evidence_role(role)}
+    evidence.update(context)
     if label and label.casefold() != "unknown":
         if len(label) > 100:
             raise AlertPayloadValidationError("emotion exceeds 100 characters")
@@ -427,8 +476,16 @@ def build_alert_payload_v2(
     tone_data=None,
     waveform_snapshot=None,
     acoustic_evidence_role="supporting_only",
+    test_mode=False,
+    tone_context=None,
 ) -> dict:
-    """Return one deterministic, backend-compatible schema-v2 body."""
+    """Return one deterministic, backend-compatible schema-v2 body.
+
+    ``tone_context`` (speech-emotion vote: emotion_score, angry_score,
+    angry_tone, shout_score, rms_ratio, reason, laughter{detected, score,
+    sources, mocking}) is written inside the existing ``tone_evidence`` and
+    ``laughter_context`` fields; no new top-level field is added.
+    """
 
     canonical_event_id = normalize_event_id(event_id)
     normalized_trigger = _normalize_enum(
@@ -436,9 +493,14 @@ def build_alert_payload_v2(
         TRIGGER_TYPES,
         "trigger_type",
     )
-    if normalized_trigger == "TEST":
+    normalized_test_mode = bool(test_mode)
+    if normalized_trigger == "TEST" and not normalized_test_mode:
         raise AlertPayloadValidationError(
-            "real Edge alerts must not use the TEST trigger"
+            "TEST trigger_type requires test_mode=true"
+        )
+    if normalized_trigger != "TEST" and normalized_test_mode:
+        raise AlertPayloadValidationError(
+            "test_mode=true requires trigger_type=TEST"
         )
     normalized_severity = _normalize_enum(
         severity,
@@ -492,7 +554,7 @@ def build_alert_payload_v2(
         ),
         "language": str(language or "unknown").strip().lower(),
         "matched_terms": _clean_matched_terms(matched_terms),
-        "test_mode": False,
+        "test_mode": normalized_test_mode,
     }
     if payload["language"] not in LANGUAGE_VALUES:
         raise AlertPayloadValidationError(
@@ -529,6 +591,7 @@ def build_alert_payload_v2(
         emotion,
         tone_data,
         acoustic_evidence_role,
+        tone_context,
     )
     if tone_evidence is not None:
         payload["tone_evidence"] = tone_evidence
@@ -537,8 +600,16 @@ def build_alert_payload_v2(
         payload["repetition_evidence"] = {"detected": True}
     if "direct_target_pattern" in supporting:
         payload["direct_address_evidence"] = {"detected": True}
-    if "laughter_or_excitement_marker_present" in supporting:
-        payload["laughter_context"] = {"detected": True}
+    laughter_context = _laughter_context(
+        tone_context,
+        bool(supporting & {
+            "laughter_or_excitement_marker_present",
+            "acoustic_laughter_observed",
+            "laughter_context",
+        }),
+    )
+    if laughter_context is not None:
+        payload["laughter_context"] = laughter_context
     waveform = _clean_waveform(waveform_snapshot)
     if waveform:
         payload["waveform_snapshot"] = waveform
@@ -568,8 +639,8 @@ def validate_alert_payload_v2(payload: object) -> None:
         raise AlertPayloadValidationError("schema_version must be integer 2")
     if normalize_event_id(payload.get("event_id")) != payload.get("event_id"):
         raise AlertPayloadValidationError("event_id must use canonical UUID form")
-    if payload.get("trigger_type") not in {"KEYWORD", "ACOUSTIC"}:
-        raise AlertPayloadValidationError("trigger_type is invalid for a real alert")
+    if payload.get("trigger_type") not in TRIGGER_TYPES:
+        raise AlertPayloadValidationError("trigger_type is invalid")
     if payload.get("severity") not in SEVERITY_LEVELS:
         raise AlertPayloadValidationError("severity must be uppercase")
     if payload.get("review_message") != REVIEW_MESSAGE:
@@ -589,8 +660,15 @@ def validate_alert_payload_v2(payload: object) -> None:
         raise AlertPayloadValidationError(
             "event_end_timestamp must not precede event_start_timestamp"
         )
-    if payload.get("test_mode") is not False:
-        raise AlertPayloadValidationError("test_mode must be false")
+    if payload.get("trigger_type") == "TEST":
+        if payload.get("test_mode") is not True:
+            raise AlertPayloadValidationError(
+                "TEST trigger_type requires test_mode=true"
+            )
+    elif payload.get("test_mode") is not False:
+        raise AlertPayloadValidationError(
+            "test_mode=true requires trigger_type=TEST"
+        )
     severity_reasons = _bounded_strings(
         payload.get("severity_reasons"),
         "severity_reasons",

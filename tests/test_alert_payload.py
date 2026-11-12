@@ -59,12 +59,18 @@ class AlertPayloadV2Tests(unittest.TestCase):
         with self.assertRaises(AlertPayloadValidationError):
             schema_v2_payload(event_id="not-a-uuid")
 
-    def test_trigger_type_is_keyword_and_invalid_trigger_is_rejected(self):
+    def test_trigger_type_requires_consistent_test_mode_label(self):
         self.assertEqual(schema_v2_payload()["trigger_type"], "KEYWORD")
         with self.assertRaises(AlertPayloadValidationError):
             schema_v2_payload(trigger_type="UNSUPPORTED")
         with self.assertRaises(AlertPayloadValidationError):
             schema_v2_payload(trigger_type="TEST")
+        with self.assertRaises(AlertPayloadValidationError):
+            schema_v2_payload(test_mode=True)
+
+        payload = schema_v2_payload(trigger_type="TEST", test_mode=True)
+        self.assertEqual(payload["trigger_type"], "TEST")
+        self.assertTrue(payload["test_mode"])
 
     def test_severity_is_uppercase_and_invalid_value_is_rejected(self):
         for source, expected in (

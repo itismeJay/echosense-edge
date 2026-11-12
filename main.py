@@ -1,10 +1,10 @@
 import getpass
 import os
+import signal
 import subprocess
 import sys
-import signal
-import time
 import threading
+import time
 
 from sender.http_client import (
     send_alert,
@@ -15,9 +15,6 @@ from config import (
     PLATFORM,
     SHOW_TRANSCRIPT_TEXT,
 )
-# Registers the en/tl Whisper engine. Kept at top level on purpose: the
-# RealtimeSTT transcription child process re-imports this module.
-import model.language_restricted_engine  # noqa: F401
 
 
 def should_ship_runtime_log(line):
@@ -72,9 +69,41 @@ def get_ssid():
     if PLATFORM == "macos":
         return "unknown"
     try:
+        output = _run([
+            'nmcli', '-t', '--escape', 'no', '-f', 'IN-USE,SSID',
+            'device', 'wifi', 'list', 'ifname', NETWORK_INTERFACE,
+            '--rescan', 'no',
+        ])
+        for line in output.splitlines():
+            in_use, separator, ssid = line.partition(':')
+            if separator and in_use == '*' and ssid:
+                return ssid
+    except Exception:
+        pass
+    try:
         return _run(['iwgetid', '-r']) or "unknown"
     except Exception:
         return "unknown"
+
+
+def get_network_info():
+    """Heartbeat fields used by device status and dashboard Wi-Fi guidance."""
+
+    ip_address = get_ip()
+    ssid = get_ssid()
+    connected = ip_address != "unknown" and ssid != "unknown"
+    return {
+        "ip": ip_address,
+        "ssid": ssid,
+        "mac": get_mac(),
+        "hostname": DEVICE_HOSTNAME,
+        "wifi_status": "connected" if connected else "disconnected",
+        "wifi_change_method": "local_portal",
+        "wifi_local_url": (
+            f"http://{ip_address}/" if connected else "http://10.42.0.1/"
+        ),
+        "wifi_remote_scan_supported": False,
+    }
 
 
 def print_network_banner(prefix="[NETWORK]"):
@@ -199,17 +228,15 @@ def main():
 
     runtime = EdgeRuntime(
         stop_event=stop_event,
-        network_info_provider=lambda: {
-            "ip": get_ip(),
-            "ssid": get_ssid(),
-            "mac": get_mac(),
-            "hostname": DEVICE_HOSTNAME,
-        },
+        network_info_provider=get_network_info,
     )
     print_network_banner()
     # Re-print the live IP/SSID every 60s so the current hotspot address is
     # always discoverable in the log (the boot line goes stale on a WiFi switch).
     threading.Thread(target=_network_status_thread, args=(60,), daemon=True).start()
+    # Dashboard Wi-Fi changes (simulated and reported as unsupported off the Pi).
+    from provisioning.wifi_setup.remote_commands import start_wifi_command_poll
+    start_wifi_command_poll(stop_event)
 
     print("\n[MAIN] Starting one-source AFTER detection runtime...")
     print("[INIT] Press Ctrl+C to stop\n")

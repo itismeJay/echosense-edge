@@ -4,6 +4,8 @@ from dataclasses import replace
 from datetime import datetime, timezone
 import unittest
 
+from tests.tone_helpers import with_tone
+
 from detection.fusion import fuse_event_evidence
 from detection.severity import is_descriptive_only
 from detection.soundalike import correct_transcript, sound_key, spelling_key
@@ -103,8 +105,9 @@ class SoundalikeTests(unittest.TestCase):
             with self.subTest(heard=heard):
                 self.assertIn(term, check_transcript(heard)["detected_words"])
 
-    def test_threat_heard_with_a_wrong_letter_stays_high(self):
-        self.assertEqual(sent("patyon tikan"), (True, "HIGH"))
+    def test_fuzzy_threat_needs_support_but_safe_spelling_alias_stays_high(self):
+        self.assertEqual(sent("patyon tikan"), (False, None))
+        self.assertEqual(sent("Patyun tika"), (True, "HIGH"))
 
     def test_exact_monitored_word_is_never_turned_into_another(self):
         self.assertEqual(check_transcript("bobo ka")["detected_words"], ["bobo ka", "bobo"])
@@ -169,8 +172,12 @@ class DescriptiveWordPolicyTests(unittest.TestCase):
         self.assertFalse(
             fuse_event_evidence((evidence,), (), duration_seconds=1.0).deliver
         )
-        decision = fuse_event_evidence(
+        loud_only = fuse_event_evidence(
             (evidence,), (tone_window(0.0),), duration_seconds=1.0,
+        )
+        self.assertFalse(loud_only.deliver)
+        decision = fuse_event_evidence(
+            (with_tone(evidence),), (tone_window(0.0),), duration_seconds=1.0,
         )
         self.assertTrue(decision.deliver)
 

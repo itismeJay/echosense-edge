@@ -8,6 +8,9 @@ from datetime import timedelta
 from config import DetectionRuntimeConfig
 from detection import school_policy
 from detection.evidence import AcousticEvidence, TextEvidence
+from detection.soundalike import FUZZY_PROVENANCE
+from detection import tone_vote
+from detection.text_detector import FUZZY_REVIEW_REASON
 from detection.severity import (
     HIGH,
     LOW,
@@ -21,6 +24,11 @@ from detection.severity import (
 
 _DEFAULT_CONFIG = DetectionRuntimeConfig()
 
+# Short ASR outputs are especially vulnerable to noise/hallucination. These
+# terms remain observable exact evidence, but need targeting, repetition, or
+# time-linked aggressive acoustics before an alert leaves the device.
+AMBIGUOUS_SHORT_TERMS = frozenset({"iyot"})
+
 
 @dataclass(frozen=True, slots=True)
 class EventFusionDecision:
@@ -31,6 +39,10 @@ class EventFusionDecision:
     confidence: float
     # False when policy says this incident must not be sent at all.
     deliver: bool = True
+    # Plain-language reason line of the deciding utterance.
+    summary: str = ""
+    # detection.tone_vote.ToneVote of the deciding utterance (or None).
+    tone: object = None
 
 
 def is_time_linked(text: TextEvidence, acoustic: AcousticEvidence, window_seconds):
@@ -96,11 +108,39 @@ def strong_acoustic(windows, config=_DEFAULT_CONFIG):
     )
 
 
+def fuzzy_only(text_item) -> bool:
+    """True when every term that opened the utterance is a fuzzy match."""
+
+    provenance = {item.term: item.provenance for item in text_item.term_provenance}
+    terms = text_item.decision_terms
+    return bool(terms) and all(
+        provenance.get(term) == FUZZY_PROVENANCE for term in terms
+    )
+
+
 def _targeted_utterances(text_items):
     return sum(
         1
         for item in text_items
-        if is_targeted(item.detected_terms, item.decision_text)
+        if is_targeted(item.decision_terms, item.decision_text)
+    )
+
+
+def _tone_for(text_item, linked, thresholds=None):
+    """Tone vote for one utterance: its own clip + laughter in linked windows."""
+
+    linked_laughter = max(
+        (
+            max(item.laughter_class_score, item.laughter_score)
+            for item in linked
+        ),
+        default=0.0,
+    )
+    return tone_vote.vote(
+        text_item.tone_signals,
+        text_item.audio_tags,
+        linked_laughter_score=linked_laughter,
+        thresholds=thresholds,
     )
 
 
@@ -111,28 +151,47 @@ def _fuse_text(text_item, acoustic_evidence, targeted_count, config):
         config.corroboration_window_seconds,
     )
     linked_qualifying = [item for item in linked if item.qualifies_to_open]
-    strong = strong_acoustic(linked, config) if linked_qualifying else False
     repeated_in_incident = targeted_count >= 2 and is_targeted(
-        text_item.detected_terms, text_item.decision_text,
+        text_item.decision_terms, text_item.decision_text,
     )
+    vote = _tone_for(text_item, linked)
+    laughter = vote.laughter or text_item.laughter_present
     decision = calculate_severity(
-        text_item.detected_terms,
+        text_item.decision_terms,
         transcript=text_item.decision_text,
         repeated=repeated_in_incident,
+        laughter_present=laughter,
+        angry_tone=vote.angry_tone,
+        angry_cues=vote.loud_cues,
+        # Loud/YAMNet-only windows are recorded, never used as aggression.
         acoustic_aggressive=bool(linked_qualifying),
-        laughter_present=text_item.laughter_present,
-        strong_acoustic=strong,
     )
+    level = decision.level
+    reasons = list(decision.reasons)
+    summary = decision.summary
+    if fuzzy_only(text_item) and level != LOW:
+        # Only similarity-window guesses, no exact word: needs review.
+        level = LOW
+        reasons.append(FUZZY_REVIEW_REASON)
+        summary = "Possible monitored word (uncertain match), needs review"
     supporting = list(decision.supporting_evidence)
+    supporting.extend(vote.evidence())
     if repeated_in_incident:
         supporting.append("targeted_repetition_within_incident")
     if linked_qualifying:
+        # Observation only: loud/YAMNet windows never promote by themselves.
         supporting.append("text_acoustic_corroboration")
+    if any(item.laughter_detected for item in linked):
+        supporting.append("acoustic_laughter_observed")
+    if vote.laughter:
+        supporting.append("laughter_context")
     return (
-        decision.level,
-        list(decision.reasons),
+        level,
+        reasons,
         supporting,
         decision.term_categories,
+        vote,
+        summary,
         bool(linked_qualifying),
     )
 
@@ -146,9 +205,9 @@ def fuse_event_evidence(
 ):
     """Fuse observable evidence without treating loudness/duration as proof.
 
-    Each text observation is scored on its own transcript, and only acoustic
-    windows time-linked to that observation may promote it. Without a
-    monitored word nothing is delivered.
+    Each text observation is scored on its own transcript and its own tone
+    vote (detection/tone_vote.py: speech emotion = angry AND a shout cue).
+    Without a monitored word nothing is delivered.
     """
 
     config = config or _DEFAULT_CONFIG
@@ -163,30 +222,39 @@ def fuse_event_evidence(
     supporting = []
     categories = {}
     deliver = True
+    # True when an utterance was said with angry tone (tone_vote). Loudness
+    # alone never sets it.
     corroborated = False
+    summary = ""
+    deciding_tone = None
+    any_linked = False
     if qualifying_text:
-        level = LOW
+        level = None
         targeted_count = _targeted_utterances(qualifying_text)
         for item in qualifying_text:
-            item_level, item_reasons, item_supporting, item_categories, linked = (
-                _fuse_text(item, acoustic_evidence, targeted_count, config)
-            )
-            if SEVERITY_ORDER[item_level] > SEVERITY_ORDER[level]:
+            (
+                item_level, item_reasons, item_supporting, item_categories,
+                vote, item_summary, linked,
+            ) = _fuse_text(item, acoustic_evidence, targeted_count, config)
+            any_linked = any_linked or linked
+            if level is None or SEVERITY_ORDER[item_level] > SEVERITY_ORDER[level]:
                 level = item_level
+                summary = item_summary
+                deciding_tone = vote
             reasons.extend(item_reasons)
             supporting.extend(item_supporting)
             for category, terms in item_categories.items():
                 categories[category] = tuple(dict.fromkeys(
                     categories.get(category, ()) + terms
                 ))
-            corroborated = corroborated or linked
-        if qualifying_acoustic and not corroborated:
+            corroborated = corroborated or vote.angry_tone
+        if qualifying_acoustic and not any_linked:
             supporting.append("unlinked_acoustic_evidence_ignored")
         # Soft descriptive words ("ugly", "too short") are everyday speech:
         # send them only when aimed at someone or said in an aggressive tone.
         # A school on Strict sensitivity wants them sent anyway.
         descriptive_only = is_descriptive_only(
-            term for item in qualifying_text for term in item.detected_terms
+            term for item in qualifying_text for term in item.decision_terms
         )
         if descriptive_only and not targeted_count and not corroborated:
             if school_policy.is_strict():
@@ -194,10 +262,28 @@ def fuse_event_evidence(
             else:
                 deliver = False
                 reasons.append("descriptive_untargeted:never_sent")
+        decision_terms = [
+            term for item in qualifying_text for term in item.decision_terms
+        ]
+        ambiguous_short_only = bool(decision_terms) and set(decision_terms) <= (
+            AMBIGUOUS_SHORT_TERMS
+        )
+        repeated_support = len(qualifying_text) >= 2 or any(
+            item.repeated for item in qualifying_text
+        )
+        if (
+            ambiguous_short_only
+            and not targeted_count
+            and not corroborated
+            and not repeated_support
+        ):
+            deliver = False
+            reasons.append("ambiguous_short_term:needs_support")
     else:
         # Sound never creates an alert by itself: kept in the local log only.
         level = LOW
         deliver = False
+        summary = "Sound only, no monitored word: not sent"
         reasons.append("acoustic_only:never_sent")
         if strong_acoustic(acoustic_evidence, config):
             supporting.append("strong_or_sustained_acoustic_evidence")
@@ -222,4 +308,6 @@ def fuse_event_evidence(
         supporting_evidence=tuple(dict.fromkeys(supporting)),
         confidence=confidence,
         deliver=deliver,
+        summary=summary,
+        tone=deciding_tone,
     )

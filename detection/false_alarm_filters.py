@@ -25,7 +25,8 @@ Every rule can be tuned or switched off with ECHOSENSE_FILTER_* variables.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import replace, dataclass, field
+import math
 import os
 import re
 import unicodedata
@@ -102,6 +103,10 @@ def _env_bool(environ, name, default):
     return str(raw).strip().lower() in {"1", "true", "yes", "on"}
 
 
+ELEVENLABS_WORD_PROBABILITY_MIN_DEFAULT = 0.05
+ELEVENLABS_URGENT_WORD_PROBABILITY_MIN_DEFAULT = 0.02
+
+
 @dataclass(frozen=True)
 class FilterConfig:
     decode_gate_enabled: bool = True
@@ -124,6 +129,12 @@ class FilterConfig:
     media_classes: tuple = DEFAULT_MEDIA_CLASSES
     media_top_k: int = 3
     media_min_score: float = 0.15
+    # ElevenLabs word confidence, exp(logprob) of the term's insult words.
+    # Floors chosen on the recorded clips (tools/tone_report.py --logprobs):
+    # only near-guesses are dropped, never a recorded bullying clip.
+    elevenlabs_word_probability_enabled: bool = True
+    elevenlabs_word_probability_min: float = ELEVENLABS_WORD_PROBABILITY_MIN_DEFAULT
+    elevenlabs_urgent_word_probability_min: float = ELEVENLABS_URGENT_WORD_PROBABILITY_MIN_DEFAULT
 
     @classmethod
     def from_environment(cls, environ: Mapping[str, str] | None = None):
@@ -176,6 +187,19 @@ class FilterConfig:
             media_top_k=max(1, _env_int(environ, "ECHOSENSE_FILTER_MEDIA_TOP_K", 3)),
             media_min_score=_env_float(
                 environ, "ECHOSENSE_FILTER_MEDIA_MIN_SCORE", 0.15
+            ),
+            elevenlabs_word_probability_enabled=_env_bool(
+                environ, "ECHOSENSE_FILTER_ELEVENLABS_WORD_PROBABILITY", True
+            ),
+            elevenlabs_word_probability_min=_env_float(
+                environ,
+                "ECHOSENSE_FILTER_ELEVENLABS_WORD_PROBABILITY_MIN",
+                ELEVENLABS_WORD_PROBABILITY_MIN_DEFAULT,
+            ),
+            elevenlabs_urgent_word_probability_min=_env_float(
+                environ,
+                "ECHOSENSE_FILTER_ELEVENLABS_URGENT_WORD_PROBABILITY_MIN",
+                ELEVENLABS_URGENT_WORD_PROBABILITY_MIN_DEFAULT,
             ),
         )
 
@@ -446,3 +470,42 @@ def media_gate(top_classes, terms: Iterable[str], config: FilterConfig):
     if contains_urgent_directive(terms):
         return None
     return "media_playing:" + "+".join(heard)
+
+
+def elevenlabs_word_scores(items):
+    """ElevenLabs word items ({text, type, logprob}) as WordScores."""
+
+    scores = []
+    for item in items or ():
+        if not isinstance(item, dict) or item.get("type") != "word":
+            continue
+        logprob = item.get("logprob")
+        if logprob is None:
+            continue
+        try:
+            probability = math.exp(min(0.0, float(logprob)))
+        except (TypeError, ValueError, OverflowError):
+            continue
+        scores.append(WordScore(word=str(item.get("text") or ""), probability=probability))
+    return tuple(scores)
+
+
+def filter_terms_by_elevenlabs_logprob(terms, word_items, config: FilterConfig):
+    """Drop terms whose ElevenLabs word confidence is very low.
+
+    Same rules as the Whisper word filter (unscored terms are kept, target
+    words like "ka" are not judged, threats get a lower floor).
+    """
+
+    words = elevenlabs_word_scores(word_items)
+    if not config.elevenlabs_word_probability_enabled:
+        terms = list(dict.fromkeys(terms or ()))
+        return terms, [], {}
+    adapted = replace(
+        config,
+        word_probability_enabled=True,
+        word_probability_min=config.elevenlabs_word_probability_min,
+        urgent_word_probability_min=config.elevenlabs_urgent_word_probability_min,
+    )
+    metrics = DecodeMetrics(0.0, 0.0, 0.0, words=words) if words else None
+    return filter_terms_by_probability(terms, metrics, adapted)

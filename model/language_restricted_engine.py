@@ -6,13 +6,16 @@ decoded again as Tagalog. Here the detection probabilities are read once and
 only English and Tagalog compete, so every utterance is decoded exactly once.
 Whisper has no Cebuano token; Bisaya is decoded as Tagalog, as the retry did.
 
-RealtimeSTT runs the engine in a spawned child process. The child re-imports
-``main.py``, which imports this module, so ``register()`` runs in both
-processes. If registration is missing the recorder falls back to the stock
-engine (see model/whisper_stt.py).
+RealtimeSTT 1.0.2 does not expose a process-safe custom-engine registry. Its
+supported ``transcription_executor`` hook is therefore used instead. The
+executor below owns one spawned model worker and proxies RealtimeSTT requests
+to it, preserving process isolation without mutating RealtimeSTT internals.
 """
 
 from __future__ import annotations
+
+import multiprocessing
+import threading
 
 import numpy as np
 
@@ -136,18 +139,6 @@ def choose_language(all_language_probs, allowed=ALLOWED_LANGUAGES):
     return language, probabilities.get(language, 0.0) / total
 
 
-def register():
-    try:
-        from RealtimeSTT.transcription_engines import factory
-    except Exception:
-        return False
-    factory.ENGINE_CLASS_PATHS.setdefault(
-        ENGINE_NAME,
-        (__name__, "LanguageRestrictedFasterWhisperEngine"),
-    )
-    return True
-
-
 def _whisper_model(model):
     """The WhisperModel itself, also when wrapped in a batched pipeline."""
 
@@ -211,4 +202,251 @@ def __getattr__(name):
     raise AttributeError(name)
 
 
-register()
+class RestrictedWhisperStartupError(RuntimeError):
+    """The isolated restricted-language model worker could not start."""
+
+
+def _restricted_whisper_worker(connection, engine_config):
+    """Own the faster-whisper model in one importable ``spawn`` target."""
+
+    try:
+        from RealtimeSTT.transcription_engines.base import TranscriptionEngineConfig
+
+        engine = _engine_class()(TranscriptionEngineConfig(**engine_config))
+    except Exception as exc:
+        try:
+            connection.send(("startup_error", type(exc).__name__, str(exc)))
+        except (BrokenPipeError, EOFError, OSError):
+            pass
+        connection.close()
+        return
+
+    try:
+        connection.send(("ready",))
+        while True:
+            try:
+                message = connection.recv()
+            except EOFError:
+                break
+            if not message or message[0] == "shutdown":
+                break
+            operation, request_id, audio, language, use_prompt = message
+            if operation != "transcribe":
+                connection.send((
+                    "error",
+                    request_id,
+                    "ValueError",
+                    f"unknown worker operation: {operation}",
+                ))
+                continue
+            try:
+                result = engine.transcribe(
+                    audio,
+                    language=language,
+                    use_prompt=use_prompt,
+                )
+                connection.send((
+                    "result",
+                    request_id,
+                    result.text,
+                    result.info.language,
+                    result.info.language_probability,
+                    getattr(result, "metadata", None),
+                ))
+            except Exception as exc:
+                connection.send((
+                    "error",
+                    request_id,
+                    type(exc).__name__,
+                    str(exc),
+                ))
+    finally:
+        connection.close()
+
+
+class RestrictedWhisperExecutor:
+    """RealtimeSTT executor backed by a restricted-language spawned worker."""
+
+    def __init__(
+        self,
+        *,
+        model,
+        device="cpu",
+        compute_type="int8",
+        gpu_device_index=0,
+        beam_size=1,
+        initial_prompt=None,
+        suppress_tokens=(-1,),
+        batch_size=0,
+        vad_filter=False,
+        normalize_audio=False,
+        startup_timeout=60.0,
+        request_timeout=120.0,
+        multiprocessing_context=None,
+    ):
+        self._context = (
+            multiprocessing_context or multiprocessing.get_context("spawn")
+        )
+        self._lock = threading.Lock()
+        self._request_id = 0
+        self._request_timeout = float(request_timeout)
+        self._closed = False
+        parent, child = self._context.Pipe()
+        self._connection = parent
+        engine_config = {
+            "model": str(model),
+            "compute_type": str(compute_type),
+            "gpu_device_index": gpu_device_index,
+            "device": str(device),
+            "beam_size": int(beam_size),
+            "initial_prompt": initial_prompt,
+            "suppress_tokens": (
+                None if suppress_tokens is None else list(suppress_tokens)
+            ),
+            "batch_size": int(batch_size),
+            "vad_filter": bool(vad_filter),
+            "normalize_audio": bool(normalize_audio),
+        }
+        self._process = self._context.Process(
+            target=_restricted_whisper_worker,
+            args=(child, engine_config),
+            name="echosense-restricted-whisper",
+            daemon=True,
+        )
+        try:
+            self._process.start()
+        except Exception:
+            parent.close()
+            child.close()
+            raise
+        child.close()
+        try:
+            self._wait_until_ready(float(startup_timeout))
+        except Exception:
+            self.close()
+            raise
+
+    @property
+    def worker_pid(self):
+        return self._process.pid
+
+    @property
+    def worker_alive(self):
+        return self._process.is_alive()
+
+    def _wait_until_ready(self, timeout):
+        if timeout <= 0:
+            raise ValueError("startup_timeout must be positive")
+        if not self._connection.poll(timeout):
+            if not self._process.is_alive():
+                detail = f"worker exited with code {self._process.exitcode}"
+            else:
+                detail = f"worker did not become ready within {timeout:g}s"
+            raise RestrictedWhisperStartupError(detail)
+        try:
+            message = self._connection.recv()
+        except EOFError as exc:
+            raise RestrictedWhisperStartupError(
+                "worker closed its startup channel"
+            ) from exc
+        if message[0] == "ready":
+            return
+        if message[0] == "startup_error":
+            _status, error_type, detail = message
+            raise RestrictedWhisperStartupError(
+                f"{error_type}: {detail}"
+            )
+        raise RestrictedWhisperStartupError(
+            f"unexpected worker startup response: {message[0]}"
+        )
+
+    def transcribe(self, audio, language=None, use_prompt=True):
+        """Execute one request and return RealtimeSTT's native result type."""
+
+        from RealtimeSTT.transcription_engines.base import (
+            TranscriptionInfo,
+            TranscriptionResult,
+        )
+
+        with self._lock:
+            if self._closed:
+                raise RuntimeError("restricted Whisper executor is closed")
+            if not self._process.is_alive():
+                raise RuntimeError(
+                    "restricted Whisper worker exited unexpectedly "
+                    f"with code {self._process.exitcode}"
+                )
+            self._request_id += 1
+            request_id = self._request_id
+            self._connection.send((
+                "transcribe",
+                request_id,
+                np.asarray(audio, dtype=np.float32),
+                language,
+                bool(use_prompt),
+            ))
+            if not self._connection.poll(self._request_timeout):
+                raise TimeoutError(
+                    "restricted Whisper transcription timed out after "
+                    f"{self._request_timeout:g}s"
+                )
+            try:
+                message = self._connection.recv()
+            except EOFError as exc:
+                raise RuntimeError(
+                    "restricted Whisper worker closed during transcription"
+                ) from exc
+            status, response_id, *values = message
+            if response_id != request_id:
+                raise RuntimeError("restricted Whisper response ID mismatch")
+            if status == "error":
+                error_type, detail = values
+                raise RuntimeError(f"{error_type}: {detail}")
+            if status != "result":
+                raise RuntimeError(
+                    f"unexpected restricted Whisper response: {status}"
+                )
+            text, detected_language, probability, metadata = values
+            result = TranscriptionResult(
+                text=text,
+                info=TranscriptionInfo(
+                    language=detected_language,
+                    language_probability=float(probability),
+                ),
+            )
+            result.metadata = metadata
+            return result
+
+    def close(self, timeout=10.0):
+        """Stop the model worker; terminate only if graceful shutdown fails."""
+
+        wait = max(0.0, float(timeout))
+        acquired = self._lock.acquire(timeout=min(wait, 1.0))
+        if not acquired and self._process.is_alive():
+            # A decode thread owns the IPC lock. Terminating the worker wakes
+            # its blocking recv promptly so shutdown cannot wait 120 seconds.
+            self._process.terminate()
+            self._process.join(timeout=5.0)
+            acquired = self._lock.acquire(timeout=1.0)
+        if acquired:
+            try:
+                if self._closed:
+                    return
+                self._closed = True
+                if self._process.is_alive():
+                    try:
+                        self._connection.send(("shutdown",))
+                    except (BrokenPipeError, EOFError, OSError):
+                        pass
+                self._connection.close()
+            finally:
+                self._lock.release()
+        else:
+            if self._closed:
+                return
+            self._closed = True
+            self._connection.close()
+        self._process.join(timeout=wait)
+        if self._process.is_alive():
+            self._process.terminate()
+            self._process.join(timeout=5.0)

@@ -20,6 +20,9 @@ _IMPERSONAL_OBJECTS = frozenset({
     "drawing", "internet", "panahon", "signal", "weather",
 })
 _AMBIGUOUS_TERMS = frozenset({"pangit", "bad", "ugly"})
+_TERM_REFERENCE_MARKERS = frozenset({
+    "word", "term", "phrase", "salita", "salitang", "pulong",
+})
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,10 +84,25 @@ def _negation_reason(term: str, tokens: tuple[str, ...]) -> str | None:
     return None
 
 
+def _term_reference_reason(term: str, tokens: tuple[str, ...]) -> str | None:
+    """Suppress explicit vocabulary discussion, not ordinary reported speech."""
+
+    found = _occurrences(tokens, tuple(term.split()))
+    if found and all(
+        index > 0 and tokens[index - 1] in _TERM_REFERENCE_MARKERS
+        for index in found
+    ):
+        return "mentioned_as_term"
+    return None
+
+
 def _suppression_reason(
     term: str,
     tokens: tuple[str, ...],
 ) -> str | None:
+    reference = _term_reference_reason(term, tokens)
+    if reference:
+        return reference
     negation = _negation_reason(term, tokens)
     if negation:
         return negation

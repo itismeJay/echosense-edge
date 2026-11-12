@@ -14,6 +14,7 @@ from detection.fusion import fuse_event_evidence
 from detection.severity import HIGH, LOW, MEDIUM, calculate_severity
 from detection.text_detector import TextDetector
 from model.whisper_stt import NoiseReducer, build_initial_prompt
+from tests.tone_helpers import LOUD_NOT_ANGRY, with_tone
 from tests.test_event_coordinator_after import (
     WALL,
     FakeClock,
@@ -101,21 +102,30 @@ class TimeLinkedCorroborationTests(unittest.TestCase):
         finalized = harness.finish(20)
         self.assertEqual(finalized[0].severity, MEDIUM)
 
-    def test_bobo_ka_shouted_at_the_same_moment_becomes_high(self):
+    def test_bobo_ka_shouted_angrily_becomes_high(self):
         harness = CoordinatorHarness()
         for window in windows(0.5, 2.0):
             harness.acoustic(window)
         # Whisper delivers the transcript after the utterance ends.
-        harness.text(text("bobo ka", 2.0, spoken_seconds=1.5))
+        harness.text(with_tone(text("bobo ka", 2.0, spoken_seconds=1.5)))
         finalized = harness.finish(20)
         self.assertEqual(len(finalized), 1)
         self.assertEqual(finalized[0].severity, HIGH)
         self.assertIn(
-            "promoted_by:direct_target_and_strong_shout",
+            "promoted_by:targeted_insult_angry_tone",
             finalized[0].severity_reasons,
         )
 
-    def test_late_transcript_still_links_to_shout_heard_earlier(self):
+    def test_bobo_ka_loud_but_not_angry_stays_medium(self):
+        harness = CoordinatorHarness()
+        for window in windows(0.5, 2.0):
+            harness.acoustic(window)
+        harness.text(with_tone(text("bobo ka", 2.0, spoken_seconds=1.5), LOUD_NOT_ANGRY))
+        finalized = harness.finish(20)
+        self.assertEqual(finalized[0].severity, MEDIUM)
+        self.assertNotIn("angry_tone", finalized[0].supporting_evidence)
+
+    def test_late_transcript_keeps_its_own_angry_tone(self):
         harness = CoordinatorHarness()
         for window in windows(0.5, 2.0):
             harness.acoustic(window)
@@ -124,7 +134,7 @@ class TimeLinkedCorroborationTests(unittest.TestCase):
         self.assertEqual(harness.finalized, [])
         # STT latency: the transcript arrives seconds later and still links
         # to the shout that happened while it was spoken.
-        result = harness.text(text("bobo ka", 6.0, spoken_seconds=5.0))
+        result = harness.text(with_tone(text("bobo ka", 6.0, spoken_seconds=5.0)))
         self.assertTrue(result.opened)
         finalized = harness.finish(20)
         self.assertEqual(finalized[0].severity, HIGH)
@@ -292,21 +302,29 @@ class CasualUseContextTests(unittest.TestCase):
         self.assertEqual(decision.level, HIGH)
         self.assertIsNone(decision.context_downgrade)
 
-    def test_playful_mild_term_stays_low_unless_escalated(self):
-        playful = calculate_severity(
+    def test_laughing_insult_is_mocking_medium_unless_angry(self):
+        mocking = calculate_severity(
             ["pangit"], transcript="pangit ka haha", laughter_present=True,
         )
-        self.assertEqual(playful.level, LOW)
-        self.assertIn("held_low:playful_context", playful.reasons)
-        shouted = calculate_severity(
+        self.assertEqual(mocking.level, MEDIUM)
+        self.assertIn("mocking_with_laughter", mocking.reasons)
+        self.assertEqual(mocking.summary, "Insult aimed at someone, mocking with laughter")
+        loud = calculate_severity(
             ["pangit"],
             transcript="pangit ka haha",
             laughter_present=True,
             acoustic_aggressive=True,
             strong_acoustic=True,
         )
-        # Laughing but shouting it at someone: direct target + strong shout.
-        self.assertEqual(shouted.level, HIGH)
+        # Loudness alone is never aggression.
+        self.assertEqual(loud.level, MEDIUM)
+        angry = calculate_severity(
+            ["pangit"],
+            transcript="pangit ka haha",
+            laughter_present=True,
+            angry_tone=True,
+        )
+        self.assertEqual(angry.level, HIGH)
 
     def test_negation_after_the_term_does_not_downgrade(self):
         self.assertLevel("bobo ka, wag ka ganyan", MEDIUM)

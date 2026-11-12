@@ -23,6 +23,7 @@ from detection.false_alarm_filters import (
     FilterConfig,
     decode_gate,
     decode_gate_overridden,
+    filter_terms_by_elevenlabs_logprob,
     filter_terms_by_probability,
     hallucination_reason,
     media_gate,
@@ -30,11 +31,13 @@ from detection.false_alarm_filters import (
 from detection.severity import LOW
 from detection.transcript_quality import assess_transcript_quality
 from model.blacklist import check_transcript, restrict_to_terms
-from model.language_restricted_engine import ENGINE_NAME as RESTRICTED_ENGINE
-from model.language_restricted_engine import register as register_restricted_engine
+from model.language_guide import LanguageGuide
+from model.language_restricted_engine import RestrictedWhisperExecutor
 from model.monitored_terms import classify_transcript_language, get_backend_terms
 from model.realtimestt_audio_adapter import RealtimeSTTAudioEventAdapter
 from model.result_queue import BoundedResultQueue
+from model.sentence_catalog import load_sentence_cases
+from model.stt_provider import HybridTranscriptionExecutor, RetryWorker, STTSettings
 from model.stt_version import stt_model_version
 
 # Whisper decodes with NO initial_prompt. A prompt listing the monitored terms
@@ -51,6 +54,10 @@ _recorder = None
 _recorder_thread = None
 _recorder_error = None
 _recorder_stop_event = threading.Event()
+# ElevenLabs retry queue (model/stt_provider.py); late transcripts and live
+# ones share _on_text, so both paths hold this lock.
+_retry_worker = None
+_on_text_lock = threading.Lock()
 _recorder_ready = threading.Event()
 _audio_event_adapter = RealtimeSTTAudioEventAdapter(
     sample_rate=16000,
@@ -61,12 +68,28 @@ _result_queue = BoundedResultQueue(
     max_audio_samples=DETECTION_RUNTIME.max_stt_utterance_samples,
 )
 _recording_limiter = None
+_transcription_executor = None
 
 # False-alarm filters (see detection/false_alarm_filters.py), tunable through
 # ECHOSENSE_FILTER_* environment variables.
 _FILTERS = FilterConfig.from_environment()
+# Primary transcriber (model/stt_provider.py): ElevenLabs when its key is set,
+# local Whisper otherwise and as the per-utterance fallback.
+_STT_SETTINGS = STTSettings.from_environment()
 # Set by the runtime: (samples, sample_rate) -> [(yamnet_label, score)].
 _media_classifier = None
+
+
+def _build_language_guide():
+    try:
+        return LanguageGuide.from_sentence_cases(load_sentence_cases())
+    except (OSError, ValueError):
+        # Recording/evaluation fixtures are optional in minimal deployments.
+        # Missing guidance must never prevent normal open transcription.
+        return None
+
+
+_language_guide = _build_language_guide()
 
 
 def set_media_classifier(classifier):
@@ -378,6 +401,21 @@ def _log_decode_metrics(event_id, metrics):
     )
 
 
+def _log_stt_words(event_id, words):
+    """Debug only (ECHOSENSE_SHOW_TRANSCRIPT_TEXT=true): ElevenLabs audio
+    events ("(laughs)", "(shouting)") and each word's logprob."""
+
+    if not SHOW_TRANSCRIPT_TEXT or not words:
+        return
+    events = [item.get("text") for item in words if item.get("type") not in ("word", "spacing")]
+    scored = [
+        f"{item.get('text')}:{'n/a' if item.get('logprob') is None else format(item['logprob'], '.2f')}"
+        for item in words if item.get("type") == "word"
+    ]
+    print(f"[STT_EVENTS] event={event_id} audio_events={json.dumps(events, ensure_ascii=False)}")
+    print(f"[STT_WORDS] event={event_id} logprobs={json.dumps(scored, ensure_ascii=False)}")
+
+
 def _media_top_classes(event_id, audio_event):
     if _media_classifier is None or audio_event is None:
         return None
@@ -391,13 +429,45 @@ def _media_top_classes(event_id, audio_event):
     return top
 
 
-def _apply_term_filters(result, original_text, metrics, audio_event, event_id):
+def _is_elevenlabs(decode_metadata) -> bool:
+    """ElevenLabs transcripts are final: no Whisper language retry or guard."""
+
+    return _stt_info(decode_metadata).get("provider") == "elevenlabs"
+
+
+def _stt_info(decode_metadata):
+    """Provider info that model/stt_provider.py attached, or the Whisper default."""
+
+    info = decode_metadata.get("stt") if isinstance(decode_metadata, dict) else None
+    if not isinstance(info, dict):
+        return {"provider": "whisper", "fallback_reason": None,
+                "latency_ms": None, "audio_tags": []}
+    return info
+
+
+def _apply_term_filters(
+    result, original_text, metrics, audio_event, event_id, provider="whisper",
+    stt_words=(),
+):
     """Word-probability and media filters on an accepted, matched transcript."""
 
     terms = list(result.get("detected_words") or ())
     if not terms:
         return result
-    kept, dropped, scores = filter_terms_by_probability(terms, metrics, _FILTERS)
+    if provider == "whisper":
+        kept, dropped, scores = filter_terms_by_probability(terms, metrics, _FILTERS)
+        floor = (_FILTERS.word_probability_min, _FILTERS.urgent_word_probability_min)
+    elif provider == "elevenlabs":
+        kept, dropped, scores = filter_terms_by_elevenlabs_logprob(
+            terms, stt_words, _FILTERS,
+        )
+        floor = (
+            _FILTERS.elevenlabs_word_probability_min,
+            _FILTERS.elevenlabs_urgent_word_probability_min,
+        )
+    else:
+        kept, dropped, scores = list(terms), [], {}
+        floor = (0.0, 0.0)
     for term in terms:
         probability = scores.get(term)
         print(
@@ -408,8 +478,8 @@ def _apply_term_filters(result, original_text, metrics, audio_event, event_id):
     if dropped:
         print(
             f"[FILTER] event={event_id} dropped_terms={dropped} "
-            f"reason=word_probability<{_FILTERS.word_probability_min:g}"
-            f"(urgent<{_FILTERS.urgent_word_probability_min:g})"
+            f"reason={provider}_word_probability<{floor[0]:g}"
+            f"(urgent<{floor[1]:g})"
         )
         result = restrict_to_terms(result, kept, original_text)
         result.setdefault("filter_reasons", []).append("low_word_probability")
@@ -445,7 +515,7 @@ def _on_text(
             not in _SUPPORTED_WHISPER_LANGUAGES
         )
     )
-    if original_text and unsupported_final:
+    if original_text and unsupported_final and not _is_elevenlabs(decode_metadata):
         print(
             "[LANGUAGE_GUARD] rejected unsupported final transcription "
             f"language={whisper_language or 'unknown'}"
@@ -455,15 +525,32 @@ def _on_text(
         whisper_language_confidence = None
     event_id = audio_event.event_id if audio_event is not None else "unavailable"
     metrics = DecodeMetrics.from_metadata(decode_metadata)
+    stt_info = _stt_info(decode_metadata)
     filter_reasons = []
     if original_text:
         _log_decode_metrics(event_id, metrics)
         drop_reason = hallucination_reason(original_text, _FILTERS)
         if drop_reason is None:
+            # A looping tail ("ang pangit mo ang mga mga mga") is trimmed and
+            # the rest is checked; the loop alone explains a high compression
+            # ratio, so that gate does not drop the real words before it.
+            gate_quality = assess_transcript_quality(original_text)
+            tail_trimmed = "repeated_tail_trimmed" in gate_quality.warnings
+            gate_text = gate_quality.checked_text
             # Terms after sound-alike/alias correction: an utterance with a
             # monitored word is not dropped for a low avg_logprob alone.
-            gate_terms = check_transcript(original_text).get("detected_words", ())
+            gate_terms = check_transcript(gate_text).get("detected_words", ())
             drop_reason = decode_gate(metrics, _FILTERS, gate_terms)
+            if (
+                drop_reason
+                and tail_trimmed
+                and drop_reason.startswith("compression_ratio")
+            ):
+                print(
+                    f"[FILTER] event={event_id} kept=utterance "
+                    f"decode_gate={drop_reason} override=repeated_tail_trimmed"
+                )
+                drop_reason = None
             if drop_reason and decode_gate_overridden(
                 gate_terms,
                 metrics,
@@ -488,9 +575,15 @@ def _on_text(
             f"tokens={quality.token_count} unique={quality.unique_token_count} "
             f"repetition_ratio={quality.repetition_ratio:.2f}"
         )
-        result = check_transcript(original_text)
+        if "repeated_tail_trimmed" in quality.warnings:
+            print(f"[TEXT_QUALITY] event={event_id} repeated_tail_trimmed=true")
+        # Matching runs on the checked text (a looping tail trimmed); the
+        # Whisper transcript below stays the unchanged evidence of record.
+        result = check_transcript(quality.checked_text)
         result = _apply_term_filters(
-            result, original_text, metrics, audio_event, event_id,
+            result, quality.checked_text, metrics, audio_event, event_id,
+            stt_info.get("provider", "whisper"),
+            stt_info.get("words") or (),
         )
     else:
         primary_reason = quality.reason_codes[0]
@@ -508,6 +601,16 @@ def _on_text(
     result["transcript_quality"] = quality
     result["filter_reasons"] = filter_reasons + list(result.get("filter_reasons", []))
     result["quality_accepted"] = quality.accepted
+    # Audio tags ("laughs", "shouting") are context only, never matched.
+    result["stt_provider"] = stt_info.get("provider", "whisper")
+    result["stt_fallback_reason"] = stt_info.get("fallback_reason")
+    result["stt_latency_ms"] = stt_info.get("latency_ms")
+    result["audio_tags"] = list(stt_info.get("audio_tags") or ())
+    result["stt_words"] = list(stt_info.get("words") or ())
+    result["tone_signals"] = (
+        decode_metadata.get("tone") if isinstance(decode_metadata, dict) else None
+    )
+    _log_stt_words(event_id, result["stt_words"])
     result["quality_reason_codes"] = quality.reason_codes
     result["quality_warnings"] = quality.warnings
     language, language_confidence = classify_transcript_language(
@@ -517,6 +620,39 @@ def _on_text(
     )
     result["language"] = language
     result["language_confidence"] = language_confidence
+    guide_language = {"fil": "tl"}.get(language, language)
+    suggestion = (
+        _language_guide.suggest(
+            original_text,
+            language=(
+                guide_language
+                if guide_language in {"ceb", "en", "tl"}
+                else None
+            ),
+        )
+        if _language_guide is not None and original_text
+        else None
+    )
+    if suggestion is None:
+        result["language_guide"] = {
+            "shadow_only": True,
+            "matched": False,
+        }
+        print(f"[LANGUAGE_GUIDE] event={event_id} matched=false shadow=true")
+    else:
+        result["language_guide"] = {
+            "shadow_only": True,
+            "matched": True,
+            "source_id": suggestion.source_id,
+            "suggested_text": suggestion.suggested_text,
+            "similarity": suggestion.similarity,
+            "changed": suggestion.changed,
+        }
+        print(
+            f"[LANGUAGE_GUIDE] event={event_id} matched=true "
+            f"source={suggestion.source_id} "
+            f"similarity={suggestion.similarity:.2f} shadow=true"
+        )
     result["audio_event"] = audio_event
     result["event_id"] = audio_event.event_id if audio_event is not None else None
     result["all_words"] = quality.normalized_text.split()
@@ -572,7 +708,12 @@ def _run_transcription_cycle(recorder, audio_event_adapter):
         "detected_language_probability",
         None,
     )
-    if text and not _is_supported_transcription(text, detected_language):
+    # ElevenLabs (scribe, ceb) is accepted as final; the language guard and
+    # the tl+en English retry below are for Whisper decodes only.
+    elevenlabs = _is_elevenlabs(getattr(recorder, "last_transcription_metadata", None))
+    if elevenlabs:
+        LATENCY.mark(utterance_id, "whisper_done")
+    elif text and not _is_supported_transcription(text, detected_language):
         print(
             "[LANGUAGE_GUARD] "
             f"unsupported={detected_language or 'unknown'} "
@@ -589,6 +730,7 @@ def _run_transcription_cycle(recorder, audio_event_adapter):
 
     if (
         text
+        and not elevenlabs
         and WHISPER_LANGUAGE == "tl+en"
         and not check_transcript(text).get("detected_words")
     ):
@@ -611,8 +753,34 @@ def _run_transcription_cycle(recorder, audio_event_adapter):
     )
 
 
+def _make_tone_analyzer():
+    """Emotion + shout/laughter + speech-RMS per utterance; None when disabled."""
+
+    try:
+        from model.emotion_recognizer import ToneAnalyzer
+
+        analyzer = ToneAnalyzer()
+    except Exception as exc:
+        print(f"[EMOTION] available=false reason=init_failed:{type(exc).__name__}")
+        return None
+    if not analyzer.enabled:
+        print("[EMOTION] enabled=false")
+        return None
+    analyzer.recognizer.available  # load now, not on the first utterance
+    return analyzer
+
+
+def _deliver_late(text, language, probability, audio_event, metadata):
+    """A retried transcript: detection with the original AudioEvent (speech time)."""
+
+    with _on_text_lock:
+        _on_text(text, language, probability, audio_event, metadata)
+
+
 def _recorder_loop():
-    global _recorder, _recorder_error, _recording_limiter
+    global _recorder, _recorder_error, _recording_limiter, _transcription_executor
+    global _retry_worker
+    executor = None
     try:
         from RealtimeSTT import AudioToTextRecorder
 
@@ -629,7 +797,26 @@ def _recorder_loop():
         _recording_limiter = RealtimeSTTRecordingLimiter(
             DETECTION_RUNTIME.max_stt_utterance_seconds
         )
-        register_restricted_engine()
+        executor = RestrictedWhisperExecutor(
+            model=WHISPER_MODEL,
+            device="cpu",
+            compute_type="int8",
+            beam_size=1,
+            initial_prompt=WHISPER_PROMPT or None,
+            suppress_tokens=(-1,),
+            batch_size=0,
+            vad_filter=False,
+        )
+        print(
+            f"[STT] primary_provider={_STT_SETTINGS.provider} "
+            f"fallback=whisper_after_outage model={_STT_SETTINGS.model if _STT_SETTINGS.provider == 'elevenlabs' else WHISPER_MODEL}"
+        )
+        executor = HybridTranscriptionExecutor(
+            executor, _STT_SETTINGS, tone_analyzer=_make_tone_analyzer(),
+        )
+        _transcription_executor = executor
+        if executor.uses_elevenlabs:
+            _retry_worker = RetryWorker(executor, _deliver_late)
         recorder_options = dict(
             # --- Final (accurate) transcription model -----------------------
             model=WHISPER_MODEL,
@@ -663,26 +850,32 @@ def _recorder_loop():
             # transcription remains disabled so only one Whisper model competes
             # for Pi CPU.
             initial_prompt=WHISPER_PROMPT or None,
+            # RealtimeSTT 1.0.2's supported custom-ASR seam. The executor owns
+            # one spawned restricted-language model worker; RealtimeSTT does
+            # not create its built-in transcription process in this mode.
+            transcription_executor=executor,
         )
-        try:
-            _recorder = AudioToTextRecorder(
-                transcription_engine=RESTRICTED_ENGINE, **recorder_options,
-            )
-            print("[STT] language_detection=en,tl engine=restricted")
-        except Exception as exc:
-            # Stock auto-detect; the regional retry below still guards it.
-            print(
-                f"[STT] restricted_engine_failed={type(exc).__name__} "
-                "language_detection=auto fallback=true"
-            )
-            _recorder = AudioToTextRecorder(**recorder_options)
+        _recorder = AudioToTextRecorder(
+            transcription_engine="faster_whisper",
+            **recorder_options,
+        )
+        print("[STT] language_detection=en,tl engine=restricted_executor")
         _recording_limiter.bind(_recorder)
     except Exception as exc:
+        if executor is not None:
+            executor.close()
+        _transcription_executor = None
+        _retry_worker = None
         _recorder_error = exc
+        print(
+            f"[STT] initialization_failed={type(exc).__name__}: {exc}"
+        )
         _recorder_ready.set()
         return
     print("[STT] Ready external_feed=true physical_reader=false")
     _recorder_ready.set()
+    if _retry_worker is not None:
+        _retry_worker.start()
     while not _recorder_stop_event.is_set():
         try:
             # Use the synchronous result so language metadata and text come from
@@ -703,17 +896,26 @@ def _recorder_loop():
             )
             if audio_event is None:
                 print("[AUDIO_EVENT] unavailable for completed transcription")
+            stt_info = _stt_info(decode_metadata)
+            if stt_info.get("queued") and _retry_worker is not None:
+                _retry_worker.enqueue(
+                    audio_event, stt_info.get("fallback_reason"),
+                    tone=(decode_metadata or {}).get("tone")
+                    if isinstance(decode_metadata, dict) else None,
+                )
+                continue
             print(
                 f"[STT] event={event_id} transcript_length={len(text or '')} "
                 f"language={detected_language or 'unknown'}"
             )
-            _on_text(
-                text,
-                detected_language,
-                detected_language_probability,
-                audio_event,
-                decode_metadata,
-            )
+            with _on_text_lock:
+                _on_text(
+                    text,
+                    detected_language,
+                    detected_language_probability,
+                    audio_event,
+                    decode_metadata,
+                )
         except Exception as exc:
             if _recorder_stop_event.is_set():
                 break
@@ -735,7 +937,8 @@ def get_recorder():
             raise RuntimeError("RealtimeSTT initialization timed out")
         if _recorder_error is not None:
             raise RuntimeError(
-                f"RealtimeSTT initialization failed: {type(_recorder_error).__name__}"
+                "RealtimeSTT initialization failed: "
+                f"{type(_recorder_error).__name__}: {_recorder_error}"
             ) from _recorder_error
     return _recorder
 
@@ -744,7 +947,11 @@ def stop_recorder():
     """Stop RealtimeSTT and its owned workers without touching a microphone."""
 
     global _recorder, _recorder_thread, _recorder_error, _recording_limiter
+    global _transcription_executor, _retry_worker
     _recorder_stop_event.set()
+    if _retry_worker is not None:
+        _retry_worker.stop()
+        _retry_worker = None
     if _recording_limiter is not None:
         _recording_limiter.shutdown()
     recorder = _recorder
@@ -759,10 +966,13 @@ def stop_recorder():
             print(f"[STT] shutdown_error={type(exc).__name__}")
     if _recorder_thread is not None:
         _recorder_thread.join(timeout=10.0)
+    if _transcription_executor is not None:
+        _transcription_executor.close()
     _recorder = None
     _recorder_thread = None
     _recorder_error = None
     _recording_limiter = None
+    _transcription_executor = None
     _recorder_ready.clear()
     clear_transcription_results()
     print("[STT] stopped")
@@ -789,6 +999,9 @@ def _empty_result() -> dict:
         "audio_event": None,
         "event_id": None,
         "matched_terms": [],
+        "term_provenance": [],
+        "corrections": [],
+        "match_text": "",
         "all_words": [],
         "word_count": 0,
         "checked_text": "",

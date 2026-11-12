@@ -22,6 +22,7 @@ from detection.transcript_quality import phrase_ends_segment, phrase_matches
 from config import SOUNDALIKE_MATCH
 from model.monitored_terms import (
     build_matched_terms,
+    build_term_provenance,
     get_backend_terms,
     match_backend_terms,
     normalize_text,
@@ -62,6 +63,8 @@ def _find_hits(terms, text: str) -> List[str]:
 HARD_TRIGGERS = {
 
     # ── Bisaya Profanity ─────────────────────────────────────
+    # "iyot" is exact-match-only in soundalike.py and receives an additional
+    # evidence gate in fusion because a short ASR hallucination is plausible.
     "yawa", "giatay", "bilat", "kayat", "iyot",
     "pesteng yawa", "bata og yawa", "piste", "punyeta",
     "hudas", "puta",
@@ -185,6 +188,28 @@ HARD_TRIGGERS = {
     "hindi ka namin kailangan", "ayaw namin sa iyo",
     "wala kang kaibigan", "walang nagmamahal sa iyo",
     "palayasin mo ang sarili mo",
+
+    # ── Tagalog/English additions from the classroom train split ──
+    "lagot ka", "lagot ka sa akin", "lagot ka sa'kin", "lagot ka sa kin",
+    "bubugbugin kita", "bubugbugin ka", "bugbugin kita",
+    "ayaw mong masaktan", "gusto mong masaktan", "gusto mo bang masaktan",
+    "gusto mong masuntok", "gusto mo bang masuntok",
+    "gusto mong masampal", "gusto mo bang masampal",
+    "tumahimik ka", "nakakahiya ka", "umalis ka rito", "umalis ka dito",
+    "wala ka talagang kwenta", "wala kang silbi", "wala ka talagang silbi",
+    "hindi ka namin kaibigan", "hindi ka namin ka-level", "hindi ka namin ka level",
+    "ayaw ka naming kasama", "dukha ka", "hoy dukha",
+    "dumbass", "dumbest", "waste of space", "fuck off", "shut your mouth",
+    "you're useless", "you re useless", "completely useless",
+    "you're pathetic", "you re pathetic",
+    "everybody hates you", "everyone hates you", "nobody invited you",
+    "beat you up", "i'll hurt you", "i ll hurt you", "i'll hit you", "i ll hit you",
+    "you're dead", "you re dead",
+    "not our friend", "we don't want you", "we don t want you",
+    "you're the worst", "you re the worst",
+    "looks like trash", "looks like garbage", "look like trash", "look like garbage",
+    "you're embarrassing", "you re embarrassing",
+    "what a loser", "what a crybaby", "what a baby",
 
     # ── Bisaya bullying sentences (Grade 6) — added ──────────
     "buang kaayo ka", "wala kay kapuse pahan", "wala kay pulos",
@@ -799,7 +824,6 @@ PHONETIC_VARIANTS = {
     "niwag":        "niwang",
 
     # ── Grade 6 Bisaya (Davao) — field-observed, added ─────────────────────
-    "buwan":        "buang",
     "bwang":        "buang",
     "buyang":       "buang",
     "bongal":       "bungal",
@@ -920,6 +944,10 @@ def restrict_to_terms(result: dict, keep_terms, transcript: str) -> dict:
     restricted["soft_hits"] = [t for t in result.get("soft_hits", []) if t in keep]
     restricted["matched_terms"] = [
         item for item in result.get("matched_terms", [])
+        if not isinstance(item, dict) or item.get("term") in keep
+    ]
+    restricted["term_provenance"] = [
+        item for item in result.get("term_provenance", [])
         if not isinstance(item, dict) or item.get("term") in keep
     ]
     remaining = restricted["detected_words"]
@@ -1093,6 +1121,13 @@ def check_transcript(transcript: str) -> dict:
             *school_policy.disabled_terms(),
         ],
     )
+    correction_evidence = [item.evidence() for item in correction.corrections]
+    term_provenance = build_term_provenance(
+        original_transcript,
+        transcript,
+        all_detected,
+        correction_evidence,
+    )
 
     severity_decision = calculate_severity(
         all_detected,
@@ -1114,6 +1149,7 @@ def check_transcript(transcript: str) -> dict:
         "word_count":     len(all_detected),
         "checked_text":   text,
         "matched_terms":  matched_terms,
+        "term_provenance": term_provenance,
         "match_candidate_count": len(candidate_terms),
         "match_accepted_count": len(all_detected),
         "match_suppressed_count": len(suppressed_terms),
@@ -1122,7 +1158,7 @@ def check_transcript(transcript: str) -> dict:
             candidate_terms and not all_detected and suppressed_terms
         ),
         "match_text": transcript if transcript != original_transcript else "",
-        "corrections": [item.evidence() for item in correction.corrections],
+        "corrections": correction_evidence,
     }
 
 

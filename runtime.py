@@ -8,9 +8,19 @@ from audio.led_indicator import LEDIndicator
 from audio.shared_source import PyAudioSharedSource
 from config import (
     ACOUSTIC_DEGRADED_MODE,
+    API_URL,
+    DASHBOARD_TEST_EXPECTED_BACKEND_ORIGIN,
+    DASHBOARD_TEST_EXPECTED_DEVICE_ID,
+    DASHBOARD_TEST_MODE,
+    DASHBOARD_TEST_REVIEWER_TOKEN,
     DETECTION_RUNTIME,
+    ECHOSENSE_DEVICE_ID,
+    ECHOSENSE_DEVICE_KEY,
     MICROPHONE_STRICT,
+    OUTBOX_DATABASE_PATH,
+    OUTBOX_ENABLED,
     PREFERRED_MICROPHONE_NAME,
+    SEMANTIC_RUNTIME,
 )
 from detection.acoustic_detector import (
     AcousticDetector,
@@ -19,6 +29,7 @@ from detection.acoustic_detector import (
 )
 from detection.coordinator import CoordinatorAudioWorker, EventCoordinator
 from detection.latency import LATENCY
+from detection.semantic import SemanticAnalyzer
 from detection.text_detector import TextDetector, TextDetectorWorker
 from model.school_config import start_school_config_sync
 from model.whisper_stt import (
@@ -30,6 +41,10 @@ from model.whisper_stt import (
 )
 from model.yamnet_infer import load_yamnet_bundle, top_classes_float32
 from sender.delivery import start_alert_delivery, stop_alert_delivery
+from sender.dashboard_test import (
+    backend_origin,
+    validate_dashboard_test_configuration,
+)
 from sender.http_client import check_backend_connection, start_heartbeat
 from sender.incident_delivery import enqueue_finalized_incident
 
@@ -45,12 +60,14 @@ class EdgeRuntime:
         led=None,
         stop_event=None,
         network_info_provider=None,
+        semantic_classifier=None,
     ):
         self.config = config
         self.source = source
         self.led = led or LEDIndicator()
         self.stop_event = stop_event or threading.Event()
         self.network_info_provider = network_info_provider
+        self.semantic_classifier = semantic_classifier
         self.coordinator = None
         self.workers = []
         self.started = False
@@ -63,6 +80,24 @@ class EdgeRuntime:
         return queued
 
     def start(self):
+        validate_dashboard_test_configuration(
+            enabled=DASHBOARD_TEST_MODE,
+            api_url=API_URL,
+            expected_backend_origin=DASHBOARD_TEST_EXPECTED_BACKEND_ORIGIN,
+            device_id=ECHOSENSE_DEVICE_ID,
+            expected_device_id=DASHBOARD_TEST_EXPECTED_DEVICE_ID,
+            device_key=ECHOSENSE_DEVICE_KEY,
+            outbox_enabled=OUTBOX_ENABLED,
+            outbox_database_path=OUTBOX_DATABASE_PATH,
+            reviewer_token=DASHBOARD_TEST_REVIEWER_TOKEN,
+        )
+        if DASHBOARD_TEST_MODE:
+            print(
+                "[DASHBOARD_TEST] enabled=true "
+                f"backend_origin={backend_origin(API_URL)} "
+                f"device={ECHOSENSE_DEVICE_ID} "
+                f"outbox={OUTBOX_DATABASE_PATH} label=TEST"
+            )
         self.led.startup()
         if not start_alert_delivery():
             print(
@@ -123,6 +158,21 @@ class EdgeRuntime:
         )
         text_detector = TextDetector(
             history_size=self.config.evidence_history_size,
+            semantic_analyzer=SemanticAnalyzer(
+                classifier=self.semantic_classifier,
+                enabled=SEMANTIC_RUNTIME.enabled,
+                min_confidence=SEMANTIC_RUNTIME.min_confidence,
+                max_context_turns=SEMANTIC_RUNTIME.max_context_turns,
+                context_window_seconds=SEMANTIC_RUNTIME.context_window_seconds,
+                max_context_chars=SEMANTIC_RUNTIME.max_context_chars,
+            ),
+        )
+        print(
+            "[SEMANTIC] enabled="
+            f"{str(SEMANTIC_RUNTIME.enabled).lower()} "
+            "available="
+            f"{str(self.semantic_classifier is not None).lower()} "
+            "mode=shadow_only"
         )
         acoustic_detector = AcousticDetector(
             interpreter=yamnet.interpreter,

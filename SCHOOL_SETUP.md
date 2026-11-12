@@ -71,11 +71,11 @@ admin **Resets** it on the Boxes page or with `tools/provision_box.py --reset es
 prints a new label and identity file.
 
 ## If Pi Does Not Connect
-  1. Make sure hotspot name matches: YOUR_WIFI_SSID
-  2. Make sure the saved password matches: YOUR_WIFI_PASSWORD
-  3. Turn hotspot OFF then ON again
-  4. Wait 30 more seconds
-  5. Check Pi LED — if OFF, Pi has no power
+
+After the Wi-Fi provisioning service has passed Pi hardware validation and has
+been explicitly installed, use the phone-only recovery workflow in
+`docs/WIFI_PROVISIONING.md`. Until then, preserve the existing NetworkManager
+profiles and use the approved console/SSH troubleshooting procedure.
 
 ## Demo Commands
   Check service is running:
@@ -94,10 +94,16 @@ prints a new label and identity file.
   controlled ingestion test only after backend deployment and explicit
   approval.
 
-## Network Notes (this Pi)
-  This Pi runs Raspberry Pi OS Bookworm and uses **NetworkManager**
-  (not wpa_supplicant). WiFi networks are stored as NetworkManager
-  connection profiles, not in /etc/wpa_supplicant/wpa_supplicant.conf.
+## Network Notes
+
+  The intended target is Raspberry Pi OS Lite 64-bit with **NetworkManager**.
+  Do not rely on the earlier unverified Bookworm assumption. Run the read-only
+  preflight in `docs/WIFI_PROVISIONING.md` on the actual Pi before installing
+  or activating Wi-Fi setup.
+
+  Once verified, Wi-Fi networks are stored as NetworkManager connection
+  profiles, not in application configuration or
+  `/etc/wpa_supplicant/wpa_supplicant.conf`.
 
   See/manage saved WiFi from the Pi:
     nmcli connection show

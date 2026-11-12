@@ -240,7 +240,9 @@ def send_alert(severity, confidence, duration,
                event_end_timestamp=None,
                trigger_type="KEYWORD",
                acoustic_evidence_role="supporting_only",
-               device_identifier=ECHOSENSE_DEVICE_ID):
+               test_mode=False,
+               device_identifier=ECHOSENSE_DEVICE_ID,
+               tone_context=None):
     """Persist one complete alert payload before background HTTP delivery.
 
     The retained ``retries`` argument is ignored for call compatibility. Retry
@@ -279,6 +281,8 @@ def send_alert(severity, confidence, duration,
             tone_data=tone_data,
             waveform_snapshot=waveform_snapshot,
             acoustic_evidence_role=acoustic_evidence_role,
+            test_mode=test_mode,
+            tone_context=tone_context,
         )
     except (AlertPayloadValidationError, TypeError, ValueError, OverflowError) as exc:
         error_type = type(exc).__name__

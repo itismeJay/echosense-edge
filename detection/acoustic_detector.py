@@ -13,8 +13,13 @@ import numpy as np
 from audio.shared_source import AudioFrame, BoundedFrameQueue, CANONICAL_SAMPLE_RATE
 from detection.evidence import AcousticEvidence
 from detection.thresholds import TONE_MIN_ABSOLUTE_RMS, YAMNET_THRESHOLD
+from model.emotion_recognizer import LAUGHTER_CLASSES
 from model.tone_analyzer import analyze_tone_float32
-from model.yamnet_infer import is_aggressive_sound, run_yamnet_float32
+from model.yamnet_infer import (
+    is_aggressive_sound,
+    is_laughter_sound,
+    run_yamnet_float32,
+)
 
 
 class NoiseFloorTracker:
@@ -114,6 +119,7 @@ class AcousticDetector:
         class_names=(),
         yamnet_runner=None,
         yamnet_threshold=YAMNET_THRESHOLD,
+        laughter_threshold=YAMNET_THRESHOLD,
         unavailable_reason="model_not_loaded",
         noise_floor=None,
     ):
@@ -121,11 +127,17 @@ class AcousticDetector:
         self.interpreter = interpreter
         self.class_names = tuple(class_names or ())
         self.yamnet_threshold = float(yamnet_threshold)
+        self.laughter_threshold = float(laughter_threshold)
         if not math.isfinite(self.yamnet_threshold):
             raise ValueError("yamnet_threshold must be finite")
         if not 0.0 <= self.yamnet_threshold <= 1.0:
             raise ValueError("yamnet_threshold must be between zero and one")
+        if not math.isfinite(self.laughter_threshold):
+            raise ValueError("laughter_threshold must be finite")
+        if not 0.0 <= self.laughter_threshold <= 1.0:
+            raise ValueError("laughter_threshold must be between zero and one")
         self._injected_runner = yamnet_runner
+        self._laughter_ids = None
         self.yamnet_available = bool(
             yamnet_runner is not None
             or (interpreter is not None and self.class_names)
@@ -136,14 +148,23 @@ class AcousticDetector:
         self.evidence_count = 0
 
     def _run_yamnet(self, samples):
+        """(label, score, laughter class max); injected runners may return 2."""
+
         if self._injected_runner is not None:
-            return self._injected_runner(samples)
-        label, score, _scores = run_yamnet_float32(
+            output = tuple(self._injected_runner(samples))
+            return (output + (0.0,))[:3]
+        label, score, scores = run_yamnet_float32(
             self.interpreter,
             samples,
             self.class_names,
         )
-        return label, score
+        if self._laughter_ids is None:
+            wanted = set(LAUGHTER_CLASSES)
+            self._laughter_ids = [
+                i for i, name in enumerate(self.class_names) if name in wanted
+            ]
+        laughter = max((float(scores[i]) for i in self._laughter_ids), default=0.0)
+        return label, score, laughter
 
     def analyze_window(
         self,
@@ -175,11 +196,17 @@ class AcousticDetector:
         yamnet_label = "NotRun"
         yamnet_score = 0.0
         yamnet_aggressive = False
+        laughter_detected = False
+        laughter_score = 0.0
+        laughter_class_score = 0.0
         reasons = []
         if self.yamnet_available:
             try:
-                yamnet_label, yamnet_score = self._run_yamnet(canonical)
+                yamnet_label, yamnet_score, laughter_class_score = self._run_yamnet(canonical)
                 yamnet_score = float(yamnet_score)
+                laughter_class_score = min(1.0, max(0.0, float(laughter_class_score)))
+                if not math.isfinite(laughter_class_score):
+                    laughter_class_score = 0.0
                 if (
                     not math.isfinite(yamnet_score)
                     or not 0.0 <= yamnet_score <= 1.0
@@ -191,11 +218,20 @@ class AcousticDetector:
                     yamnet_score,
                     self.yamnet_threshold,
                 )
+                laughter_detected = is_laughter_sound(
+                    str(yamnet_label),
+                    yamnet_score,
+                    self.laughter_threshold,
+                )
+                if laughter_detected:
+                    laughter_score = yamnet_score
                 reasons.append(
                     f"yamnet:{yamnet_label}:{yamnet_score:.3f}"
                 )
                 if yamnet_aggressive:
                     reasons.append("qualifying:yamnet_aggressive_class")
+                if laughter_detected:
+                    reasons.append("observed:acoustic_laughter")
             except Exception as exc:
                 self.yamnet_available = False
                 self.unavailable_reason = f"inference_failed:{type(exc).__name__}"
@@ -203,6 +239,9 @@ class AcousticDetector:
                 yamnet_label = "NotRun"
                 yamnet_score = 0.0
                 yamnet_aggressive = False
+                laughter_detected = False
+                laughter_score = 0.0
+                laughter_class_score = 0.0
                 reasons.append(f"yamnet_unavailable:{self.unavailable_reason}")
                 print(
                     "[ACOUSTIC] degraded=true "
@@ -238,6 +277,9 @@ class AcousticDetector:
             duration_seconds=duration,
             reasons=tuple(reasons),
             qualifies_to_open=qualifies,
+            laughter_detected=laughter_detected,
+            laughter_score=laughter_score,
+            laughter_class_score=laughter_class_score,
         )
         self.evidence_count += 1
         print(

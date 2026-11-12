@@ -8,9 +8,11 @@ import unittest
 from detection.severity import HIGH, LOW, MEDIUM
 from tests.test_accuracy_context import CoordinatorHarness, windows
 from tests.test_duplicate_guard_and_tone import Speech
+from tests.tone_helpers import ANGRY_SHOUT, LOUD_NOT_ANGRY, with_tone
 
 
-def run(transcript, *, shouted=False):
+def run(transcript, *, shouted=False, tone=ANGRY_SHOUT):
+    """``shouted``: loud windows around the words and ``tone`` signals."""
     """Return (finalized incidents, finalized-during-submit) for one utterance."""
 
     harness = CoordinatorHarness()
@@ -20,7 +22,10 @@ def run(transcript, *, shouted=False):
             harness.acoustic(window)
     submission = None
     if transcript is not None:
-        submission = harness.text(say(transcript, 2.0, spoken_seconds=1.5))
+        evidence = say(transcript, 2.0, spoken_seconds=1.5)
+        if shouted:
+            evidence = with_tone(evidence, tone)
+        submission = harness.text(evidence)
     immediate = tuple(submission.finalized) if submission else ()
     return harness.finish(30), immediate
 
@@ -31,8 +36,8 @@ class SeverityPolicyTableTests(unittest.TestCase):
         ("ang bobo ko", False, LOW, "held_low:self_directed"),
         ("stupid game", False, LOW, "held_low:about_object"),
         ("bobo ka", False, MEDIUM, "promoted_by:direct_target_pattern"),
-        ("TANGA!", True, MEDIUM, "promoted_by:time_linked_aggressive_tone"),
-        ("BOBO KA!", True, HIGH, "promoted_by:direct_target_and_strong_shout"),
+        ("TANGA!", True, MEDIUM, "promoted_by:angry_tone"),
+        ("BOBO KA!", True, HIGH, "promoted_by:targeted_insult_angry_tone"),
         ("bobo ka, bobo ka talaga", False, HIGH, "promoted_by:targeted_repetition"),
         ("kill you", False, HIGH, "high:threat_or_self_harm_term"),
     )
@@ -63,10 +68,16 @@ class SeverityPolicyTableTests(unittest.TestCase):
         finalized, _immediate = run("kill you haha")
         self.assertEqual(finalized[0].severity, HIGH)
 
-    def test_laughing_insult_is_low(self):
+    def test_laughing_insult_is_mocking_medium(self):
         finalized, _immediate = run("bobo ka haha")
-        self.assertEqual(finalized[0].severity, LOW)
-        self.assertIn("held_low:playful_context", finalized[0].severity_reasons)
+        self.assertEqual(finalized[0].severity, MEDIUM)
+        self.assertIn("mocking_with_laughter", finalized[0].severity_reasons)
+
+    def test_loud_but_not_angry_never_raises_severity(self):
+        for transcript, level in (("BOBO KA!", MEDIUM), ("bobo", LOW)):
+            with self.subTest(transcript=transcript):
+                finalized, _ = run(transcript, shouted=True, tone=LOUD_NOT_ANGRY)
+                self.assertEqual(finalized[0].severity, level)
 
     def test_two_targeted_utterances_in_one_incident_are_high(self):
         harness = CoordinatorHarness()

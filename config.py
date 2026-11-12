@@ -367,6 +367,51 @@ class DetectionRuntimeConfig:
         return self.stt_result_queue_size * self.max_stt_result_pcm_bytes
 
 
+@dataclass(frozen=True, slots=True)
+class SemanticRuntimeConfig:
+    """Resource bounds for the optional, shadow-only semantic classifier."""
+
+    enabled: bool = False
+    min_confidence: float = 0.75
+    max_context_turns: int = 6
+    context_window_seconds: float = 90.0
+    max_context_chars: int = 4_000
+
+    def __post_init__(self):
+        if not 0.0 <= float(self.min_confidence) <= 1.0:
+            raise ValueError("semantic min_confidence must be between 0 and 1")
+        if not 1 <= int(self.max_context_turns) <= 64:
+            raise ValueError("semantic max_context_turns must be between 1 and 64")
+        if not 0.0 <= float(self.context_window_seconds) <= 3_600.0:
+            raise ValueError("semantic context_window_seconds is unsafe")
+        if not 1 <= int(self.max_context_chars) <= 50_000:
+            raise ValueError("semantic max_context_chars is unsafe")
+
+
+def semantic_runtime_config_from_environment(environ=None):
+    """Load an explicitly opt-in semantic shadow configuration."""
+
+    source = os.environ if environ is None else environ
+    return SemanticRuntimeConfig(
+        enabled=parse_boolean(
+            source.get("ECHOSENSE_EXPERIMENTAL_SEMANTICS"),
+            default=False,
+        ),
+        min_confidence=_source_float(
+            source, "ECHOSENSE_SEMANTIC_MIN_CONFIDENCE", 0.75
+        ),
+        max_context_turns=_source_int(
+            source, "ECHOSENSE_SEMANTIC_CONTEXT_TURNS", 6
+        ),
+        context_window_seconds=_source_float(
+            source, "ECHOSENSE_SEMANTIC_CONTEXT_SECONDS", 90.0
+        ),
+        max_context_chars=_source_int(
+            source, "ECHOSENSE_SEMANTIC_CONTEXT_CHARS", 4_000
+        ),
+    )
+
+
 def detection_runtime_config_from_environment(environ=None):
     """Build one validated runtime configuration from ECHOSENSE_* values."""
 
@@ -511,9 +556,39 @@ OUTBOX_HEALTH_LOG_INTERVAL_SECONDS = _environment_float(
     minimum=5.0,
 )
 
+# Explicit, fail-closed delivery mode for detector-generated dashboard tests.
+# The operator runner sets these values for one foreground process; normal edge
+# startup remains a real-alert runtime and live_validation.py overrides the mode
+# back to false.  The reviewer token is memory-only and is never logged or stored
+# in the outbox.
+DASHBOARD_TEST_MODE = parse_boolean(
+    os.environ.get("ECHOSENSE_DASHBOARD_TEST_MODE"),
+    default=False,
+)
+DASHBOARD_TEST_EXPECTED_DEVICE_ID = str(
+    os.environ.get("ECHOSENSE_DASHBOARD_TEST_EXPECTED_DEVICE_ID") or ""
+).strip()
+DASHBOARD_TEST_EXPECTED_BACKEND_ORIGIN = str(
+    os.environ.get("ECHOSENSE_DASHBOARD_TEST_EXPECTED_BACKEND_ORIGIN") or ""
+).strip().rstrip("/")
+DASHBOARD_TEST_REVIEWER_TOKEN = str(
+    os.environ.get("ECHOSENSE_DASHBOARD_TEST_REVIEWER_TOKEN") or ""
+).strip()
+DASHBOARD_TEST_VERIFY_TIMEOUT_SECONDS = _environment_float(
+    "ECHOSENSE_DASHBOARD_TEST_VERIFY_TIMEOUT_SECONDS",
+    12.0,
+    minimum=1.0,
+)
+DASHBOARD_TEST_VERIFY_POLL_SECONDS = _environment_float(
+    "ECHOSENSE_DASHBOARD_TEST_VERIFY_POLL_SECONDS",
+    0.5,
+    minimum=0.1,
+)
+
 # Shared audio and incident settings. These defaults are development starting
 # values and remain environment-configurable for later classroom tuning.
 DETECTION_RUNTIME = detection_runtime_config_from_environment()
+SEMANTIC_RUNTIME = semantic_runtime_config_from_environment()
 SAMPLE_RATE = DETECTION_RUNTIME.sample_rate
 CHUNK_SIZE = DETECTION_RUNTIME.frame_samples
 CHANNELS = DETECTION_RUNTIME.channels

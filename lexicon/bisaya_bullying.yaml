@@ -43,6 +43,8 @@ patterns:
     - "pagka{w} nimo"
     - "pagka {w} nimo"
     - "ikaw ang pinaka{w}"
+    - "{w} kag nawong"        # kag = ka ug: "pangit kag nawong"
+    - "{w} kaayo kag nawong"
   exclamative:            # only for roots with a safe {x} form
     - "{x} nimo"
     - "{x} nimo oy"
@@ -63,6 +65,7 @@ patterns:
     - "mura gyud kag {w}"
     - "ikaw {w}"
     - "ikaw ang {w}"
+    - "hoy {w}"               # calling someone by the insult
   swear:                  # bare forms are LOW, aimed forms MEDIUM
     - "{w} ka"
     - "{w} ka gyud"
@@ -94,6 +97,7 @@ patterns:
     - "{t} tika ron"
     - "{t} ka nako unya"
     - "{t} tika ugma"
+    - "{t} ka"
 
 categories:
 
@@ -145,6 +149,9 @@ categories:
         # insult only when it ends the sentence; "pangita nimo oy ang libro"
         # is "look for the book".
         end_only:
+          - pangit nimo
+          - pangit nimo oy
+          - pangit kaayo nimo
           - pangita nimo oy
           - pangita nimo uy
           - pangita ninyo oy
@@ -289,6 +296,18 @@ categories:
           - baho imong ilok
           - baho kaayo imong ilok
           - ka baho sa imong baba
+          - baho ang imong baba
+          - baho kaayo ang imong baba
+          - baho ang imong ilok
+          - baho kaayo ang imong ilok
+          - baho ang imong lawas
+          - baho imong lawas
+          - baho nimog baba
+          - bahoa nimog baba
+          - bahoa nimog ilok
+          - bahoa imong baba
+          - bahoa sa imong baba
+          - bahoa sa imong ilok
           - wala ka maligo
           - wala ka naligo no
         everyday:
@@ -466,6 +485,8 @@ categories:
           - kabus ka
           - ka kabus nimo
           - kabus kaayo ka
+          - hoy pobre
+          - hoy kabus
         everyday:
           - pobre ang pamilya nila
           - tabangan nato ang mga pobre
@@ -532,6 +553,30 @@ categories:
           - walay barkada nimo
           - dili ka among friend
           - dili ka among barkada
+          - di tika apilon
+          - dili tika apilon
+          - di ka namo apilon
+          - dili ka namo apilon
+          - di namo ka apilon
+          - di na namo ka apilon
+          - dili na namo ka apilon
+          - di ka namo gusto
+          - dili ka namo gusto
+          - di man ka namo gusto
+          - wala mi ganahi nimo
+          - wa mi ganahi nimo
+          - wala kay amigo
+          - wa kay amigo
+          - wala gyud kay amigo
+          - walay nangita nimo
+          - wala may nangita nimo
+          - wa may nangita nimo
+          - wala man gyuy nangita nimo
+          - walay nangutana nimo
+          - wala may nangutana nimo
+          - wa may nangutana nimo
+          - nobody ra ka
+          - nobody ka
         everyday:
           - layo diri ang balay
           - ayaw ug duol sa kalayo
@@ -557,6 +602,14 @@ categories:
           - walay pulos gyud ka
           - way pulos gyud ka
           - walay bili kaayo ka
+          - wa kay pulos
+          - wa man kay pulos
+          - wala man kay pulos
+          - wala kay gamit
+          - wa kay gamit
+          - wa man kay gamit
+          - wala man kay gamit
+          - walay gamit ka
         everyday:
           - walay pulos ning ballpen
           - guba ug walay pulos ang payong
@@ -578,6 +631,8 @@ categories:
           - hilakon kaayo ka
           - hilak na pud
           - iyakin ka
+          - samok kaayo ka
+          - samok gyud ka
         everyday:
           - sipsipa ang juice
           - ayaw pagtikas sa exam
@@ -716,6 +771,10 @@ categories:
         meaning: will beat you up
         kind: threat
         priority: medium
+        extra:
+          - kulata tika
+          - kulatahan tika
+          - kulatahan ka
       lumpagon:
         meaning: will knock you down
         kind: threat
@@ -741,6 +800,10 @@ categories:
           - ayaw pagsumbong
           - ayaw pagsumbong ha
           - ayaw ko isumbong
+          - bantay ka nako
+          - bantay ka nako unya
+        end_only:
+          - bantay ka            # "kung dili, bantay ka." (not "bantay ka sa dalan")
         everyday:
           - hulata ko sa canteen
           - kita ta sa canteen unya

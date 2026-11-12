@@ -1,6 +1,7 @@
+import inspect
 import unittest
 
-from model.language_restricted_engine import ENGINE_NAME, choose_language, register
+from model.language_restricted_engine import ENGINE_NAME, choose_language
 
 
 class LanguageRestrictionTests(unittest.TestCase):
@@ -17,11 +18,23 @@ class LanguageRestrictionTests(unittest.TestCase):
         self.assertEqual(choose_language([("jw", 1.0)]), ("tl", 0.0))
         self.assertEqual(choose_language(()), ("tl", 0.0))
 
-    def test_engine_is_registered_with_realtimestt(self):
+    def test_supported_executor_hook_replaces_process_local_registration(self):
+        from RealtimeSTT import AudioToTextRecorder
         from RealtimeSTT.transcription_engines import factory
 
-        self.assertTrue(register())
-        self.assertIn(ENGINE_NAME, factory.ENGINE_CLASS_PATHS)
+        self.assertIn(
+            "transcription_executor",
+            inspect.signature(AudioToTextRecorder).parameters,
+        )
+        self.assertNotIn(ENGINE_NAME, factory.ENGINE_CLASS_PATHS)
+
+    def test_whisper_startup_has_no_unrestricted_fallback(self):
+        from model import whisper_stt
+
+        source = inspect.getsource(whisper_stt._recorder_loop)
+        self.assertIn("transcription_executor=executor", source)
+        self.assertEqual(source.count("AudioToTextRecorder("), 1)
+        self.assertNotIn("fallback=true", source)
 
 
 if __name__ == "__main__":

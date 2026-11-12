@@ -19,6 +19,15 @@ Two layers:
      ("short", "ugly") never fuzz.
    Tokens in ``NEVER_CORRECT`` (common words that sit close to a monitored
    word, e.g. "pangita" = to look for) are never rewritten.
+3. Similarity windows (same switch, short utterances only): a span of up to
+   ``FUZZY_WINDOW_MAX_TOKENS`` words is scored against every monitored term of
+   7+ letters on the sound key (accents stripped, o/u, e/i, k/g, p/b, d/t
+   merged, spaces removed). Same word count: every changed word must score
+   ``FUZZY_WINDOW_WORD_MIN``; a different word split: the whole span must
+   score ``FUZZY_WINDOW_JOINED_MIN``. The same pronoun, never-correct and
+   everyday-word guards apply. These matches carry provenance ``fuzzy``: they
+   may open an incident, but severity stays LOW (needs review) unless exact
+   evidence is also heard.
 
 Matching never crosses a sentence boundary and never starts or ends inside
 a token, so "patay" (dead) cannot become "atay".
@@ -28,10 +37,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
 import re
 from typing import Iterable
 
 from detection import school_policy
+
+try:
+    from rapidfuzz.fuzz import ratio as _similarity
+except Exception:  # pragma: no cover - rapidfuzz is a runtime dependency
+    _similarity = None
 from detection.transcript_quality import transcript_token_segments
 
 
@@ -60,6 +75,7 @@ MISHEARINGS = {
     "banalanti ka": "bunalan tika",
     "banalantika": "bunalan tika",
     "binalantika": "bunalan tika",
+    "binalantica": "bunalan tika",
     "binalanti ka": "bunalan tika",
     "bunalanti ka": "bunalan tika",
     "patiuntika": "patyon tika",
@@ -100,6 +116,10 @@ MISHEARINGS = {
     "dakugtian ka": "dakog tiyan ka",
 }
 
+# These full, context-bounded phrases are approved aliases rather than
+# speculative substitutions. Keep this list much narrower than MISHEARINGS.
+TRUSTED_MISHEARINGS = frozenset({"ug dual nako"})
+
 # Whisper splits the Bisaya intensifier "kaayo" (very) into "ka ayo", which
 # turns "pangit kaayo ang panahon" (the weather is very bad) into the
 # directed insult "pangit ka". These token pairs are re-joined before any
@@ -128,18 +148,46 @@ NEVER_CORRECT = frozenset({
     "bahin", "dako", "gamay", "kana", "kini", "kaayo", "kaon", "ayaw",
     "yawi", "yaya", "papa", "mama", "baba", "bobot", "bugas", "buhat",
     "bubong", "gabaan", "bunal", "bunali",
+    # "ambot" (I don't know) and "kuwan" (thingy) are everyday fillers:
+    # "ambut" is not "ampota", "kuwan lang" is not "kuwang kuwang".
+    "ambot", "ambut", "kuwan", "kuwanong",
+    # "pa" (still/yet): "ako pa moka na" is not "baho ka".
+    "pa",
     # "sa" (at/of) is everywhere: "bata sa istorya" is not "bata pa".
     "sa", "taga", "asa", "tiga",
     # "man" (particle) is everywhere: "dili man ka" is not "dili maayo ka".
     "man", "bukid", "mura", "kag", "animal", "ilaha", "ila", "ilang", "uban", "ungod",
     # Tagalog
     "tanghali", "tangan", "tanong", "bobong", "patayin",
+    # "gaano ka" (how much are you) is not "gago ka".
+    "gaano",
     # English
     "shirt", "sport", "stupidly", "shot", "shop", "pocket", "bucket",
     "packet", "party", "pasta", "full",
+    # "but it's" is not "bugits". Longer everyday words are covered by
+    # COMMON_WORDS_FILE below.
+    "but",
 })
 
+# Everyday words (from Whisper's own vocabulary) that close matching may not
+# change into a different word: "because" is never "big nose", "stopped" is
+# never "stupid". Exact-spelling repairs still apply ("plastic" = "plastik").
+COMMON_WORDS_FILE = Path(__file__).with_name("common_words.txt")
+
 FUZZY_MIN_LETTERS = 6
+# Very short, acoustically ambiguous profanity is recognized only when those
+# exact tokens were emitted. It must never be invented by spelling/sound folds.
+LITERAL_ONLY_TERMS = frozenset({"iyot"})
+# Longest utterance (in words) that may get close sound-alike guesses.
+CLOSE_MATCH_MAX_TOKENS = 6
+# Similarity-window layer (provenance "fuzzy"). Tuned so no harmless sentence
+# in tests/fixtures/*_classroom_*.jsonl and no harmless bench clip alerts:
+# the highest harmless scores were 85.7 per word and 93.3 for a re-split span.
+FUZZY_WINDOW_MIN_LETTERS = 7
+FUZZY_WINDOW_MAX_TOKENS = 4
+FUZZY_WINDOW_WORD_MIN = 90.0
+FUZZY_WINDOW_JOINED_MIN = 95.0
+FUZZY_PROVENANCE = "fuzzy"
 # Exact-spelling matches may cover longer phrases than close matches:
 # "pangit kaayu imung nawung" is "pangit kaayo imong nawong".
 EXACT_SPAN_TOKENS = 5
@@ -177,9 +225,17 @@ class Correction:
     heard: str
     term: str
     kind: str  # "mishearing" or "soundalike"
+    # ASR provenance is deliberately separate from the legacy correction kind.
+    # A sound-alike can be a safe spelling fold or a speculative fuzzy guess.
+    provenance: str = "unsupported_correction"
 
     def evidence(self) -> dict:
-        return {"heard": self.heard, "term": self.term, "kind": self.kind}
+        return {
+            "heard": self.heard,
+            "term": self.term,
+            "kind": self.kind,
+            "provenance": self.provenance,
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -195,6 +251,12 @@ class _Term:
     spelling: str
     sound: str
     fuzzy: bool
+
+
+@dataclass(frozen=True, slots=True)
+class _SoundalikeMatch:
+    candidate: _Term
+    provenance: str
 
 
 def _allowed_mismatches(length: int, *, single_word: bool = False) -> int:
@@ -287,6 +349,37 @@ def _changes_blocked_word(span_tokens, candidate, blocked):
     )
 
 
+@lru_cache(maxsize=1)
+def common_words() -> frozenset[str]:
+    try:
+        lines = COMMON_WORDS_FILE.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return frozenset()
+    return frozenset(
+        line.strip() for line in lines
+        if line.strip() and not line.startswith("#")
+    )
+
+
+_RESPELL = str.maketrans({"c": "k", "q": "k", "z": "s"})
+
+
+def _changes_common_word(span_tokens, candidate):
+    """Matching may not turn an everyday word into a different word.
+
+    Only a consonant respelling is allowed ("plastic" -> "plastik");
+    vowel or sound changes are not ("stopped" is never "stupid").
+    """
+
+    common = common_words()
+    if len(span_tokens) != len(candidate.tokens):
+        return any(token in common for token in span_tokens)
+    return any(
+        token in common and token.translate(_RESPELL) != wanted.translate(_RESPELL)
+        for token, wanted in zip(span_tokens, candidate.tokens)
+    )
+
+
 def _soundalike(span_tokens, candidates, blocked, single_terms, exact_only=False):
     # A whole multi-word span with exactly a term's letters is not a
     # "correction" of a common word ("mura kag ungguy" = "mura kag unggoy"),
@@ -302,17 +395,23 @@ def _soundalike(span_tokens, candidates, blocked, single_terms, exact_only=False
     # An exact spelling match anywhere beats a close match on a longer
     # term: "tamboka" is "tambok ka", never "tambok kaayo".
     for candidate in candidates:
+        if candidate.term in LITERAL_ONLY_TERMS and span_tokens != candidate.tokens:
+            continue
         if spelling == candidate.spelling and not _changes_blocked_word(
             span_tokens, candidate, blocked
-        ) and (
+        ) and not _changes_common_word(span_tokens, candidate) and (
             _keeps_fixed_words(span_tokens, candidate, single_terms)
             or (len(span_tokens) == len(candidate.tokens) and len(span_tokens) > 1)
         ):
-            return candidate
+            return _SoundalikeMatch(candidate, "trusted_alias")
     if exact_only:
         return None
     sound = None
     for candidate in candidates:
+        if candidate.term in LITERAL_ONLY_TERMS and span_tokens != candidate.tokens:
+            continue
+        if _changes_common_word(span_tokens, candidate):
+            continue
         # Same letters, different word split ("sumbagonti ka" = "sumbagon
         # tika"): nothing is changed or invented, so a pronoun inside the
         # span is safe. "bobo ko" still never becomes "bobo ka".
@@ -321,11 +420,11 @@ def _soundalike(span_tokens, candidates, blocked, single_terms, exact_only=False
             and len(span_tokens) == len(candidate.tokens)
             and len(span_tokens) > 1
         ):
-            return candidate
+            return _SoundalikeMatch(candidate, "trusted_alias")
         if not _keeps_fixed_words(span_tokens, candidate, single_terms):
             continue
         if spelling == candidate.spelling:
-            return candidate
+            return _SoundalikeMatch(candidate, "trusted_alias")
         if not candidate.fuzzy:
             continue
         if abs(len(candidate.sound) - len(spelling)) > 2:
@@ -338,14 +437,75 @@ def _soundalike(span_tokens, candidates, blocked, single_terms, exact_only=False
             if token in PRONOUNS
         ):
             continue
+        # A closing pronoun must close what was heard (one stray letter
+        # allowed): "tambaka" is "tambok ka", "patyon tikan" is
+        # "patyon tika", "kakara" is not "gaga ka".
+        if candidate.tokens[-1] in PRONOUNS:
+            closing = spelling_key(candidate.tokens[-1])
+            if closing not in spelling[-(len(closing) + 1):]:
+                continue
         if sound is None:
             sound = sound_key(joined)
         single_word = len(span_tokens) == 1 and len(candidate.tokens) == 1
         if sound == candidate.sound or _fuzzy_equal(
             sound, candidate.sound, single_word=single_word
         ):
-            return candidate
+            return _SoundalikeMatch(candidate, "fuzzy_soundalike")
     return None
+
+
+def _window_score(span_tokens, candidate, sound):
+    """Similarity (0-100) of a span to a term, judged on sound keys."""
+
+    if len(span_tokens) == len(candidate.tokens):
+        # Every word that differs must itself sound close: "ang kulit mo"
+        # is not "ang liit mo" even though the whole spans are 94% alike.
+        changed = [
+            _similarity(sound_key(heard), sound_key(wanted))
+            for heard, wanted in zip(span_tokens, candidate.tokens)
+            if heard != wanted and wanted not in PRONOUNS
+        ]
+        score = _similarity(sound, candidate.sound)
+        return min([score, *changed]), FUZZY_WINDOW_WORD_MIN
+    return _similarity(sound, candidate.sound), FUZZY_WINDOW_JOINED_MIN
+
+
+def _fuzzy_window(span_tokens, candidates, blocked, single_terms):
+    """Best monitored term whose sound is close to the span, or None."""
+
+    if _similarity is None or any(token in blocked for token in span_tokens):
+        return None
+    sound = sound_key("".join(span_tokens))
+    if len(sound) < 3:
+        return None
+    best = None
+    for candidate in candidates:
+        if (
+            len(candidate.sound) < FUZZY_WINDOW_MIN_LETTERS
+            or candidate.term in LITERAL_ONLY_TERMS
+            or candidate.tokens == tuple(span_tokens)
+            or abs(len(candidate.sound) - len(sound)) > 3
+            or candidate.sound[0] != sound[0]
+        ):
+            continue
+        if not _keeps_fixed_words(span_tokens, candidate, single_terms):
+            continue
+        if _changes_common_word(span_tokens, candidate):
+            continue
+        # The target must really be heard as its own word: "kabus nga" is
+        # not "kabus ka", "nobody wants to" is not "nobody wants you".
+        if any(
+            token in PRONOUNS and token not in span_tokens
+            for token in candidate.tokens
+        ):
+            continue
+        score, floor = _window_score(span_tokens, candidate, sound)
+        if score < floor:
+            continue
+        key = (score, len(candidate.sound))
+        if best is None or key > best[0]:
+            best = (key, candidate)
+    return None if best is None else best[1]
 
 
 def _mishearing_tables():
@@ -379,7 +539,12 @@ def _rejoin_split_words(tokens, corrections):
         parts = _split_joined(token)
         if parts:
             expanded.extend(parts)
-            corrections.append(Correction(token, " ".join(parts), "mishearing"))
+            corrections.append(Correction(
+                token,
+                " ".join(parts),
+                "mishearing",
+                "trusted_alias",
+            ))
         else:
             expanded.append(token)
     tokens = expanded
@@ -390,7 +555,12 @@ def _rejoin_split_words(tokens, corrections):
         joined = SPLIT_WORDS.get(pair) if len(pair) == 2 else None
         if joined:
             out.append(joined)
-            corrections.append(Correction(" ".join(pair), joined, "mishearing"))
+            corrections.append(Correction(
+                " ".join(pair),
+                joined,
+                "mishearing",
+                "trusted_alias",
+            ))
             index += 2
             continue
         out.append(tokens[index])
@@ -417,6 +587,13 @@ def correct_transcript(
     """
 
     segments = transcript_token_segments(text)
+    # Close (sound-alike) guesses only on short utterances. Bullying lines
+    # are short ("Pangít ka."); in long conversation Whisper's words are
+    # trusted as written, so "giingong" (said) never becomes "gunggong".
+    # Exact respellings and the mishearing table still apply everywhere.
+    close_matching = (
+        sum(len(segment) for segment in segments) <= CLOSE_MATCH_MAX_TOKENS
+    )
     candidates, blocked = (
         _index(
             tuple(sorted(set(terms))), frozenset(fuzzy_terms), frozenset(exact_terms),
@@ -443,7 +620,17 @@ def correct_transcript(
                 if len(span) == length and span in table:
                     term = table[span]
                     out.extend(term.split())
-                    corrections.append(Correction(" ".join(span), term, "mishearing"))
+                    heard = " ".join(span)
+                    corrections.append(Correction(
+                        heard,
+                        term,
+                        "mishearing",
+                        (
+                            "trusted_alias"
+                            if heard in TRUSTED_MISHEARINGS
+                            else "explicit_mishearing"
+                        ),
+                    ))
                     index += length
                     replaced = True
                     break
@@ -467,9 +654,9 @@ def correct_transcript(
                 # near-miss of "tambok kaayo".
                 attempts = [
                     (length, True) for length in range(EXACT_SPAN_TOKENS, 0, -1)
-                ] + [
+                ] + ([
                     (length, False) for length in range(max_span_tokens, 0, -1)
-                ]
+                ] if close_matching else [])
                 for length, exact in attempts:
                     span = tuple(tokens[index:index + length])
                     if len(span) != length:
@@ -478,11 +665,34 @@ def correct_transcript(
                         span, candidates, blocked, single_terms, exact_only=exact,
                     )
                     if match is not None:
-                        out.extend(match.tokens)
-                        if match.tokens != span:
+                        candidate = match.candidate
+                        out.extend(candidate.tokens)
+                        if candidate.tokens != span:
                             corrections.append(
-                                Correction(" ".join(span), match.term, "soundalike")
+                                Correction(
+                                    " ".join(span),
+                                    candidate.term,
+                                    "soundalike",
+                                    match.provenance,
+                                )
                             )
+                        index += length
+                        replaced = True
+                        break
+            if candidates and close_matching and not replaced:
+                for length in range(FUZZY_WINDOW_MAX_TOKENS, 0, -1):
+                    span = tuple(tokens[index:index + length])
+                    if len(span) != length:
+                        continue
+                    candidate = _fuzzy_window(span, candidates, blocked, single_terms)
+                    if candidate is not None:
+                        out.extend(candidate.tokens)
+                        corrections.append(Correction(
+                            " ".join(span),
+                            candidate.term,
+                            "soundalike",
+                            FUZZY_PROVENANCE,
+                        ))
                         index += length
                         replaced = True
                         break

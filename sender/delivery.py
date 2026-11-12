@@ -12,6 +12,10 @@ from typing import Callable
 
 from config import (
     API_URL,
+    DASHBOARD_TEST_MODE,
+    DASHBOARD_TEST_REVIEWER_TOKEN,
+    DASHBOARD_TEST_VERIFY_POLL_SECONDS,
+    DASHBOARD_TEST_VERIFY_TIMEOUT_SECONDS,
     ECHOSENSE_DEVICE_ID,
     ECHOSENSE_DEVICE_KEY,
     OUTBOX_BACKOFF_MULTIPLIER,
@@ -29,6 +33,7 @@ from config import (
     OUTBOX_STALE_SENDING_SECONDS,
 )
 from detection.latency import LATENCY
+from sender.dashboard_test import DashboardVisibilityVerifier
 from sender.http_client import (
     AUTHENTICATION as HTTP_AUTHENTICATION,
     DELIVERED as HTTP_DELIVERED,
@@ -70,6 +75,17 @@ class DeliverySettings:
     health_log_interval_seconds: float = (
         OUTBOX_HEALTH_LOG_INTERVAL_SECONDS
     )
+    dashboard_test_mode: bool = DASHBOARD_TEST_MODE
+    dashboard_test_reviewer_token: str = field(
+        default=DASHBOARD_TEST_REVIEWER_TOKEN,
+        repr=False,
+    )
+    dashboard_test_verify_timeout_seconds: float = (
+        DASHBOARD_TEST_VERIFY_TIMEOUT_SECONDS
+    )
+    dashboard_test_verify_poll_seconds: float = (
+        DASHBOARD_TEST_VERIFY_POLL_SECONDS
+    )
     # A backend rejection (4xx) is retried this many times, each right after a
     # dictionary re-sync, before the record is parked as FAILED_PERMANENT.
     max_rejection_retries: int = 1
@@ -103,6 +119,7 @@ class OutboxDeliveryWorker:
         logger=print,
         resync: Callable[[], bool] | None = None,
         refresh_payload: Callable[[dict], dict] | None = None,
+        dashboard_verifier=None,
     ):
         self.outbox = outbox
         self.settings = settings
@@ -120,6 +137,18 @@ class OutboxDeliveryWorker:
                 device_key=self.settings.device_key,
             )
         )
+        self._dashboard_verifier = dashboard_verifier
+        if self._dashboard_verifier is None and settings.dashboard_test_mode:
+            self._dashboard_verifier = DashboardVisibilityVerifier(
+                settings.api_url,
+                settings.dashboard_test_reviewer_token,
+                timeout_seconds=(
+                    settings.dashboard_test_verify_timeout_seconds
+                ),
+                poll_seconds=settings.dashboard_test_verify_poll_seconds,
+                request_timeout_seconds=settings.request_timeout_seconds,
+                logger=logger,
+            )
         self._stop_event = threading.Event()
         self._wake_event = threading.Event()
         self._lifecycle_lock = threading.Lock()
@@ -258,6 +287,11 @@ class OutboxDeliveryWorker:
                 f"http={result.http_status}{duplicate}"
             )
             LATENCY.mark_incident(record.event_id, "delivered")
+            if self._dashboard_verifier is not None:
+                self._dashboard_verifier.schedule(
+                    payload,
+                    backend_acknowledged_at=time.monotonic(),
+                )
             return
 
         if result.disposition == HTTP_PERMANENT:
@@ -452,11 +486,13 @@ class AlertDeliveryService:
         logger=print,
         resync=_default_resync,
         refresh_payload=_default_refresh_payload,
+        dashboard_verifier=None,
     ):
         self.settings = settings or DeliverySettings()
         self._deliver = deliver
         self._resync = resync
         self._refresh_payload = refresh_payload
+        self._dashboard_verifier = dashboard_verifier
         self._clock = clock
         self._random_uniform = random_uniform
         self._logger = logger
@@ -507,6 +543,7 @@ class AlertDeliveryService:
                     logger=self._logger,
                     resync=self._resync,
                     refresh_payload=self._refresh_payload,
+                    dashboard_verifier=self._dashboard_verifier,
                 )
             if self._start_requested and not self._worker.running:
                 self._worker.start()

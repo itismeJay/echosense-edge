@@ -124,7 +124,7 @@ class EventCoordinator:
         last = self._last_text_incident
         if window <= 0 or last is None or not isinstance(evidence, TextEvidence):
             return None
-        terms = frozenset(evidence.detected_terms)
+        terms = frozenset(evidence.decision_terms)
         if not terms or not terms <= last.terms:
             return None
         if evidence_time - last.closed_monotonic >= window:
@@ -343,7 +343,7 @@ class EventCoordinator:
                     recent,
                     self._acoustic_identity,
                 )
-        if contains_urgent_directive(evidence.detected_terms):
+        if contains_urgent_directive(evidence.decision_terms):
             # Threat-like and self-harm phrases are sent without waiting for
             # the incident window to close.
             active.close_deadline = min(active.close_deadline, evidence_time)
@@ -462,6 +462,8 @@ class EventCoordinator:
             supporting_evidence=fusion.supporting_evidence,
             confidence=fusion.confidence,
             waveform_snapshot=waveform,
+            summary=fusion.summary,
+            tone=fusion.tone,
         )
         self._active = None
         if finalized.text_evidence:
@@ -471,7 +473,7 @@ class EventCoordinator:
                 terms=frozenset(
                     term
                     for item in finalized.text_evidence
-                    for term in item.detected_terms
+                    for term in item.decision_terms
                 ),
                 severity=finalized.severity,
             )
@@ -480,6 +482,14 @@ class EventCoordinator:
             f"[INCIDENT] finalized event={finalized.event_id} "
             f"severity={finalized.severity} text={len(finalized.text_evidence)} "
             f"acoustic={len(finalized.acoustic_evidence)}"
+        )
+        tone = finalized.tone
+        print(
+            f"[TONE] event={finalized.event_id} severity={finalized.severity} "
+            f"angry_tone={str(bool(getattr(tone, 'angry_tone', False))).lower()} "
+            f"laughter={str(bool(getattr(tone, 'laughter', False))).lower()} "
+            f"emotion={getattr(tone, 'emotion_label', 'unknown')} "
+            f"reason=\"{finalized.summary}\""
         )
         return finalized
 

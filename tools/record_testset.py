@@ -1,6 +1,7 @@
 """Record the EchoSense accuracy test set, phrase by phrase.
 
-    venv/bin/python tools/record_testset.py            # near, media, then far
+    venv/bin/python tools/record_testset.py            # 700 sentences, all passes
+    venv/bin/python tools/record_testset.py --catalog legacy
     venv/bin/python tools/record_testset.py --pass far # one pass only
     venv/bin/python tools/record_testset.py --redo pangit_ka__far
 
@@ -26,11 +27,49 @@ import wave
 
 import numpy as np
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from model.sentence_catalog import load_sentence_cases
+from model.language_guide import normalized_words
+from model.recording_metadata import (
+    DELIVERIES,
+    NOISE_CONDITIONS,
+    RecordingDescriptor,
+)
+
 SAMPLE_RATE = 16000
 PHRASE_SECONDS = 4.0
 MEDIA_SECONDS = 15.0
 DEFAULT_DIR = Path.home() / "echosense-testset"
 DEFAULT_MIC = "MacBook Pro Microphone"
+ACTIVE_CATALOG = "legacy"
+RECORDING_SPEAKER_ID = "legacy"
+RECORDING_DELIVERY = "normal"
+RECORDING_NOISE = "quiet"
+
+
+def classroom_phrases():
+    """Return the 700 validated sentence cases in recorder tuple form."""
+
+    labels = {True: "bullying", False: "normal", None: "review"}
+    return tuple(
+        (
+            case.sentence_id,
+            case.text,
+            labels[case.expected_alert],
+            case.language,
+        )
+        for case in load_sentence_cases()
+    )
+
+
+def recording_seconds(text):
+    """Allow complete sentences more time while retaining a strict cap."""
+
+    words = len(normalized_words(text))
+    return max(PHRASE_SECONDS, min(12.0, 2.0 + 0.75 * words))
 
 # label: "bullying" must alert, "normal" and "media" must not.
 PHRASES = [
@@ -148,6 +187,7 @@ def _lexicon_record_next():
 
 # Grade 6 lexicon phrases chosen for recording (see the YAML).
 PHRASES += _lexicon_record_next()
+LEGACY_PHRASES = tuple(PHRASES)
 
 MEDIA = [
     ("media_bisaya", "a Bisaya vlog or TikTok with people talking", "media", "ceb"),
@@ -243,14 +283,32 @@ def _write_manifest(directory):
         for pid, text, label, language in PHRASES + MEDIA
     ]
     (directory / "phrases.json").write_text(
-        json.dumps({"sample_rate": SAMPLE_RATE, "phrases": entries}, indent=2,
+        json.dumps({
+            "sample_rate": SAMPLE_RATE,
+            "catalog": ACTIVE_CATALOG,
+            "recording_session": {
+                "speaker_id": RECORDING_SPEAKER_ID,
+                "delivery": RECORDING_DELIVERY,
+                "noise": RECORDING_NOISE,
+            },
+            "phrases": entries,
+        }, indent=2,
                    ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
 
 
 def _clip_path(directory, pid, distance):
-    return directory / f"{pid}__{distance}.wav"
+    if ACTIVE_CATALOG == "legacy":
+        return directory / f"{pid}__{distance}.wav"
+    descriptor = RecordingDescriptor(
+        sentence_id=pid,
+        speaker_id=RECORDING_SPEAKER_ID,
+        delivery=RECORDING_DELIVERY,
+        noise=RECORDING_NOISE,
+        distance=distance,
+    )
+    return directory / descriptor.filename()
 
 
 def near_pass(mic, directory, redo):
@@ -259,11 +317,12 @@ def near_pass(mic, directory, redo):
     todo = [p for p in PHRASES if redo or not _clip_path(directory, p[0], "near").exists()]
     for number, (pid, text, _label, language) in enumerate(todo, 1):
         path = _clip_path(directory, pid, "near")
+        seconds = recording_seconds(text)
         while True:
             input(f"\n[{number}/{len(todo)}] ({language})  \"{text}\"\n"
-                  "  Press Enter, then say it after the beep (4 s)... ")
+                  f"  Press Enter, then say it after the beep ({seconds:g} s)... ")
             _beep("Tink")
-            samples = mic.record(PHRASE_SECONDS)
+            samples = mic.record(seconds)
             _beep("Pop")
             print("  " + _level_note(samples))
             answer = input("  Enter = keep, r = redo, s = skip: ").strip().lower()
@@ -291,19 +350,20 @@ def far_pass(mic, directory, redo):
         _say(f"Next: {text}")
         time.sleep(0.4)
         _beep("Tink")
-        samples = mic.record(PHRASE_SECONDS)
+        samples = mic.record(recording_seconds(text))
         _beep("Pop")
-        _save(_clip_path(directory, pid, "far"), samples)
+        path = _clip_path(directory, pid, "far")
+        _save(path, samples)
         note = _level_note(samples)
         print("  " + note)
         if "very quiet" in note:
-            quiet.append(pid)
+            quiet.append(path.stem)
         time.sleep(1.5)
     _say("Done")
     if quiet:
         print("\nVery quiet far clips (re-record with --redo <id>__far):")
-        for pid in quiet:
-            print(f"  {pid}__far")
+        for clip_id in quiet:
+            print(f"  {clip_id}")
 
 
 def media_pass(mic, directory, redo):
@@ -328,12 +388,17 @@ def media_pass(mic, directory, redo):
 
 
 def redo_one(mic, directory, name):
-    pid, _, distance = name.partition("__")
+    try:
+        descriptor = RecordingDescriptor.from_filename(name)
+    except ValueError as exc:
+        raise SystemExit(f"Unknown clip: {name}") from exc
+    pid = descriptor.sentence_id
+    distance = descriptor.distance
     lookup = {p[0]: p for p in PHRASES + MEDIA}
     if pid not in lookup or distance not in {"near", "far", "media"}:
         raise SystemExit(f"Unknown clip: {name}")
     _pid, text, _label, _language = lookup[pid]
-    seconds = MEDIA_SECONDS if distance == "media" else PHRASE_SECONDS
+    seconds = MEDIA_SECONDS if distance == "media" else recording_seconds(text)
     input(f"\"{text}\" ({distance}). Press Enter, speak after the beep... ")
     if distance == "far":
         print("  Walk 2-3 m away: recording starts in 8 s.")
@@ -343,14 +408,33 @@ def redo_one(mic, directory, name):
     _beep("Tink")
     samples = mic.record(seconds)
     _beep("Pop")
-    _save(_clip_path(directory, pid, distance), samples)
+    target = directory / f"{Path(name).stem}.wav"
+    _save(target, samples)
     print("  " + _level_note(samples))
 
 
 def main(argv=None):
+    global ACTIVE_CATALOG
+    global PHRASES
+    global RECORDING_DELIVERY
+    global RECORDING_NOISE
+    global RECORDING_SPEAKER_ID
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--dir", type=Path, default=DEFAULT_DIR)
+    parser.add_argument("--dir", type=Path)
     parser.add_argument("--mic", default=DEFAULT_MIC)
+    parser.add_argument(
+        "--catalog",
+        choices=("classroom700", "legacy"),
+        default="classroom700",
+        help="sentence catalog to record (default: classroom700)",
+    )
+    parser.add_argument(
+        "--speaker-id",
+        default="speaker-01",
+        help="anonymous filename-safe speaker identifier",
+    )
+    parser.add_argument("--delivery", choices=DELIVERIES, default="normal")
+    parser.add_argument("--noise", choices=NOISE_CONDITIONS, default="quiet")
     parser.add_argument("--pass", dest="which", choices=["all", "near", "far", "media"],
                         default="all")
     parser.add_argument("--redo", metavar="ID__DISTANCE",
@@ -358,6 +442,32 @@ def main(argv=None):
     parser.add_argument("--rerecord", action="store_true",
                         help="re-record every clip of the chosen pass")
     args = parser.parse_args(argv)
+
+    ACTIVE_CATALOG = args.catalog
+    RECORDING_SPEAKER_ID = (
+        "legacy" if args.catalog == "legacy" else args.speaker_id
+    )
+    RECORDING_DELIVERY = args.delivery
+    RECORDING_NOISE = args.noise
+    if args.dir is None:
+        args.dir = (
+            DEFAULT_DIR
+            if args.catalog == "legacy"
+            else DEFAULT_DIR / "classroom700"
+        )
+    PHRASES = list(
+        classroom_phrases()
+        if args.catalog == "classroom700"
+        else LEGACY_PHRASES
+    )
+    if args.catalog == "classroom700":
+        RecordingDescriptor(
+            sentence_id=PHRASES[0][0],
+            speaker_id=RECORDING_SPEAKER_ID,
+            delivery=RECORDING_DELIVERY,
+            noise=RECORDING_NOISE,
+            distance="near",
+        )
 
     args.dir.mkdir(parents=True, exist_ok=True)
     _write_manifest(args.dir)

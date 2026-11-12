@@ -7,10 +7,21 @@ from datetime import datetime, timezone
 import threading
 import time
 
-from detection.evidence import MatchedTermEvidence, TextEvidence
+from detection.evidence import (
+    DetectedTermProvenance,
+    MatchedTermEvidence,
+    TextEvidence,
+    TranscriptCorrectionEvidence,
+)
 from detection.latency import LATENCY
+from detection.semantic import SemanticAnalyzer
 from detection.severity import calculate_severity, has_direct_target_evidence
-from detection.transcript_quality import assess_transcript_quality
+from detection.soundalike import FUZZY_PROVENANCE
+from detection.transcript_quality import assess_transcript_quality, phrase_matches
+
+# Reason recorded when only similarity-window (fuzzy) matches opened the
+# utterance: severity is held at LOW for human review.
+FUZZY_REVIEW_REASON = "fuzzy_match:capped_low_needs_review"
 from model.blacklist import check_transcript
 
 
@@ -24,6 +35,7 @@ class TextDetector:
         wall_clock=lambda: datetime.now(timezone.utc),
         repetition_window_seconds=60.0,
         history_size=128,
+        semantic_analyzer=None,
     ):
         if repetition_window_seconds < 0 or history_size <= 0:
             raise ValueError("text history bounds are invalid")
@@ -33,7 +45,15 @@ class TextDetector:
         self._history_size = int(history_size)
         self._history = OrderedDict()
         self._lock = threading.Lock()
+        self.semantic_analyzer = semantic_analyzer or SemanticAnalyzer()
         self.evidence_count = 0
+
+    def clear_context(self):
+        """Drop term and conversational histories retained in RAM."""
+
+        with self._lock:
+            self._history.clear()
+        self.semantic_analyzer.clear()
 
     def analyze_transcript(
         self,
@@ -45,7 +65,7 @@ class TextDetector:
         observed_monotonic=None,
     ):
         quality = assess_transcript_quality(transcript)
-        result = check_transcript(transcript) if quality.accepted else {
+        result = check_transcript(quality.checked_text) if quality.accepted else {
             "has_profanity": False,
             "detected_words": [],
             "hard_hits": [],
@@ -114,6 +134,12 @@ class TextDetector:
             quality_reasons = tuple(dict.fromkeys(
                 quality_reasons + ("transcript_character_limit",)
             ))
+        semantic = self.semantic_analyzer.assess(
+            transcript,
+            language=str(result.get("language") or "unknown").lower(),
+            observed_monotonic=mono,
+            quality_accepted=quality_accepted,
+        )
         detected = tuple(dict.fromkeys(result.get("detected_words") or ()))[:50]
         hard_hits = tuple(dict.fromkeys(result.get("hard_hits") or ()))[:50]
         soft_hits = tuple(dict.fromkeys(result.get("soft_hits") or ()))[:50]
@@ -122,7 +148,21 @@ class TextDetector:
         # targeting; the original transcript stays the evidence of record.
         match_text = str(result.get("match_text") or "")[:10_000]
         decision_text = match_text or transcript
-        direct_target = has_direct_target_evidence(decision_text)
+        provenance_by_term = {}
+        for item in result.get("term_provenance") or ():
+            if not isinstance(item, dict):
+                continue
+            term = str(item.get("term") or "").strip()
+            provenance = str(item.get("provenance") or "").strip().lower()
+            if term and provenance:
+                provenance_by_term[term] = provenance
+        for term in detected:
+            if term not in provenance_by_term:
+                provenance_by_term[term] = (
+                    "original_exact"
+                    if phrase_matches(term, transcript)
+                    else "unsupported_correction"
+                )
 
         repeated = False
         if quality_accepted and detected:
@@ -146,26 +186,62 @@ class TextDetector:
         # ``repeated`` (same term within the history window) stays as
         # evidence metadata only. Severity repetition is judged within one
         # utterance here and across the incident in fusion.
+        qualification_terms = []
+        for term in detected:
+            provenance = provenance_by_term[term]
+            if provenance in {"original_exact", "trusted_alias"}:
+                qualification_terms.append(term)
+                continue
+            if provenance == "explicit_mishearing" and (
+                has_direct_target_evidence(decision_text, (term,))
+                or calculate_severity((term,), transcript=decision_text).level == "HIGH"
+            ):
+                qualification_terms.append(term)
+                continue
+            if provenance == "fuzzy_soundalike" and repeated:
+                qualification_terms.append(term)
+                continue
+            # Similarity-window matches may open, capped at LOW below.
+            if provenance == FUZZY_PROVENANCE:
+                qualification_terms.append(term)
+        qualification_terms = tuple(dict.fromkeys(qualification_terms))
+        direct_target = bool(
+            qualification_terms
+            and has_direct_target_evidence(decision_text, qualification_terms)
+        )
         severity = calculate_severity(
-            detected,
+            qualification_terms,
             transcript=decision_text,
             laughter_present=laughter,
         )
+        fuzzy_only = bool(qualification_terms) and all(
+            provenance_by_term[term] == FUZZY_PROVENANCE
+            for term in qualification_terms
+        )
         context_suppressed = bool(result.get("context_suppressed_all"))
         has_monitored = bool(result.get("has_profanity")) and bool(detected)
-        # Any accepted monitored word opens an incident (LOW at minimum);
-        # severity, not qualification, decides how far it goes.
+        has_qualifying_provenance = bool(qualification_terms)
+        # Original words and trusted aliases may open. Curated explicit
+        # mishearings require targeting/high-risk semantics; speculative fuzzy
+        # matches require a separate repeated observation.
         qualifies = bool(
             quality_accepted
             and not context_suppressed
             and has_monitored
+            and has_qualifying_provenance
         )
         reasons = list(severity.reasons)
         reasons.extend(severity.supporting_evidence)
+        baseline_level = severity.level
+        if fuzzy_only:
+            baseline_level = "LOW"
+            reasons.append(FUZZY_REVIEW_REASON)
         if not quality_accepted:
             reasons.append("suppressed:transcript_quality")
         if context_suppressed:
             reasons.append("suppressed:harmless_or_ambiguous_context")
+        if has_monitored and not has_qualifying_provenance:
+            reasons.append("suppressed:correction_requires_corroboration")
 
         matched = []
         for item in result.get("matched_terms") or ():
@@ -182,6 +258,29 @@ class TextDetector:
                 term_id=(term_id if isinstance(term_id, int) and not isinstance(term_id, bool) else None),
             ))
             if len(matched) >= 50:
+                break
+
+        term_provenance = tuple(
+            DetectedTermProvenance(term=term, provenance=provenance_by_term[term])
+            for term in detected
+        )
+        corrections = []
+        for item in result.get("corrections") or ():
+            if not isinstance(item, dict):
+                continue
+            heard = str(item.get("heard") or "").strip()
+            term = str(item.get("term") or "").strip()
+            if not heard or not term:
+                continue
+            corrections.append(TranscriptCorrectionEvidence(
+                heard=heard,
+                term=term,
+                kind=str(item.get("kind") or "unknown"),
+                provenance=str(
+                    item.get("provenance") or "unsupported_correction"
+                ),
+            ))
+            if len(corrections) >= 50:
                 break
 
         evidence = TextEvidence(
@@ -201,12 +300,23 @@ class TextDetector:
             quality_accepted=quality_accepted,
             quality_reasons=quality_reasons,
             quality_warnings=quality_warnings,
-            baseline_severity=severity.level,
+            baseline_severity=baseline_level,
             reasons=tuple(dict.fromkeys(reasons)),
             laughter_present=laughter,
             qualifies_to_open=qualifies,
             spoken_started_at=spoken_started_at,
             match_text=match_text if match_text != transcript else "",
+            term_provenance=term_provenance,
+            corrections=tuple(corrections),
+            qualification_terms=qualification_terms,
+            semantic=semantic,
+            tone_signals=(
+                result.get("tone_signals")
+                if isinstance(result.get("tone_signals"), dict) else None
+            ),
+            audio_tags=tuple(
+                str(tag)[:40] for tag in (result.get("audio_tags") or ())
+            )[:20],
         )
         self.evidence_count += 1
         print(
@@ -269,3 +379,4 @@ class TextDetectorWorker:
         if self._thread is not None:
             self._thread.join(timeout=5.0)
         self._thread = None
+        self.detector.clear_context()

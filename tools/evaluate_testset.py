@@ -1,7 +1,7 @@
 """Run the recorded test set offline through the real EchoSense text pipeline.
 
-Configs are ranked by Bisaya recall, then Bisaya false alarms (the
-deployment school speaks Bisaya); Tagalog/English columns are informational.
+Configs are ranked by Bisaya word error rate, exact-sentence accuracy, alert
+recall, then false alarms; Tagalog/English columns are informational.
 
     venv/bin/python tools/evaluate_testset.py --name a --model base --language auto \\
         --soundalike off --mishearings off
@@ -39,7 +39,13 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-DEFAULT_DIR = Path.home() / "echosense-testset"
+from model.recording_metadata import RecordingDescriptor
+from model.transcription_metrics import (
+    aggregate_transcription_metrics,
+    transcription_metrics,
+)
+
+DEFAULT_DIR = Path.home() / "echosense-testset" / "classroom700"
 SAMPLE_RATE = 16000
 # Raspberry Pi 5 is about 3-4x slower than this Mac for faster-whisper int8.
 PI_FACTOR_LOW, PI_FACTOR_HIGH = 3.0, 4.0
@@ -143,7 +149,7 @@ class Pipeline:
         text, language, probability, segments = decode_restricted(
             self.model, audio,
             language_mode=self.args.language,
-            beam_size=1,
+            beam_size=self.args.beam_size,
             initial_prompt=self.args.prompt or None,
             gain=self.args.gain,
         )
@@ -153,7 +159,7 @@ class Pipeline:
             and not self.blacklist.check_transcript(text).get("detected_words")
         ):
             en_text, en_language, en_probability, en_segments = decode_restricted(
-                self.model, audio, language="en", beam_size=1,
+                self.model, audio, language="en", beam_size=self.args.beam_size,
                 initial_prompt=self.args.prompt or None, gain=self.args.gain,
             )
             fallback = True
@@ -192,6 +198,10 @@ class Pipeline:
             "alert": alert,
             "severity": severity if alert else None,
             "not_sent_reasons": [r for r in reasons if "never_sent" in r],
+            "language_guide": result.get("language_guide", {
+                "shadow_only": True,
+                "matched": False,
+            }),
         }
 
 
@@ -208,8 +218,12 @@ def evaluate(args):
 
     rows = []
     for path in clips:
-        pid, distance = path.stem.split("__", 1)
-        phrase = phrases.get(pid)
+        try:
+            descriptor = RecordingDescriptor.from_filename(path.name)
+        except ValueError:
+            print(f"SKIP invalid recording filename: {path.name}")
+            continue
+        phrase = phrases.get(descriptor.sentence_id)
         if phrase is None:
             continue
         samples = pipeline.denoise(load_clip(path))
@@ -224,8 +238,11 @@ def evaluate(args):
             decoded.append(outcome)
         alerted = any(item["alert"] for item in decoded)
         rows.append({
-            "id": pid,
-            "distance": distance,
+            "id": descriptor.sentence_id,
+            "speaker_id": descriptor.speaker_id,
+            "delivery": descriptor.delivery,
+            "noise": descriptor.noise,
+            "distance": descriptor.distance,
             "label": phrase["label"],
             "language": phrase["language"],
             "text": phrase["text"],
@@ -234,7 +251,10 @@ def evaluate(args):
         })
         mark = "ALERT" if alerted else "  -  "
         heard = " | ".join(item["transcript"] for item in decoded) or "(no speech)"
-        print(f"{mark} {phrase['label']:8} {distance:5} {phrase['text'][:28]:28} heard: {heard[:70]}")
+        print(
+            f"{mark} {phrase['label']:8} {descriptor.distance:5} "
+            f"{phrase['text'][:28]:28} heard: {heard[:70]}"
+        )
 
     times = [u["whisper_seconds"] for row in rows for u in row["utterances"]]
     summary = summarize(rows, times)
@@ -243,7 +263,7 @@ def evaluate(args):
         "settings": {
             "model": args.model, "language": args.language, "prompt": args.prompt,
             "gain": args.gain, "soundalike": args.soundalike,
-            "mishearings": args.mishearings,
+            "mishearings": args.mishearings, "beam_size": args.beam_size,
         },
         "dictionary_terms": pipeline.dictionary_terms,
         "model_load_seconds": round(pipeline.load_seconds, 1),
@@ -262,6 +282,17 @@ def _rate(rows):
     if not rows:
         return None
     return sum(row["alert"] for row in rows) / len(rows)
+
+
+def _row_transcript(row, *, guided=False):
+    values = []
+    for item in row.get("utterances", ()):
+        text = item.get("transcript", "")
+        guidance = item.get("language_guide") or {}
+        if guided and guidance.get("matched") and guidance.get("suggested_text"):
+            text = guidance["suggested_text"]
+        values.append(text)
+    return " ".join(values)
 
 
 def summarize(rows, times):
@@ -290,13 +321,43 @@ def summarize(rows, times):
     ]
     summary["normal_fp_ceb"] = _rate(bisaya_normal)
     summary["normal_fp_ceb_n"] = len(bisaya_normal)
+    transcript_metrics = [
+        transcription_metrics(row["text"], _row_transcript(row))
+        for row in rows
+    ]
+    transcript_summary = aggregate_transcription_metrics(transcript_metrics)
+    for key, value in transcript_summary.items():
+        summary[f"transcript_{key}"] = value
+    for code, _name in LANGUAGE_GROUPS:
+        language_metrics = [
+            metric
+            for row, metric in zip(rows, transcript_metrics)
+            if row["language"] == code
+        ]
+        language_summary = aggregate_transcription_metrics(language_metrics)
+        summary[f"transcript_exact_sentence_rate_{code}"] = (
+            language_summary["exact_sentence_rate"]
+        )
+        summary[f"transcript_word_error_rate_{code}"] = (
+            language_summary["word_error_rate"]
+        )
+        summary[f"transcript_character_error_rate_{code}"] = (
+            language_summary["character_error_rate"]
+        )
+    guided_metrics = [
+        transcription_metrics(row["text"], _row_transcript(row, guided=True))
+        for row in rows
+    ]
+    guided_summary = aggregate_transcription_metrics(guided_metrics)
+    for key, value in guided_summary.items():
+        summary[f"guided_{key}"] = value
     return summary
 
 
 def bisaya_rank(item):
-    """Sort key: Bisaya recall, then Bisaya false alarms, media, speed.
+    """Sort by faithful Bisaya transcription before alert-policy outcomes.
 
-    English/Tagalog recall is reported but never used to pick a config.
+    English/Tagalog metrics are reported but never used to pick a config.
     """
 
     s = item["summary"]
@@ -308,6 +369,8 @@ def bisaya_rank(item):
         return value if value is not None else 2.0
 
     return (
+        low(s.get("transcript_word_error_rate_ceb")),
+        high(s.get("transcript_exact_sentence_rate_ceb")),
         high(s.get("recall_ceb")),
         low(s.get("normal_fp_ceb")),
         low(s.get("media_fp")),
@@ -322,7 +385,9 @@ def _pct(value):
 
 def print_table(results):
     header = (
-        f"{'config':14} {'Bisaya':>6} {'BisFP':>5} {'recall':>6} {'Tagalog':>7} {'English':>7} "
+        f"{'config':14} {'Bisaya':>6} {'BisFP':>5} {'recall':>6} {'exact':>6} "
+        f"{'WER':>6} {'gWER':>6} "
+        f"{'Tagalog':>7} {'English':>7} "
         f"{'near':>5} {'far':>5} {'normFP':>6} {'mediaFP':>7} "
         f"{'mac s':>6} {'Pi5 s (est)':>12}"
     )
@@ -334,6 +399,9 @@ def print_table(results):
         print(
             f"{item['name']:14} {_pct(s['recall_ceb']):>6} "
             f"{_pct(s.get('normal_fp_ceb')):>5} {_pct(s['recall']):>6} "
+            f"{_pct(s.get('transcript_exact_sentence_rate')):>6} "
+            f"{_pct(s.get('transcript_word_error_rate')):>6} "
+            f"{_pct(s.get('guided_word_error_rate')):>6} "
             f"{_pct(s['recall_tl']):>7} {_pct(s['recall_en']):>7} "
             f"{_pct(s['recall_near']):>5} {_pct(s['recall_far']):>5} "
             f"{_pct(s['normal_fp']):>6} {_pct(s['media_fp']):>7} "
@@ -341,9 +409,21 @@ def print_table(results):
         )
 
 
+def refreshed_result(result):
+    """Return a copy of a saved result with its summary recomputed from rows."""
+
+    rows = result.get("rows") or []
+    times = [
+        u["whisper_seconds"]
+        for row in rows for u in row.get("utterances", ())
+        if u.get("whisper_seconds") is not None
+    ]
+    return {**result, "summary": summarize(rows, times)}
+
+
 def report(args):
     results = [
-        json.loads(path.read_text(encoding="utf-8"))
+        refreshed_result(json.loads(path.read_text(encoding="utf-8")))
         for path in sorted((args.dir / "results").glob("*.json"))
     ]
     print_table(sorted(results, key=bisaya_rank))
@@ -357,6 +437,7 @@ def main(argv=None):
                         help="size name, or a folder under models/")
     parser.add_argument("--language", default="auto", choices=["auto", "tl", "en", "tl+en"])
     parser.add_argument("--prompt", default="")
+    parser.add_argument("--beam-size", type=int, choices=range(1, 6), default=1)
     parser.add_argument("--gain", default="off", choices=["off", "peak", "rms"])
     parser.add_argument("--soundalike", default="off", choices=["on", "off"])
     parser.add_argument("--mishearings", default="on", choices=["on", "off"])
