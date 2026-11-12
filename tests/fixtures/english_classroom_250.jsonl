@@ -1,0 +1,250 @@
+{"id":"1","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're so stupid, can't you understand anything?"]}
+{"id":"2","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Shut the fuck up, nobody asked you!"]}
+{"id":"3","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Bro, you're dumb as hell!"]}
+{"id":"4","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're such a loser, nobody likes you."]}
+{"id":"5","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Get the hell away from us, idiot!"]}
+{"id":"6","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Hahaha, look at this stupid kid!"]}
+{"id":"7","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're ugly as fuck, bro!"]}
+{"id":"8","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Don't let him join, he's so dumb."]}
+{"id":"9","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're useless, why are you even here?"]}
+{"id":"10","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Damn, you're the dumbest person in class!"]}
+{"id":"11","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Shut up, nobody cares about your opinion."]}
+{"id":"12","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're so fat, you can't even fit there!"]}
+{"id":"13","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Bro, your face looks so ugly, hahaha!"]}
+{"id":"14","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Don't sit with us, you're not welcome."]}
+{"id":"15","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're such a fucking idiot!"]}
+{"id":"16","language":"English","category":"bullying","source_category":"bullying","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["If you tell the teacher, I'll beat you up!"]}
+{"id":"17","language":"English","category":"bullying","source_category":"bullying","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["Give me your lunch money or I'll punch you!"]}
+{"id":"18","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Nobody wants to be friends with you."]}
+{"id":"19","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're the reason our group always loses."]}
+{"id":"20","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Get lost, we don't want you around!"]}
+{"id":"21","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Hahaha, you can't even read properly!"]}
+{"id":"22","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're so poor, look at your shoes!"]}
+{"id":"23","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Shut your mouth, you dumbass!"]}
+{"id":"24","language":"English","category":"bullying","source_category":"bullying","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["You better watch out after class!"]}
+{"id":"25","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Bro, you're embarrassing our whole group."]}
+{"id":"26","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Don't add her to the group chat, she's weird."]}
+{"id":"27","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're not good enough to be with us."]}
+{"id":"28","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Hahaha, you failed again, what a loser!"]}
+{"id":"29","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're dumb, just go back to elementary school!"]}
+{"id":"30","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Your clothes look like trash!"]}
+{"id":"31","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Stop talking, you're not smart enough."]}
+{"id":"32","language":"English","category":"bullying","source_category":"bullying","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["Do my assignment or I'll hurt you."]}
+{"id":"33","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Everybody hates you, just leave!"]}
+{"id":"34","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Why are you so annoying and stupid?"]}
+{"id":"35","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Your presentation sucks, you're an idiot!"]}
+{"id":"36","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Nobody wants you on their team."]}
+{"id":"37","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're ugly and your attitude sucks."]}
+{"id":"38","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Look at him crying, what a baby!"]}
+{"id":"39","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Bro, you're a complete waste of space!"]}
+{"id":"40","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Fuck off, nobody invited you."]}
+{"id":"41","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're so slow, even little kids are smarter."]}
+{"id":"42","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Don't talk to us, you're not on our level."]}
+{"id":"43","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're always wrong, just stay quiet!"]}
+{"id":"44","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Hahaha, your answer was so stupid!"]}
+{"id":"45","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're pathetic, everyone laughs at you."]}
+{"id":"46","language":"English","category":"bullying","source_category":"bullying","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["If you come near us again, I'll hit you."]}
+{"id":"47","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're the worst student in this class!"]}
+{"id":"48","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Stop acting smart, you're dumb as shit!"]}
+{"id":"49","language":"English","category":"bullying","source_category":"bullying","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Everyone, ignore him, he's a loser!"]}
+{"id":"50","language":"English","category":"bullying","source_category":"bullying","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["You better give me your money tomorrow!"]}
+{"id":"51","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hey bro, did you finish the homework?"]}
+{"id":"52","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["What subject do we have next?"]}
+{"id":"53","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Damn, I forgot my notebook!"]}
+{"id":"54","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Do you have an extra pen?"]}
+{"id":"55","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Let's go to the canteen later."]}
+{"id":"56","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["What's your answer for number five?"]}
+{"id":"57","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["This math lesson is really hard."]}
+{"id":"58","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Is our teacher here already?"]}
+{"id":"59","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Can I borrow your notes?"]}
+{"id":"60","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["What time is our dismissal?"]}
+{"id":"61","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Do we have a quiz tomorrow?"]}
+{"id":"62","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Shit, my phone is almost dead!"]}
+{"id":"63","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Who's our group leader?"]}
+{"id":"64","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Are we practicing after class?"]}
+{"id":"65","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Did you bring your PE uniform?"]}
+{"id":"66","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["What's our topic for the report?"]}
+{"id":"67","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Wait, let me write this down."]}
+{"id":"68","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bro, do you have internet?"]}
+{"id":"69","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Let's go home together."]}
+{"id":"70","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["We have so much homework today."]}
+{"id":"71","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hey, what time is it?"]}
+{"id":"72","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Where are you eating lunch?"]}
+{"id":"73","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Can I borrow your ruler?"]}
+{"id":"74","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Damn, it's hot in this classroom."]}
+{"id":"75","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Shit, I left my water bottle!"]}
+{"id":"76","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["What did sir say earlier?"]}
+{"id":"77","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Do we have classes on Friday?"]}
+{"id":"78","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Is Mark absent today?"]}
+{"id":"79","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Did you finish your project?"]}
+{"id":"80","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Can we share your textbook?"]}
+{"id":"81","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Let's play basketball after school."]}
+{"id":"82","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["The internet here is so slow."]}
+{"id":"83","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Did our teacher make an announcement?"]}
+{"id":"84","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Who's bringing the materials tomorrow?"]}
+{"id":"85","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["What page are we on?"]}
+{"id":"86","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Wait, I'm not done writing."]}
+{"id":"87","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Damn, the deadline is tomorrow!"]}
+{"id":"88","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Which classroom are we going to next?"]}
+{"id":"89","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Do we have a group meeting later?"]}
+{"id":"90","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["What time does the program start?"]}
+{"id":"91","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I'm so hungry, is it lunch yet?"]}
+{"id":"92","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hey, where's my charger?"]}
+{"id":"93","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Can I see how you solved that problem?"]}
+{"id":"94","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Do we have English homework?"]}
+{"id":"95","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Let's study in the library."]}
+{"id":"96","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["What game are we playing later?"]}
+{"id":"97","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Wow, it's raining really hard."]}
+{"id":"98","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Have you seen my school ID?"]}
+{"id":"99","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Wait, I'll call the teacher."]}
+{"id":"100","language":"English","category":"normal","source_category":"normal","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bro, let's finish this tomorrow."]}
+{"id":"101","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Holy shit bro, we passed the exam!"]}
+{"id":"102","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hahaha, you're so funny!"]}
+{"id":"103","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Damn, you're really good at basketball!"]}
+{"id":"104","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Let's go! I got a perfect score!"]}
+{"id":"105","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Congrats bro, you deserve it!"]}
+{"id":"106","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Your drawing looks amazing!"]}
+{"id":"107","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bro, that was a crazy good shot!"]}
+{"id":"108","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yes! We don't have homework today!"]}
+{"id":"109","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hahaha, that field trip was awesome!"]}
+{"id":"110","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Holy crap, we're the champions!"]}
+{"id":"111","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Happy birthday! Where's our treat?"]}
+{"id":"112","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Your presentation was so good!"]}
+{"id":"113","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I'm so happy right now!"]}
+{"id":"114","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hahaha, our group is hilarious!"]}
+{"id":"115","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Shit, we actually won the contest!"]}
+{"id":"116","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hey, your new shoes look cool!"]}
+{"id":"117","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Congrats, you're top of the class!"]}
+{"id":"118","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hahaha, you got me with that joke!"]}
+{"id":"119","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Thanks for helping me earlier!"]}
+{"id":"120","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Damn, your lunch smells delicious!"]}
+{"id":"121","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bro, you're insanely fast!"]}
+{"id":"122","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yes! Early dismissal today!"]}
+{"id":"123","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["You're really good at singing!"]}
+{"id":"124","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hahaha, you're so silly!"]}
+{"id":"125","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["That project idea is awesome!"]}
+{"id":"126","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Finally, we're done with the project!"]}
+{"id":"127","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["School sports day was so fun!"]}
+{"id":"128","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Your artwork looks beautiful!"]}
+{"id":"129","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I'm really proud of you!"]}
+{"id":"130","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hahaha, I love hanging out with you!"]}
+{"id":"131","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Nice one bro, we won!"]}
+{"id":"132","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Damn, our scores are so high!"]}
+{"id":"133","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Thanks, you're a lifesaver!"]}
+{"id":"134","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yes! We received an award!"]}
+{"id":"135","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["You're amazing at public speaking!"]}
+{"id":"136","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Holy shit, I can't believe we passed!"]}
+{"id":"137","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hahaha, that joke was hilarious!"]}
+{"id":"138","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Welcome back! We missed you!"]}
+{"id":"139","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Our performance was incredible!"]}
+{"id":"140","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bro, your project looks so cool!"]}
+{"id":"141","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Let's go, we're in the finals!"]}
+{"id":"142","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hahaha, I still can't stop laughing!"]}
+{"id":"143","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Congratulations on your award!"]}
+{"id":"144","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["That birthday party was awesome!"]}
+{"id":"145","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bro, your video editing is amazing!"]}
+{"id":"146","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["No way, we both got perfect scores!"]}
+{"id":"147","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hahaha, thanks for cheering me up!"]}
+{"id":"148","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Yes! The field trip is tomorrow!"]}
+{"id":"149","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hey, your haircut looks great!"]}
+{"id":"150","language":"English","category":"happy","source_category":"happy","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Damn, today was such a good day!"]}
+{"id":"151","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Fuck, that exam was so hard!"]}
+{"id":"152","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Shit, I forgot my assignment."]}
+{"id":"153","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I'm really nervous about the presentation."]}
+{"id":"154","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["This slow internet is driving me crazy!"]}
+{"id":"155","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Damn, my project got destroyed!"]}
+{"id":"156","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I'm so tired today."]}
+{"id":"157","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I'm disappointed with my grades."]}
+{"id":"158","language":"English","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["Hey, please don't touch my stuff."]}
+{"id":"159","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["The noise in here is annoying."]}
+{"id":"160","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Shit, I'm going to be late!"]}
+{"id":"161","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I'm scared I'll fail math."]}
+{"id":"162","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I don't understand this lesson."]}
+{"id":"163","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["My head hurts so much."]}
+{"id":"164","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Damn, I can't find my phone!"]}
+{"id":"165","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I feel embarrassed about my answer."]}
+{"id":"166","language":"English","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["Please don't bother me right now."]}
+{"id":"167","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I feel like crying over my score."]}
+{"id":"168","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Holy shit, that thunder was loud!"]}
+{"id":"169","language":"English","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["I'm not comfortable with that joke."]}
+{"id":"170","language":"English","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["Can you please stop doing that?"]}
+{"id":"171","language":"English","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["I'm angry, but I don't want to fight."]}
+{"id":"172","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Sorry, I didn't mean to do that."]}
+{"id":"173","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I'm sorry I shouted at you."]}
+{"id":"174","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Wow, the bell scared me!"]}
+{"id":"175","language":"English","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["I don't want to talk right now."]}
+{"id":"176","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Damn, my notebook got wet!"]}
+{"id":"177","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I'm scared about tomorrow's report."]}
+{"id":"178","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["This internet keeps disconnecting!"]}
+{"id":"179","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I don't know how to start this."]}
+{"id":"180","language":"English","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["Hey, I'm serious, please stop."]}
+{"id":"181","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I'm stressed about all these activities."]}
+{"id":"182","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Shit, I submitted the wrong file!"]}
+{"id":"183","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["What happened today was so unfair."]}
+{"id":"184","language":"English","category":"other","source_category":"other","provisional_label":"reported_or_quoted_aggression","expected_alert":false,"utterances":["What they said really hurt me."]}
+{"id":"185","language":"English","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["Can I have some time alone?"]}
+{"id":"186","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I didn't like what happened earlier."]}
+{"id":"187","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Damn, the power went out!"]}
+{"id":"188","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Why does sir seem upset with us?"]}
+{"id":"189","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I'm worried about my final grades."]}
+{"id":"190","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I'm not ready for the performance."]}
+{"id":"191","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["That announcement really surprised me!"]}
+{"id":"192","language":"English","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["Please don't shout at me."]}
+{"id":"193","language":"English","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["I get upset when people take my things."]}
+{"id":"194","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Shit, I left my wallet at home!"]}
+{"id":"195","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I'm not angry, just disappointed."]}
+{"id":"196","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I feel sad because my friend is absent."]}
+{"id":"197","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Can someone please help me?"]}
+{"id":"198","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I'm frustrated because our plan failed."]}
+{"id":"199","language":"English","category":"other","source_category":"other","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["I don't want trouble, let's talk calmly."]}
+{"id":"200","language":"English","category":"other","source_category":"other","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Sorry, I misunderstood what you meant."]}
+{"id":"201","language":"English","category":"mixed","source_category":"mixed","provisional_label":"context_dependent","expected_alert":null,"utterances":["Hahaha, you're so stupid!"]}
+{"id":"202","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hahaha, you silly genius, nice job!"]}
+{"id":"203","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Damn, you're completely useless!"]}
+{"id":"204","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Damn, you're amazing, we won!"]}
+{"id":"205","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Bro, your work looks terrible!"]}
+{"id":"206","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Bro, your work looks incredible!"]}
+{"id":"207","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Get away from us, dumbass!"]}
+{"id":"208","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["You crazy genius, congratulations!"]}
+{"id":"209","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Don't join our group, you're embarrassing!"]}
+{"id":"210","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Sorry, our group is already full."]}
+{"id":"211","language":"English","category":"mixed","source_category":"mixed","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["You better watch out after school!"]}
+{"id":"212","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Watch out, the floor is slippery!"]}
+{"id":"213","language":"English","category":"mixed","source_category":"mixed","provisional_label":"context_dependent","expected_alert":null,"utterances":["You're such an idiot, hahaha!"]}
+{"id":"214","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["You're so funny, hahaha!"]}
+{"id":"215","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Shut up, nobody wants your ideas!"]}
+{"id":"216","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hey, that's actually a smart idea!"]}
+{"id":"217","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're annoying as hell!"]}
+{"id":"218","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["You're hilarious as hell!"]}
+{"id":"219","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["We don't want you in our group!"]}
+{"id":"220","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["We already have enough group members."]}
+{"id":"221","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Hahaha, look at his ugly face!"]}
+{"id":"222","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hahaha, look at his surprised face!"]}
+{"id":"223","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're worthless to this project!"]}
+{"id":"224","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["You made a great contribution!"]}
+{"id":"225","language":"English","category":"mixed","source_category":"mixed","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["I'll punch you if you keep talking!"]}
+{"id":"226","language":"English","category":"mixed","source_category":"mixed","provisional_label":"boundary_or_defensive","expected_alert":false,"utterances":["Hey, don't punch anyone, let's calm down."]}
+{"id":"227","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Fuck, you're so dumb!"]}
+{"id":"228","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Fuck, I don't know the answer!"]}
+{"id":"229","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're not our friend anymore!"]}
+{"id":"230","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["You're our friend, come join us!"]}
+{"id":"231","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Your outfit looks like garbage!"]}
+{"id":"232","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hey, your outfit looks awesome!"]}
+{"id":"233","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Why are you here, idiot?"]}
+{"id":"234","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["I'm terrible at math, can you teach me?"]}
+{"id":"235","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Hahaha, what a crybaby!"]}
+{"id":"236","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hey, are you crying? Are you okay?"]}
+{"id":"237","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Shut up, don't present your report!"]}
+{"id":"238","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Damn, your report was amazing!"]}
+{"id":"239","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["Nobody wants to hear you talk!"]}
+{"id":"240","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Hey, it's your turn, we're listening."]}
+{"id":"241","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["We're going to laugh at you in class!"]}
+{"id":"242","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["We're going to laugh at the comedy show!"]}
+{"id":"243","language":"English","category":"mixed","source_category":"mixed","provisional_label":"threat_or_intimidation","expected_alert":true,"utterances":["If you report me, you're dead!"]}
+{"id":"244","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["If something happens, report it to the teacher."]}
+{"id":"245","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["You're so arrogant, but you know nothing!"]}
+{"id":"246","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["You were really confident up there!"]}
+{"id":"247","language":"English","category":"mixed","source_category":"mixed","provisional_label":"potential_targeted_aggression","expected_alert":true,"utterances":["All your answers are wrong, idiot!"]}
+{"id":"248","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["A few answers are wrong; let's fix them."]}
+{"id":"249","language":"English","category":"mixed","source_category":"mixed","provisional_label":"context_dependent","expected_alert":null,"utterances":["Fuck off, don't come near me!"]}
+{"id":"250","language":"English","category":"mixed","source_category":"mixed","provisional_label":"clear_non_aggressive","expected_alert":false,"utterances":["Holy shit, that situation scared me!"]}

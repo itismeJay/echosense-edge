@@ -31,6 +31,9 @@ def _safe_record(record):
         "delivered_at": record.delivered_at,
         "last_error_type": record.last_error_type,
         "last_http_status": record.last_http_status,
+        # Written by the edge itself (status and backend reason), never transcript text.
+        "last_error": record.last_error,
+        "rejection_retry_count": record.rejection_retry_count,
     }
 
 

@@ -150,6 +150,9 @@ class MonitoredTerm:
     term: str
     language: str
     term_id: Optional[int] = None
+    # "global" (backend dictionary) or "school" (one school's own word). School
+    # words carry no term_id: the backend links them by text to the device's school.
+    source: str = "global"
 
     @property
     def match_type(self) -> str:
@@ -200,6 +203,48 @@ def replace_backend_terms(entries: Iterable[Mapping]) -> tuple[MonitoredTerm, ..
 
     parsed = parse_backend_terms(entries)
     global _BACKEND_TERMS
+    with _BACKEND_TERMS_LOCK:
+        _BACKEND_TERMS = parsed
+    return parsed
+
+
+def parse_config_terms(entries: Iterable[Mapping]) -> tuple[MonitoredTerm, ...]:
+    """Terms from /devices/me/config: global words (with term_id) and school words."""
+
+    parsed = []
+    seen = set()
+    for entry in entries or ():
+        if not isinstance(entry, Mapping):
+            continue
+        term = normalize_text(entry.get("text"))
+        source = "school" if entry.get("source") == "school" else "global"
+        term_id = entry.get("term_id")
+        if source == "school":
+            term_id = None
+        elif isinstance(term_id, bool) or not isinstance(term_id, int):
+            continue
+        key = (source, term_id) if term_id is not None else (source, term)
+        if not term or key in seen:
+            continue
+        parsed.append(
+            MonitoredTerm(
+                term=term,
+                language=normalize_language(entry.get("language"), backend=True),
+                term_id=term_id,
+                source=source,
+            )
+        )
+        seen.add(key)
+    return tuple(
+        sorted(parsed, key=lambda item: (-len(item.term.split()), item.term_id or 0, item.term))
+    )
+
+
+def set_backend_terms(terms: Sequence[MonitoredTerm]) -> tuple[MonitoredTerm, ...]:
+    """Atomically replace the synchronized terms with already-parsed ones."""
+
+    global _BACKEND_TERMS
+    parsed = tuple(terms)
     with _BACKEND_TERMS_LOCK:
         _BACKEND_TERMS = parsed
     return parsed
@@ -286,9 +331,9 @@ def build_matched_terms(
     seen = set()
     backend_texts = {item.term for item in backend_matches}
     for item in [*backend_matches, *local_matches]:
-        # Prefer the synchronized representation when it is the same term and
-        # language, because it carries the authoritative term ID.
-        if item.term_id is None and item.term in backend_texts:
+        # Prefer the synchronized representation when it is the same term,
+        # because it carries the term ID (or marks it as the school's word).
+        if item in local_matches and item.term in backend_texts:
             continue
         key = (
             ("id", item.term_id)
@@ -299,6 +344,72 @@ def build_matched_terms(
             continue
         evidence.append(item.evidence())
         seen.add(key)
+    return evidence
+
+
+_CORRECTION_PROVENANCE = frozenset({
+    "trusted_alias",
+    "explicit_mishearing",
+    "fuzzy_soundalike",
+    "fuzzy",
+    "unsupported_correction",
+})
+_PROVENANCE_RISK = {
+    "trusted_alias": 0,
+    "explicit_mishearing": 1,
+    "fuzzy_soundalike": 2,
+    "fuzzy": 2,
+    "unsupported_correction": 3,
+}
+
+
+def build_term_provenance(
+    original_text: object,
+    corrected_text: object,
+    detected_terms: Sequence[str],
+    corrections: Sequence[Mapping] = (),
+) -> list[dict]:
+    """Describe how each detected term reached the matching text.
+
+    ``match_type`` remains the backend dictionary's word/phrase shape. This
+    separate field answers the ASR question: whether Whisper emitted the term,
+    a safe spelling fold produced it, or a less certain correction produced it.
+    Unknown alignment is never promoted to an original exact match.
+    """
+
+    evidence = []
+    for source_term in detected_terms or ():
+        term = normalize_text(source_term)
+        if not term:
+            continue
+        if phrase_matches(term, original_text):
+            provenance = "original_exact"
+        else:
+            relevant = []
+            for correction in corrections or ():
+                if not isinstance(correction, Mapping):
+                    continue
+                corrected = normalize_text(correction.get("term"))
+                if not corrected or not (
+                    phrase_matches(term, corrected)
+                    or phrase_matches(corrected, term)
+                ):
+                    continue
+                value = str(correction.get("provenance") or "").strip().lower()
+                if value not in _CORRECTION_PROVENANCE:
+                    value = (
+                        "explicit_mishearing"
+                        if correction.get("kind") == "mishearing"
+                        else "fuzzy_soundalike"
+                    )
+                relevant.append(value)
+            if relevant:
+                provenance = max(relevant, key=_PROVENANCE_RISK.__getitem__)
+            elif phrase_matches(term, corrected_text):
+                provenance = "unsupported_correction"
+            else:
+                provenance = "unsupported_correction"
+        evidence.append({"term": term, "provenance": provenance})
     return evidence
 
 
@@ -343,10 +454,26 @@ def classify_transcript_language(
 
 
 def sync_backend_dictionary(session=requests, timeout: float = 10.0) -> bool:
-    """Fetch current monitored terms.  Failures leave the last good copy active."""
+    """Fetch current monitored terms.  Failures leave the last good copy active.
+
+    Sends the device credentials: the backend requires them for dictionary sync.
+    """
+
+    from sender.http_client import device_auth_headers
 
     try:
-        response = session.get(f"{API_URL}/dictionary/", timeout=timeout)
+        response = session.get(
+            f"{API_URL}/dictionary/",
+            headers=device_auth_headers(),
+            timeout=timeout,
+        )
+        status = getattr(response, "status_code", None)
+        if status in (401, 403):
+            print(
+                f"[DICTIONARY] ERROR sync refused ({status}): check ECHOSENSE_DEVICE_ID and "
+                "ECHOSENSE_DEVICE_KEY in edge.env; using current terms"
+            )
+            return False
         response.raise_for_status()
         entries = response.json()
         if not isinstance(entries, list):
@@ -357,6 +484,33 @@ def sync_backend_dictionary(session=requests, timeout: float = 10.0) -> bool:
     except Exception as exc:
         print(f"[DICTIONARY] Sync unavailable ({type(exc).__name__}); using current terms")
         return False
+
+
+def attach_backend_term_ids(payload: Mapping) -> dict:
+    """Fill in term_ids for matched terms the synchronized dictionary now knows.
+
+    Used when the backend rejected an alert: after a dictionary re-sync, a term that was
+    local-only may have a backend id. The term text is unchanged; only term_id (and the
+    dictionary's language, which older backends check) is added. Returns a new payload.
+    """
+
+    by_text = {}
+    for item in get_backend_terms():
+        if item.term_id is not None:
+            by_text.setdefault(item.term, item)
+    refreshed = dict(payload)
+    terms = []
+    for matched in payload.get("matched_terms") or ():
+        matched = dict(matched)
+        if matched.get("term_id") is None:
+            known = by_text.get(normalize_text(matched.get("term") or ""))
+            if known is not None:
+                matched["term_id"] = known.term_id
+                if known.language in {"fil", "ceb", "en"}:
+                    matched["language"] = known.language
+        terms.append(matched)
+    refreshed["matched_terms"] = terms
+    return refreshed
 
 
 def start_dictionary_sync(interval: float = 300.0) -> threading.Thread:

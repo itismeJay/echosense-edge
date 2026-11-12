@@ -25,3 +25,15 @@ seeed-voicecard/
 
 # RealtimeSTT runtime log
 realtimesst.log
+
+# Machine-specific settings (device key) and local virtualenv
+edge.env
+venv/
+logs/
+models/
+
+# QR setup: box identity, the key it receives at activation, and printed labels
+# (setup codes). All secret; never commit.
+data/identity.json
+data/device_credentials.json
+labels/

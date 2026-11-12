@@ -32,11 +32,7 @@ def _stt_result(text, event):
         whisper_language_confidence=0.91,
         audio_event=event,
     )
-    with whisper_stt._result_lock:
-        result = whisper_stt._latest_result
-        whisper_stt._latest_result = None
-    whisper_stt._new_result_event.clear()
-    return result
+    return whisper_stt.consume_transcription_result()
 
 
 def _alert_for(result):

@@ -10,6 +10,8 @@ from dataclasses import dataclass
 import re
 from typing import Iterable
 
+from detection.lexicon import LEXICON, SELF_HARM as _LEX_SELF_HARM, THREAT as _LEX_THREAT
+
 
 LOW = "LOW"
 MEDIUM = "MEDIUM"
@@ -22,6 +24,9 @@ SEVERITY_ORDER = {LOW: 0, MEDIUM: 1, HIGH: 2}
 SEVERITY_HIGH_DURATION = 7.0
 SEVERITY_MEDIUM_DURATION = 4.0
 
+# A target word (ka/mo/you...) counts only this many words from the insult.
+TARGET_WINDOW_TOKENS = 3
+
 
 # Observable phrase categories. These are exact normalized monitored terms,
 # never statements about the speaker's intent.
@@ -29,8 +34,9 @@ SELF_HARM_DIRECTIVES = frozenset({
     "kill yourself",
     "go kill yourself",
     "go die",
+    "magpakamatay ka",
     "patay ka na sana",
-})
+}) | LEXICON.texts(_LEX_SELF_HARM)
 
 THREAT_LIKE_PHRASES = frozenset({
     "kill you",
@@ -44,14 +50,40 @@ THREAT_LIKE_PHRASES = frozenset({
     "bungoan tika",
     "suntukan ta",
     "sampalan tika",
-})
+    "bunalan tika",
+    "bunalan ka nako",
+    "sumbagon tika",
+    "patyon taka",
+    "tadyakan tika",
+    "tadyakan taka",
+    "sagpaon tika",
+    "sagpaon taka",
+    "kulatahon tika",
+    "sumbagon taka",
+    "sumbagon ka nako",
+    "bunalan taka",
+    "sipaon tika",
+    "sipaon taka",
+    "hulata ko sa gawas",
+    # Pressure not to report bullying: treated as a threat signal.
+    "ayaw pagsumbong",
+    "lagot ka", "lagot ka sa akin", "lagot ka sa'kin", "lagot ka sa kin",
+    "bubugbugin kita", "bubugbugin ka", "bugbugin kita",
+    "ayaw mong masaktan", "gusto mong masaktan", "gusto mo bang masaktan",
+    "gusto mong masuntok", "gusto mo bang masuntok",
+    "gusto mong masampal", "gusto mo bang masampal",
+    "beat you up", "i'll hurt you", "i ll hurt you", "i'll hit you", "i ll hit you",
+    "you're dead", "you re dead",
+}) | LEXICON.texts(_LEX_THREAT)
 
 SEVERE_DIRECT_HARASSMENT_TERMS = frozenset({
     "yawa",
     "giatay",
+    "giatay ka",
+    "yawaa",
+    "bayot ka",
     "bilat",
     "kayat",
-    "iyot",
     "putangina",
     "putang ina",
     "tang ina",
@@ -68,7 +100,6 @@ SEVERE_DIRECT_HARASSMENT_TERMS = frozenset({
     "agta",
     "negra",
     "negro",
-    "bungi",
     "kulisap ang buhok",
     "mukha kang unggoy",
 })
@@ -80,6 +111,19 @@ MEDIUM_DIRECT_HARASSMENT_TERMS = frozenset({
     "buang",
     "buang ka",
     "buang kaayo",
+    "amaw",
+    "amaw ka",
+    "amawa",
+    "buanga",
+    "bogoa",
+    "animala",
+    "ulaga",
+    "ulaga ka",
+    "buwang",
+    "walay utok",
+    "hinay ug utok",
+    "mananap ka",
+    "pisti ka",
     "gago",
     "gaga",
     "bobo",
@@ -133,6 +177,78 @@ LOW_RISK_MONITORED_TERMS = frozenset({
     "malaking tenga",
 })
 
+# Vulgar insults that are bullying even when not aimed with ka/mo or shouted.
+# They are at least MEDIUM; negated or self-directed use is still held LOW.
+MEDIUM_FLOOR_TERMS = frozenset({
+    "bahog baba",
+    "baho og baba",
+    "baho ug baba",
+    "baho imong baba",
+    "baho kaayo imong baba",
+    "ka baho sa imong baba",
+})
+
+# Soft, descriptive words ("ugly", "too short", "fat") that are everyday
+# speech about things and people. An incident made only of these is sent
+# only when aimed at someone (ka/mo/ikaw/you...) or said in a time-linked
+# aggressive tone; see detection/fusion.py. Hard insults, slurs, threats and
+# self-harm terms are never in this set.
+DESCRIPTIVE_TERMS = frozenset(LOW_RISK_MONITORED_TERMS | {
+    "pangid",
+    "panget",
+    "baduy",
+    "jologs",
+    "too short",
+    "short",
+    "small",
+    "tall",
+    "thin",
+    "skinny",
+    "chubby",
+    "dark",
+    "taba",
+    "mataba",
+    "itim",
+    "liit",
+    "gamay",
+    "taas",
+    "kalansay",
+    "duling",
+    "kulot",
+    "hugaw",
+    "dugyot",
+    # Grade 6 Bisaya body/poverty words: everyday as descriptions ("itom
+    # nga lapis", "tambok nga manok", "adobong baboy"), bullying when aimed.
+    "tambok",
+    "itom",
+    "pandak",
+    "niwang",
+    "pangit",
+    "baho",
+    "buktot",
+    "bungi",
+    "pobre",
+    "kutohon",
+    "baboy",
+    "leche",
+    # Everyday phrases ("walay kwarta ko", "ayaw ug duol sa kalayo",
+    # "layo diri ang balay"): exclusion only when aimed or shouted.
+    "walay kwarta",
+    "layo diri",
+    "ayaw ug duol",
+    "dakog tiyan",
+    "dako og tiyan",
+    # Everyday nouns that insult only when aimed: charcoal, lice, a big nose
+    # ("itom ang uling", "tambal sa kuto", "dakog ilong ang elepante").
+    "uling",
+    "kuto",
+    "dakog ilong",
+    "palayo diri",
+    "weird",
+    "slow",
+    "lazy",
+})
+
 HIGH_SEVERITY_TERMS = frozenset(
     SELF_HARM_DIRECTIVES
     | THREAT_LIKE_PHRASES
@@ -143,15 +259,58 @@ LOW_SEVERITY_TERMS = LOW_RISK_MONITORED_TERMS
 
 _DIRECT_TARGET_TOKENS = frozenset({
     "ka",
+    "kaw",
     "mo",
     "ikaw",
     "imo",
     "imong",
     "nimo",
+    # Bisaya "you" forms, plural and joined with "ug" (kag = ka ug):
+    # "mura kag baboy", "tamboka ninyo", "dakoa nimog tiyan".
+    "nimong",
+    "kamo",
+    "ninyo",
+    "niyo",
+    "ninyong",
+    "inyo",
+    "inyong",
+    "kag",
+    "mog",
+    "nimog",
+    "ninyog",
     "you",
     "your",
     "you're",
+    "youre",
+    "ur",
+    "u",
     "classmate",
+})
+
+# Context rules that keep mild/medium terms at LOW. They never apply to
+# threat-like, self-harm, or severe terms.
+_SELF_DIRECTED_TOKENS = frozenset({
+    "ko", "ako", "akoa", "nako", "i'm", "im", "me", "myself",
+})
+_SELF_DIRECTED_SEQUENCES = (("i", "am"),)
+_NEGATION_TOKENS = frozenset({
+    "huwag", "wag", "ayaw", "don't", "dont", "bawal",
+})
+_NEGATION_SEQUENCES = (
+    ("do", "not"),
+    ("hindi", "dapat"),
+    ("stop", "saying"),
+)
+_OBJECT_ARTICLES = frozenset({"yung", "ang", "ning", "kining", "kanang", "the"})
+# Things, not people. Deliberately an allowlist: an unknown noun (possibly a
+# classmate's name) is never treated as an object.
+_OBJECT_NOUNS = frozenset({
+    "game", "games", "question", "questions", "test", "tests", "thing",
+    "things", "quiz", "exam", "homework", "assignment", "project", "lesson",
+    "movie", "show", "song", "video", "joke", "rule", "rules", "idea",
+    "phone", "computer", "app", "wifi", "internet", "signal", "book",
+    "laro", "tanong", "pagsusulit", "sagot", "aralin", "takdang",
+    "dula", "pangutana", "libro", "kanta",
 })
 _WORD_PATTERN = re.compile(r"[^\W_]+(?:'[^\W_]+)?", re.UNICODE)
 
@@ -194,20 +353,120 @@ def _normalize_term(value: object) -> str:
     return " ".join(str(value or "").strip().lower().split())
 
 
-def has_direct_target_evidence(transcript: object) -> bool:
-    tokens = {
+_YOUR_FORMS = frozenset({"imong", "imo", "nimo", "inyong", "inyo", "ninyo", "niyo"})
+
+
+def _target_tokens(tokens) -> set:
+    """Target words, except the exclamative "ka" in "ka itom sa langit"
+    (how dark the sky): "ka ADJ sa/ang X" where X is not "your"."""
+
+    tokens = list(tokens)
+    found = set()
+    for index, token in enumerate(tokens):
+        if token not in _DIRECT_TARGET_TOKENS:
+            continue
+        if (
+            token == "ka"
+            and index + 2 < len(tokens)
+            and tokens[index + 2] in ("sa", "ang")
+            and (index + 3 >= len(tokens) or tokens[index + 3] not in _YOUR_FORMS)
+        ):
+            continue
+        found.add(token)
+    return found
+
+
+def has_direct_target_evidence(transcript: object, terms: Iterable[object] = ()) -> bool:
+    """Target wording (ka/mo/you...) aimed at a monitored term.
+
+    With ``terms``, the target word must sit within ``TARGET_WINDOW_TOKENS``
+    of a term occurrence: "bogo ka" is aimed, but in "si Bogo ... diho
+    igasulti nimo" the "nimo" ten words later is not. If no term can be
+    located in the text, the whole utterance counts (legacy behaviour).
+    """
+
+    tokens = tuple(
         token.lower()
         for token in _WORD_PATTERN.findall(str(transcript or "").lower())
-    }
-    return bool(tokens & _DIRECT_TARGET_TOKENS)
+    )
+    spans = []
+    for term in (_normalize_term(item) for item in terms or ()):
+        term_tokens = tuple(_tokens(term)) if term else ()
+        if term_tokens:
+            spans.extend(
+                (index, index + len(term_tokens))
+                for index in _sequence_positions(tokens, term_tokens)
+            )
+    if not spans:
+        return bool(_target_tokens(tokens))
+    for start, end in spans:
+        window = tokens[max(0, start - TARGET_WINDOW_TOKENS):end + TARGET_WINDOW_TOKENS]
+        if _target_tokens(window):
+            return True
+    return False
 
 
-def _promote(level: str) -> str:
-    if level == LOW:
-        return MEDIUM
-    if level == MEDIUM:
-        return HIGH
-    return HIGH
+def _tokens(text: object) -> tuple[str, ...]:
+    normalized = str(text or "").lower().replace("\u2019", "'")
+    return tuple(_WORD_PATTERN.findall(normalized))
+
+
+def _sequence_positions(tokens, sequence):
+    length = len(sequence)
+    return [
+        index
+        for index in range(len(tokens) - length + 1)
+        if tokens[index:index + length] == sequence
+    ]
+
+
+def _term_positions(tokens, terms):
+    positions = []
+    for term in terms:
+        positions.extend(_sequence_positions(tokens, tuple(_tokens(term))))
+    return sorted(positions)
+
+
+def _max_term_occurrences(tokens, terms) -> int:
+    return max(
+        (len(_sequence_positions(tokens, tuple(_tokens(term)))) for term in terms),
+        default=0,
+    )
+
+
+def _context_downgrade(tokens, terms) -> str | None:
+    """Explain why mild/medium terms are not directed at a person, if so."""
+
+    positions = _term_positions(tokens, terms)
+    if not positions:
+        return None
+    first = positions[0]
+    if any(token in _NEGATION_TOKENS for token in tokens[:first]) or any(
+        index < first
+        for sequence in _NEGATION_SEQUENCES
+        for index in _sequence_positions(tokens, sequence)
+    ):
+        return "negated_or_instructional"
+    if _target_tokens(tokens):
+        return None
+    if set(tokens) & _SELF_DIRECTED_TOKENS or any(
+        _sequence_positions(tokens, sequence)
+        for sequence in _SELF_DIRECTED_SEQUENCES
+    ):
+        return "self_directed"
+    for term in terms:
+        term_tokens = tuple(_tokens(term))
+        for index in _sequence_positions(tokens, term_tokens):
+            after = tokens[index + len(term_tokens):index + len(term_tokens) + 2]
+            if after[:1] and after[0] in _OBJECT_NOUNS:
+                return "about_object"
+            if (
+                len(after) == 2
+                and after[0] in _OBJECT_ARTICLES
+                and after[1] in _OBJECT_NOUNS
+            ):
+                return "about_object"
+    return None
 
 
 @dataclass(frozen=True, slots=True)
@@ -216,6 +475,10 @@ class SeverityDecision:
     reasons: tuple[str, ...]
     term_categories: dict[str, tuple[str, ...]]
     supporting_evidence: tuple[str, ...]
+    context_downgrade: str | None = None
+    # One plain-language line for teachers, e.g. "Insult aimed at someone,
+    # said angrily (shouting detected)".
+    summary: str = ""
 
     def evidence(self) -> dict:
         return {
@@ -229,6 +492,26 @@ class SeverityDecision:
         }
 
 
+def is_targeted(monitored_terms: Iterable[object], transcript: object) -> bool:
+    """Direct-target wording (ka/mo/ikaw/you...) not negated/self/object."""
+
+    terms = [
+        term
+        for term in (_normalize_term(item) for item in monitored_terms or ())
+        if term
+    ]
+    if not terms or not has_direct_target_evidence(transcript, terms):
+        return False
+    return _context_downgrade(_tokens(transcript), terms) is None
+
+
+_CONTEXT_SUMMARY = {
+    "self_directed": "Word said about oneself, not aimed at anyone",
+    "negated_or_instructional": "Word negated or quoted, not aimed at anyone",
+    "about_object": "Word about a thing, not a person",
+}
+
+
 def calculate_severity(
     monitored_terms: Iterable[object],
     *,
@@ -237,8 +520,27 @@ def calculate_severity(
     repeated: bool = False,
     acoustic_aggressive: bool = False,
     laughter_present: bool = False,
+    strong_acoustic: bool = False,
+    angry_tone: bool = False,
+    angry_cues: Iterable[str] = (),
 ) -> SeverityDecision:
-    """Calculate severity from observable text, duration, and acoustic evidence."""
+    """Severity policy: no monitored word, no alert. Tone alone never alerts.
+
+    threat/self-harm term                     HIGH always
+    self-directed / negated / about a thing   LOW
+    targeted insult + angry tone              HIGH
+    targeted insult repeated                  HIGH
+    targeted insult (+ laughter = mocking)    MEDIUM
+    untargeted word + angry tone              MEDIUM
+    vulgar insult                             MEDIUM floor
+    bare term, not targeted                   LOW
+
+    ``angry_tone`` comes from detection/tone_vote.py (speech emotion = angry
+    AND a shout/loudness cue). Loudness alone is never aggression:
+    ``acoustic_aggressive`` and ``strong_acoustic`` (loud/YAMNet-only window
+    flags) are accepted for legacy callers and only recorded as observations.
+    ``duration`` is accepted for legacy callers and ignored.
+    """
 
     terms = tuple(dict.fromkeys(
         term
@@ -261,6 +563,9 @@ def calculate_severity(
         "low_risk_monitored_term": tuple(
             term for term in terms if term in LOW_RISK_MONITORED_TERMS
         ),
+        "vulgar_insult": tuple(
+            term for term in terms if term in MEDIUM_FLOOR_TERMS
+        ),
     }
     categories = {
         category: matched
@@ -268,72 +573,109 @@ def calculate_severity(
         if matched
     }
 
-    reasons: list[str] = []
-    supporting: list[str] = []
-    if any(
-        category in categories
-        for category in (
-            "self_harm_directive",
-            "threat_like_phrase",
-            "severe_direct_harassment",
-        )
-    ):
-        level = HIGH
-        reasons.extend(
-            f"term_category:{category}"
-            for category in (
-                "self_harm_directive",
-                "threat_like_phrase",
-                "severe_direct_harassment",
-            )
-            if category in categories
-        )
-    elif "direct_harassment" in categories:
-        level = MEDIUM
-        reasons.append("term_category:direct_harassment")
-    else:
-        level = LOW
-        reasons.append(
-            "term_category:low_risk_or_uncategorized"
-            if terms
-            else "no_monitored_term"
+    def decision(level, reasons, supporting, summary, context=None):
+        return SeverityDecision(
+            level=level,
+            reasons=tuple(dict.fromkeys(reasons)),
+            term_categories=categories,
+            supporting_evidence=tuple(dict.fromkeys(supporting)),
+            context_downgrade=context,
+            summary=summary,
         )
 
-    direct_target = has_direct_target_evidence(transcript)
+    if not terms:
+        return decision(LOW, ["no_monitored_term"], [], "No monitored word")
+
+    cues = ", ".join(dict.fromkeys(str(cue) for cue in angry_cues or () if cue))
+    angrily = f"said angrily ({cues})" if cues else "said angrily"
+    reasons = [f"term_category:{category}" for category in categories]
+    if not categories:
+        reasons.append("term_category:uncategorized_monitored_term")
+    supporting: list[str] = []
+    tokens = _tokens(transcript)
+    if _max_term_occurrences(tokens, terms) >= 2:
+        repeated = True
+        supporting.append("repeated_within_utterance")
+    direct_target = has_direct_target_evidence(transcript, terms)
     if direct_target:
         supporting.append("direct_target_pattern")
-        if terms and level == LOW:
-            level = MEDIUM
-            reasons.append("promoted_by:direct_target_pattern")
-
     if repeated:
         supporting.append("repeated_monitored_evidence")
-        promoted = _promote(level)
-        if promoted != level:
-            level = promoted
-            reasons.append("promoted_by:repetition")
-
-    if acoustic_aggressive:
-        supporting.append("aggressive_acoustic_evidence")
-        if terms and level == LOW:
-            level = MEDIUM
-            reasons.append("promoted_by:acoustic_evidence")
-
-    duration_level = severity_from_duration(float(duration or 0.0))
-    if SEVERITY_ORDER[duration_level] > SEVERITY_ORDER[level]:
-        level = duration_level
-        reasons.append(f"duration_floor:{duration_level}")
-
+    if angry_tone:
+        supporting.append("angry_tone")
+    if acoustic_aggressive or strong_acoustic:
+        supporting.append("loudness_observed_not_used")
     if laughter_present:
-        # Laughter is context metadata, never evidence that cancels a HIGH term.
         supporting.append("laughter_or_excitement_marker_present")
 
-    return SeverityDecision(
-        level=level,
-        reasons=tuple(dict.fromkeys(reasons)),
-        term_categories=categories,
-        supporting_evidence=tuple(dict.fromkeys(supporting)),
+    if "self_harm_directive" in categories or "threat_like_phrase" in categories:
+        reasons.append("high:threat_or_self_harm_term")
+        return decision(HIGH, reasons, supporting, "Threat or self-harm words")
+
+    context = _context_downgrade(tokens, terms)
+    if context:
+        reasons.append(f"held_low:{context}")
+        if angry_tone:
+            reasons.append(f"tone_ignored:{context}")
+        return decision(
+            LOW, reasons, supporting,
+            _CONTEXT_SUMMARY.get(context, "Word not aimed at anyone"), context,
+        )
+
+    vulgar_floor = "vulgar_insult" in categories
+    if direct_target and angry_tone:
+        reasons.append("promoted_by:targeted_insult_angry_tone")
+        return decision(HIGH, reasons, supporting, f"Insult aimed at someone, {angrily}")
+    if direct_target and repeated:
+        reasons.append("promoted_by:targeted_repetition")
+        return decision(HIGH, reasons, supporting, "Insult aimed at someone, repeated")
+    if direct_target:
+        reasons.append("promoted_by:direct_target_pattern")
+        if laughter_present:
+            reasons.append("mocking_with_laughter")
+            return decision(
+                MEDIUM, reasons, supporting,
+                "Insult aimed at someone, mocking with laughter",
+            )
+        return decision(MEDIUM, reasons, supporting, "Insult aimed at someone")
+    if angry_tone:
+        reasons.append("promoted_by:angry_tone")
+        return decision(
+            MEDIUM, reasons, supporting, f"Insult {angrily}, not aimed at anyone",
+        )
+    if vulgar_floor:
+        reasons.append("medium_floor:vulgar_insult")
+        return decision(MEDIUM, reasons, supporting, "Vulgar insult")
+    if laughter_present:
+        reasons.append("held_low:untargeted_with_laughter")
+    reasons.append("held_low:no_aggression")
+    return decision(LOW, reasons, supporting, "Monitored word, not aimed at anyone")
+
+
+# Intensifiers that keep a descriptive phrase descriptive ("pangit kaayo",
+# "too short", "so ugly"). Target words (ka/mo/you) are deliberately absent.
+_INTENSIFIERS = frozenset({
+    "kaayo", "kayo", "kaau", "kau", "jud", "gyud", "pud", "sad", "na",
+    "so", "very", "too", "really", "super", "ang", "ng", "napaka", "masyado",
+})
+
+
+def _is_descriptive_term(term: str) -> bool:
+    if term in DESCRIPTIVE_TERMS:
+        return True
+    tokens = term.split()
+    return (
+        any(token in DESCRIPTIVE_TERMS for token in tokens)
+        and all(token in DESCRIPTIVE_TERMS or token in _INTENSIFIERS for token in tokens)
     )
+
+
+def is_descriptive_only(monitored_terms: Iterable[object]) -> bool:
+    """True when every term is a soft descriptive word (see DESCRIPTIVE_TERMS),
+    optionally with an intensifier ("pangit kaayo", "too short")."""
+
+    terms = {_normalize_term(term) for term in monitored_terms or ()} - {""}
+    return bool(terms) and all(_is_descriptive_term(term) for term in terms)
 
 
 def contains_high_severity_term(monitored_terms: Iterable[object]) -> bool:

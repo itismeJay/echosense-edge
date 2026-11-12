@@ -21,6 +21,9 @@ Each decision exposes:
 
 Alert logs emit these fields without printing the complete transcript. Exact
 transcript text remains unchanged in the existing transcript and alert fields.
+Dictionary `match_type` continues to mean word/phrase shape. Separate internal
+provenance records whether evidence was original ASR text, a trusted spelling
+alias, an explicit curated mishearing, or a fuzzy/unsupported correction.
 
 ## Compatibility
 
@@ -37,4 +40,7 @@ only while building the outgoing payload. No other layer should convert labels.
 - Laughter may coexist with serious language; it is retained as context rather
   than treated as proof that the phrase was harmless.
 - Controlled rules cannot cover every classroom expression or language variant.
+- A first fuzzy-only correction cannot open an incident. The short ambiguous
+  term `iyot` must be exact ASR text and needs targeting, repetition, or
+  time-linked aggressive acoustic evidence before delivery.
 - Human review is required for every alert.

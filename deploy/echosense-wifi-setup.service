@@ -1,0 +1,37 @@
+[Unit]
+Description=EchoSense local Wi-Fi recovery and setup portal
+Wants=NetworkManager.service
+After=NetworkManager.service
+
+[Service]
+# /home/echosense/echosense-edge is the default checkout; install with
+# deploy/install-wifi-setup.sh <EDGE_DIR> to use another location.
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/home/echosense/echosense-edge
+EnvironmentFile=-/etc/echosense/wifi-setup.env
+Environment=ECHOSENSE_WIFI_SETUP_CREDENTIALS=/etc/echosense/wifi-setup.json
+Environment=ECHOSENSE_WIFI_RUNTIME_DIRECTORY=/run/echosense-wifi
+ExecStart=/home/echosense/echosense-edge/echosense-env/bin/python3 -m provisioning.wifi_setup service
+Restart=on-failure
+RestartPreventExitStatus=2
+RestartSec=10
+RuntimeDirectory=echosense-wifi
+RuntimeDirectoryMode=0700
+
+# The portal handles hostile local input while NetworkManager retains ownership
+# of system connection profiles. These restrictions do not grant shell access.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

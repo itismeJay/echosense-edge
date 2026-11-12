@@ -100,6 +100,8 @@ class OutboxRecord:
     last_error_type: str | None
     last_http_status: int | None
     lease_expires_at: str | None
+    # How many times a backend rejection (4xx) was retried after a dictionary re-sync.
+    rejection_retry_count: int = 0
 
 
 def utc_now() -> datetime:
@@ -172,6 +174,7 @@ class AlertOutbox:
         "last_error_type": "TEXT",
         "last_http_status": "INTEGER",
         "lease_expires_at": "TEXT",
+        "rejection_retry_count": "INTEGER NOT NULL DEFAULT 0",
     }
 
     def __init__(
@@ -554,6 +557,74 @@ class AlertOutbox:
             },
         )
 
+    def mark_rejected_for_resync(
+        self,
+        record_id: int,
+        *,
+        next_attempt_at,
+        error_type,
+        error,
+        http_status=None,
+        payload=None,
+        now=None,
+    ) -> bool:
+        """Return a rejected record to retryable once, optionally with a refreshed payload.
+
+        The payload may only change its evidence (for example term_ids filled in after a
+        dictionary re-sync); it must keep the same event_id and pass schema-v2 validation.
+        """
+
+        timestamp = utc_timestamp(now or self._clock())
+        payload_json = None
+        if payload is not None:
+            event_id, payload_json = self._serialize_payload(payload)
+        with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            try:
+                if payload_json is not None:
+                    row = connection.execute(
+                        "SELECT event_id FROM alert_outbox WHERE id = ?",
+                        (record_id,),
+                    ).fetchone()
+                    if row is None or str(row["event_id"]) != event_id:
+                        raise OutboxSerializationError("refreshed payload event_id mismatch")
+                cursor = connection.execute(
+                    """
+                    UPDATE alert_outbox
+                    SET status = ?,
+                        next_attempt_at = ?,
+                        updated_at = ?,
+                        last_error = ?,
+                        last_error_type = ?,
+                        last_http_status = ?,
+                        lease_expires_at = NULL,
+                        rejection_retry_count = rejection_retry_count + 1,
+                        payload_json = COALESCE(?, payload_json)
+                    WHERE id = ? AND status = ?
+                    """,
+                    (
+                        FAILED_RETRYABLE,
+                        utc_timestamp(next_attempt_at),
+                        timestamp,
+                        _safe_error(error),
+                        _safe_error(error_type, maximum=80),
+                        http_status,
+                        payload_json,
+                        record_id,
+                        SENDING,
+                    ),
+                )
+                self._set_meta(
+                    connection,
+                    "last_delivery_error_type",
+                    _safe_error(error_type, maximum=80),
+                )
+                connection.execute("COMMIT")
+            except Exception:
+                connection.execute("ROLLBACK")
+                raise
+        return cursor.rowcount == 1
+
     def _update_sending(
         self,
         record_id,
@@ -621,7 +692,8 @@ class AlertOutbox:
                         updated_at = ?,
                         lease_expires_at = NULL,
                         last_error = ?,
-                        last_error_type = ?
+                        last_error_type = ?,
+                        rejection_retry_count = 0
                     WHERE event_id = ? AND status = ?
                     """,
                     (
@@ -832,6 +904,10 @@ class AlertOutbox:
             last_error_type=row["last_error_type"],
             last_http_status=row["last_http_status"],
             lease_expires_at=row["lease_expires_at"],
+            rejection_retry_count=int(
+                (row["rejection_retry_count"] if "rejection_retry_count" in row.keys() else 0)
+                or 0
+            ),
         )
 
     def close(self) -> None:

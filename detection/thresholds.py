@@ -66,6 +66,9 @@ QUIET_BASE_CONFIDENCE    = 0.60  # confidence floor for a quiet-track alert (no 
 
 # --- Prosodic tone thresholds (EMEET OfficeCore M0 Plus) --------------------
 TONE_RMS_THRESHOLD      = 100    # Grade 6: lowered to 100 — catch the quietest classroom voices after EMEET AGC
+# Absolute floor for the adaptive tone gate (AcousticDetector). Normal speech
+# in a quiet room reaches ~150-300 RMS, so floor*2.5 alone is not enough.
+TONE_MIN_ABSOLUTE_RMS   = 400
 
 # --- Appearance / body "direct" single-utterance gate -----------------------
 # Appearance insults (baboy, tambok, taba, pango, itom, uling, pandak, bungi…)

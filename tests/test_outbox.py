@@ -499,7 +499,11 @@ class OutboxWorkerTests(OutboxTestCase):
         self.clock.advance(1000)
         worker.run_once()
 
-        self.assertEqual(calls, [DEFAULT_EVENT_ID])
+        # One immediate retry after a dictionary re-sync, then never again.
+        self.assertEqual(calls, [DEFAULT_EVENT_ID, DEFAULT_EVENT_ID])
+        self.assertEqual(
+            self.outbox.get_record(DEFAULT_EVENT_ID).status, FAILED_PERMANENT
+        )
 
     def test_retryable_record_is_retried_after_next_attempt_at(self):
         results = [

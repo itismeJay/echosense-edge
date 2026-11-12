@@ -1,22 +1,20 @@
-import atexit
-import subprocess
+import getpass
+import os
 import signal
+import subprocess
 import sys
-import time
 import threading
+import time
 
-from model.whisper_stt import get_recorder, transcribe_and_check
-from detection.aggression import AggressionDetector
 from sender.http_client import (
     send_alert,
-    check_backend_connection,
-    start_heartbeat,
 )
-from sender.delivery import start_alert_delivery, stop_alert_delivery
-from model.yamnet_infer import load_yamnet, load_class_names
-from model.monitored_terms import start_dictionary_sync
-from audio.led_indicator import LEDIndicator
-from config import SHOW_TRANSCRIPT_TEXT
+from config import (
+    DEVICE_HOSTNAME,
+    NETWORK_INTERFACE,
+    PLATFORM,
+    SHOW_TRANSCRIPT_TEXT,
+)
 
 
 def should_ship_runtime_log(line):
@@ -25,26 +23,29 @@ def should_ship_runtime_log(line):
     return not str(line or "").startswith("[TRANSCRIPT]")
 
 
+def _run(args):
+    return subprocess.run(args, capture_output=True, text=True).stdout.strip()
+
+
 def get_ip():
-    """Current global IPv4 on wlan0. On a phone hotspot the Pi gets its address
-    by DHCP from the phone, so this is the address the MacBook must SSH to when
-    raspberrypi.local fails (hotspots often block mDNS). Falls back to the first
-    non-IPv6 token from `hostname -I`."""
+    """Current IPv4 on NETWORK_INTERFACE (wlan0 on the Pi, en0 on a Mac). On a
+    phone hotspot the Pi gets its address by DHCP from the phone, so this is
+    the address the MacBook must SSH to when mDNS fails (hotspots often block
+    it). Falls back to the first IPv4 token from `hostname -I` on Linux."""
+    if PLATFORM == "macos":
+        try:
+            return _run(['ipconfig', 'getifaddr', NETWORK_INTERFACE]) or "unknown"
+        except Exception:
+            return "unknown"
     try:
-        out = subprocess.run(
-            ['ip', '-4', '-o', 'addr', 'show', 'wlan0'],
-            capture_output=True, text=True
-        ).stdout
+        out = _run(['ip', '-4', '-o', 'addr', 'show', NETWORK_INTERFACE])
         for part in out.split():
             if '/' in part and part.count('.') == 3:   # e.g. 10.151.131.42/24
                 return part.split('/')[0]
     except Exception:
         pass
     try:
-        ips = subprocess.run(
-            ['hostname', '-I'], capture_output=True, text=True
-        ).stdout.strip().split()
-        for ip in ips:
+        for ip in _run(['hostname', '-I']).split():
             if ip.count('.') == 3:                      # skip IPv6 tokens
                 return ip
     except Exception:
@@ -54,21 +55,55 @@ def get_ip():
 
 def get_mac():
     try:
-        with open('/sys/class/net/wlan0/address') as f:
+        if PLATFORM == "macos":
+            out = _run(['ifconfig', NETWORK_INTERFACE])
+            return out.split('ether ', 1)[1].split()[0] if 'ether ' in out else "unknown"
+        with open(f'/sys/class/net/{NETWORK_INTERFACE}/address') as f:
             return f.read().strip()
     except Exception:
         return "unknown"
 
 
 def get_ssid():
+    # macOS hides the SSID from command-line tools without location access.
+    if PLATFORM == "macos":
+        return "unknown"
     try:
-        result = subprocess.run(
-            ['iwgetid', '-r'],
-            capture_output=True, text=True
-        )
-        return result.stdout.strip() or "unknown"
+        output = _run([
+            'nmcli', '-t', '--escape', 'no', '-f', 'IN-USE,SSID',
+            'device', 'wifi', 'list', 'ifname', NETWORK_INTERFACE,
+            '--rescan', 'no',
+        ])
+        for line in output.splitlines():
+            in_use, separator, ssid = line.partition(':')
+            if separator and in_use == '*' and ssid:
+                return ssid
+    except Exception:
+        pass
+    try:
+        return _run(['iwgetid', '-r']) or "unknown"
     except Exception:
         return "unknown"
+
+
+def get_network_info():
+    """Heartbeat fields used by device status and dashboard Wi-Fi guidance."""
+
+    ip_address = get_ip()
+    ssid = get_ssid()
+    connected = ip_address != "unknown" and ssid != "unknown"
+    return {
+        "ip": ip_address,
+        "ssid": ssid,
+        "mac": get_mac(),
+        "hostname": DEVICE_HOSTNAME,
+        "wifi_status": "connected" if connected else "disconnected",
+        "wifi_change_method": "local_portal",
+        "wifi_local_url": (
+            f"http://{ip_address}/" if connected else "http://10.42.0.1/"
+        ),
+        "wifi_remote_scan_supported": False,
+    }
 
 
 def print_network_banner(prefix="[NETWORK]"):
@@ -79,10 +114,10 @@ def print_network_banner(prefix="[NETWORK]"):
     ssid = get_ssid()
     print("=" * 50)
     print(f"{prefix} WiFi SSID : {ssid}")
-    print(f"{prefix} Pi IP     : {ip}")
-    print(f"{prefix} Pi MAC    : {get_mac()}   <- find this in the phone's hotspot device list")
-    print(f"{prefix} SSH (IP)  : ssh echosense@{ip}")
-    print(f"{prefix} SSH (mDNS): ssh echosense@raspberrypi.local")
+    print(f"{prefix} Device IP : {ip}")
+    print(f"{prefix} Device MAC: {get_mac()}   <- find this in the phone's hotspot device list")
+    print(f"{prefix} SSH (IP)  : ssh {getpass.getuser()}@{ip}")
+    print(f"{prefix} SSH (mDNS): ssh {getpass.getuser()}@{DEVICE_HOSTNAME}.local")
     print("=" * 50)
 
 
@@ -153,6 +188,7 @@ def process_transcription_result(result, detector, led, alert_sender=send_alert)
 
 
 def main():
+    from runtime import EdgeRuntime
     from sender.http_client import push_log_line
     from sender.http_client import start_log_flush_thread
     import builtins as _builtins
@@ -168,9 +204,11 @@ def main():
     _builtins.print = _log_print
     start_log_flush_thread()
 
+    stop_event = threading.Event()
+
     def _stop_on_signal(signum, _frame):
         print(f"[STOP] Shutdown signal received signal={signum}")
-        raise KeyboardInterrupt
+        stop_event.set()
 
     signal.signal(signal.SIGTERM, _stop_on_signal)
     signal.signal(signal.SIGINT, _stop_on_signal)
@@ -188,65 +226,72 @@ def main():
     print("  Davao del Norte State College")
     print("=" * 50)
 
-    led = LEDIndicator()
-    led.startup()
-
-    print("\n[INIT] Initializing persistent alert outbox...")
-    if not start_alert_delivery():
-        print(
-            "[OUTBOX] Worker was not started; enqueue operations will retry "
-            "database initialization and report failures explicitly."
-        )
-    atexit.register(stop_alert_delivery)
-
-    print("\n[INIT] Checking backend connection...")
-    check_backend_connection()
-    start_dictionary_sync()
-    start_heartbeat(
-        interval=60,
-        info_provider=lambda: {
-            "ip": get_ip(),
-            "ssid": get_ssid(),
-            "mac": get_mac(),
-            "hostname": "raspberrypi",
-        },
+    runtime = EdgeRuntime(
+        stop_event=stop_event,
+        network_info_provider=get_network_info,
     )
-
     print_network_banner()
     # Re-print the live IP/SSID every 60s so the current hotspot address is
     # always discoverable in the log (the boot line goes stale on a WiFi switch).
     threading.Thread(target=_network_status_thread, args=(60,), daemon=True).start()
+    # Dashboard Wi-Fi changes (simulated and reported as unsupported off the Pi).
+    from provisioning.wifi_setup.remote_commands import start_wifi_command_poll
+    start_wifi_command_poll(stop_event)
 
-    print("[INIT] Loading YAMNet model...")
-    interpreter = load_yamnet()
-    class_names = load_class_names()
-    print("[INIT] YAMNet loaded!")
-
-    print("[INIT] Loading RealtimeSTT...")
-    get_recorder()
-
-    detector = AggressionDetector(
-        interpreter=interpreter,
-        class_names=class_names,
-    )
-
-    led.listening_start()
-    print("\n[HEARTBEAT] Started")
-    print("\n[MAIN] Listening...")
+    print("\n[MAIN] Starting one-source AFTER detection runtime...")
     print("[INIT] Press Ctrl+C to stop\n")
-
+    exit_code = 0
     try:
-        while True:
-            result = transcribe_and_check()
-            process_transcription_result(result, detector, led)
-
+        runtime.run()
     except KeyboardInterrupt:
+        stop_event.set()
         print("\n[STOP] EchoSense stopped.")
+    except Exception as exc:
+        exit_code = 1
+        print(f"[FATAL] runtime_error={type(exc).__name__}")
     finally:
-        stop_alert_delivery()
-        led.cleanup()
-        sys.exit(0)
+        runtime.stop()
+    return exit_code
+
+
+def activate_if_needed(credentials=None, activate=None, restart=os.execv):
+    """QR-set-up box without a key yet: wait for an admin to add it, then restart.
+
+    Credentials are read once at import time by config and the sender modules, so after
+    the key is saved the process restarts itself and comes up with it, exactly like a
+    normal start. Returns False when nothing had to be done.
+    """
+
+    import config
+
+    credentials = credentials or config.DEVICE_CREDENTIALS
+    if credentials.source != "needs_activation":
+        return False
+    if activate is None:
+        from provisioning.activation import Speaker, activate_until_ready
+
+        def activate():
+            return activate_until_ready(
+                config.API_URL,
+                config.IDENTITY_FILE,
+                config.DEVICE_CREDENTIALS_FILE,
+                speak=Speaker(config.PLATFORM, config.SPEAK_COMMAND),
+                poll_seconds=config.ACTIVATION_POLL_SECONDS,
+                announce_seconds=config.ACTIVATION_ANNOUNCE_SECONDS,
+            )
+
+    print(f"[SETUP] device={credentials.device_id} has no key yet; starting activation")
+    activate()
+    print("[SETUP] Restarting with the new device key")
+    # exec replaces the process without flushing Python's buffers; flush so the setup
+    # lines reach the log.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    script = os.path.abspath(sys.argv[0])
+    restart(sys.executable, [sys.executable, script, *sys.argv[1:]])
+    return True
 
 
 if __name__ == "__main__":
-    main()
+    activate_if_needed()
+    raise SystemExit(main())

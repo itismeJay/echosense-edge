@@ -12,6 +12,10 @@ from typing import Callable
 
 from config import (
     API_URL,
+    DASHBOARD_TEST_MODE,
+    DASHBOARD_TEST_REVIEWER_TOKEN,
+    DASHBOARD_TEST_VERIFY_POLL_SECONDS,
+    DASHBOARD_TEST_VERIFY_TIMEOUT_SECONDS,
     ECHOSENSE_DEVICE_ID,
     ECHOSENSE_DEVICE_KEY,
     OUTBOX_BACKOFF_MULTIPLIER,
@@ -28,6 +32,8 @@ from config import (
     OUTBOX_REQUEST_TIMEOUT_SECONDS,
     OUTBOX_STALE_SENDING_SECONDS,
 )
+from detection.latency import LATENCY
+from sender.dashboard_test import DashboardVisibilityVerifier
 from sender.http_client import (
     AUTHENTICATION as HTTP_AUTHENTICATION,
     DELIVERED as HTTP_DELIVERED,
@@ -69,6 +75,34 @@ class DeliverySettings:
     health_log_interval_seconds: float = (
         OUTBOX_HEALTH_LOG_INTERVAL_SECONDS
     )
+    dashboard_test_mode: bool = DASHBOARD_TEST_MODE
+    dashboard_test_reviewer_token: str = field(
+        default=DASHBOARD_TEST_REVIEWER_TOKEN,
+        repr=False,
+    )
+    dashboard_test_verify_timeout_seconds: float = (
+        DASHBOARD_TEST_VERIFY_TIMEOUT_SECONDS
+    )
+    dashboard_test_verify_poll_seconds: float = (
+        DASHBOARD_TEST_VERIFY_POLL_SECONDS
+    )
+    # A backend rejection (4xx) is retried this many times, each right after a
+    # dictionary re-sync, before the record is parked as FAILED_PERMANENT.
+    max_rejection_retries: int = 1
+
+
+def _default_resync() -> bool:
+    # The school config, not the bare dictionary: a dictionary sync would bring
+    # back the words this school turned off.
+    from model.school_config import resync_terms
+
+    return resync_terms()
+
+
+def _default_refresh_payload(payload: dict) -> dict:
+    from model.monitored_terms import attach_backend_term_ids
+
+    return attach_backend_term_ids(payload)
 
 
 class OutboxDeliveryWorker:
@@ -83,9 +117,14 @@ class OutboxDeliveryWorker:
         clock=utc_now,
         random_uniform=None,
         logger=print,
+        resync: Callable[[], bool] | None = None,
+        refresh_payload: Callable[[dict], dict] | None = None,
+        dashboard_verifier=None,
     ):
         self.outbox = outbox
         self.settings = settings
+        self._resync = resync
+        self._refresh_payload = refresh_payload
         self._clock = clock
         self._random_uniform = random_uniform or random.uniform
         self._logger = logger
@@ -98,6 +137,18 @@ class OutboxDeliveryWorker:
                 device_key=self.settings.device_key,
             )
         )
+        self._dashboard_verifier = dashboard_verifier
+        if self._dashboard_verifier is None and settings.dashboard_test_mode:
+            self._dashboard_verifier = DashboardVisibilityVerifier(
+                settings.api_url,
+                settings.dashboard_test_reviewer_token,
+                timeout_seconds=(
+                    settings.dashboard_test_verify_timeout_seconds
+                ),
+                poll_seconds=settings.dashboard_test_verify_poll_seconds,
+                request_timeout_seconds=settings.request_timeout_seconds,
+                logger=logger,
+            )
         self._stop_event = threading.Event()
         self._wake_event = threading.Event()
         self._lifecycle_lock = threading.Lock()
@@ -235,20 +286,35 @@ class OutboxDeliveryWorker:
                 f"[OUTBOX] delivered event={record.event_id} "
                 f"http={result.http_status}{duplicate}"
             )
+            LATENCY.mark_incident(record.event_id, "delivered")
+            if self._dashboard_verifier is not None:
+                self._dashboard_verifier.schedule(
+                    payload,
+                    backend_acknowledged_at=time.monotonic(),
+                )
             return
 
         if result.disposition == HTTP_PERMANENT:
+            if self._retry_after_resync(record, payload, result):
+                return
+            detail = f" detail={result.detail!r}" if result.detail else ""
             self.outbox.mark_permanent_failure(
                 record.id,
                 error_type=result.error_type or "permanent_failure",
-                error="backend rejected payload; operator review required",
+                error=(
+                    "backend rejected payload"
+                    + (f" ({result.detail})" if result.detail else "")
+                    + "; operator review required"
+                ),
                 http_status=result.http_status,
                 now=self._clock(),
             )
             self._logger(
-                f"[OUTBOX] permanent failure event={record.event_id} "
+                f"[OUTBOX] ERROR alert NOT delivered event={record.event_id} "
                 f"type={result.error_type or 'permanent_failure'} "
-                f"http={result.http_status}"
+                f"http={result.http_status}{detail}. Kept as FAILED_PERMANENT; after "
+                "fixing the cause run: venv/bin/python -m sender.outbox_admin retry "
+                f"{record.event_id}"
             )
             return
 
@@ -288,6 +354,65 @@ class OutboxDeliveryWorker:
             f"type={result.error_type or 'retryable_failure'} "
             f"delay_seconds={delay:.3f}"
         )
+
+    def _retry_after_resync(self, record: OutboxRecord, payload: dict, result) -> bool:
+        """First rejection of a record: re-sync the dictionary and retry right away."""
+
+        if result.http_status is None or not 400 <= int(result.http_status) < 500:
+            return False
+        if record.rejection_retry_count >= max(0, int(self.settings.max_rejection_retries)):
+            return False
+        detail = f" detail={result.detail!r}" if result.detail else ""
+        self._logger(
+            f"[OUTBOX] ERROR backend rejected event={record.event_id} "
+            f"http={result.http_status}{detail}; re-syncing the dictionary and "
+            "retrying once"
+        )
+        synced = False
+        if self._resync is not None:
+            try:
+                synced = bool(self._resync())
+            except Exception as exc:
+                self._logger(
+                    f"[OUTBOX] dictionary re-sync failed type={type(exc).__name__}"
+                )
+        refreshed = None
+        if synced and self._refresh_payload is not None:
+            try:
+                candidate = self._refresh_payload(payload)
+                if candidate != payload:
+                    refreshed = candidate
+            except Exception as exc:
+                self._logger(
+                    f"[OUTBOX] payload refresh skipped type={type(exc).__name__}"
+                )
+        try:
+            updated = self.outbox.mark_rejected_for_resync(
+                record.id,
+                next_attempt_at=self._clock(),
+                error_type=f"{result.error_type or 'rejected'}_resync_retry",
+                error=(
+                    "backend rejected payload"
+                    + (f" ({result.detail})" if result.detail else "")
+                    + "; retrying once after dictionary re-sync"
+                ),
+                http_status=result.http_status,
+                payload=refreshed,
+                now=self._clock(),
+            )
+        except OutboxError:
+            # The refreshed payload could not be stored: retry the original instead.
+            updated = self.outbox.mark_rejected_for_resync(
+                record.id,
+                next_attempt_at=self._clock(),
+                error_type=f"{result.error_type or 'rejected'}_resync_retry",
+                error="backend rejected payload; retrying once after dictionary re-sync",
+                http_status=result.http_status,
+                now=self._clock(),
+            )
+        if updated:
+            self.wake()
+        return updated
 
     def retry_delay_seconds(
         self,
@@ -359,9 +484,15 @@ class AlertDeliveryService:
         clock=utc_now,
         random_uniform=None,
         logger=print,
+        resync=_default_resync,
+        refresh_payload=_default_refresh_payload,
+        dashboard_verifier=None,
     ):
         self.settings = settings or DeliverySettings()
         self._deliver = deliver
+        self._resync = resync
+        self._refresh_payload = refresh_payload
+        self._dashboard_verifier = dashboard_verifier
         self._clock = clock
         self._random_uniform = random_uniform
         self._logger = logger
@@ -410,6 +541,9 @@ class AlertDeliveryService:
                     clock=self._clock,
                     random_uniform=self._random_uniform,
                     logger=self._logger,
+                    resync=self._resync,
+                    refresh_payload=self._refresh_payload,
+                    dashboard_verifier=self._dashboard_verifier,
                 )
             if self._start_requested and not self._worker.running:
                 self._worker.start()

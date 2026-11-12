@@ -24,9 +24,7 @@ def _event():
 
 class TranscriptVisibilityTests(unittest.TestCase):
     def tearDown(self):
-        with whisper_stt._result_lock:
-            whisper_stt._latest_result = None
-        whisper_stt._new_result_event.clear()
+        whisper_stt.clear_transcription_results()
 
     def _render(
         self,
@@ -52,10 +50,7 @@ class TranscriptVisibilityTests(unittest.TestCase):
                 whisper_language_confidence=confidence,
                 audio_event=event,
             )
-        with whisper_stt._result_lock:
-            result = whisper_stt._latest_result
-            whisper_stt._latest_result = None
-        whisper_stt._new_result_event.clear()
+        result = whisper_stt.consume_transcription_result()
         return event, result, output.getvalue()
 
     def _transcript_lines(self, output):
@@ -211,7 +206,7 @@ class TranscriptVisibilityTests(unittest.TestCase):
                 return "One finalized transcript."
 
         recorder = Recorder()
-        text, event, language, confidence = (
+        text, event, language, confidence, _metadata = (
             whisper_stt._run_transcription_cycle(recorder, adapter)
         )
         self.assertEqual(recorder.text_calls, 1)
