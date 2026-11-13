@@ -1004,8 +1004,22 @@ def _correction_terms_for(backend_terms):
     return cached
 
 
-def correct_for_matching(transcript: str):
-    """Mishearing/sound-alike correction used before every match."""
+# Languages the transcriber may report for English speech.
+_ENGLISH_CODES = frozenset({"en", "eng", "english"})
+
+
+def is_english(language) -> bool:
+    """True when the transcriber detected English."""
+
+    return str(language or "").strip().lower() in _ENGLISH_CODES
+
+
+def correct_for_matching(transcript: str, language=None):
+    """Mishearing/sound-alike correction used before every match.
+
+    English transcripts get word-for-word spelling variants only: no Bisaya
+    sound-alike guesses ("cut to" is never "kuto").
+    """
 
     terms, fuzzy, exact_only = _correction_terms()
     return correct_transcript(
@@ -1015,6 +1029,7 @@ def correct_for_matching(transcript: str):
         exact_terms=exact_only,
         soundalike=SOUNDALIKE_ENABLED,
         mishearings=MISHEARINGS_ENABLED,
+        variants_only=is_english(language),
     )
 
 
@@ -1039,9 +1054,9 @@ def drop_turned_off_terms(hits, transcript: str):
     return kept, dropped
 
 
-def check_transcript(transcript: str) -> dict:
+def check_transcript(transcript: str, language=None) -> dict:
     original_transcript = transcript
-    correction = correct_for_matching(transcript)
+    correction = correct_for_matching(transcript, language)
     if correction.corrections:
         # Match, judge context and severity on the corrected words. The
         # caller keeps the original transcript as the evidence of record.

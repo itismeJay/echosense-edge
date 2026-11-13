@@ -429,11 +429,20 @@ def classify_transcript_language(
     whisper_language: object,
     whisper_confidence: object,
     matched_terms: Sequence[Mapping],
+    *,
+    detected_is_final: bool = False,
 ) -> tuple[str, Optional[float]]:
-    """Combine native Whisper metadata with strong monitored-term evidence."""
+    """Combine native Whisper metadata with strong monitored-term evidence.
+
+    ``detected_is_final`` (ElevenLabs): a supported detected language is kept
+    as is; matched words never relabel it. Whisper's language is the forced
+    request language, so matched words still decide there.
+    """
 
     detected = normalize_language(whisper_language)
     confidence = _real_confidence(whisper_confidence)
+    if detected_is_final and detected in {"fil", "ceb", "en"}:
+        return detected, confidence
     evidence_languages = {
         normalize_language(item.get("language"), backend=True)
         for item in matched_terms or ()

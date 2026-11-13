@@ -524,6 +524,10 @@ def _on_text(
         whisper_language = None
         whisper_language_confidence = None
     event_id = audio_event.event_id if audio_event is not None else "unavailable"
+    # ElevenLabs detects the language itself (Whisper's is the forced request
+    # language): English speech gets no Bisaya sound-alike matching.
+    detected_is_final = _is_elevenlabs(decode_metadata)
+    match_language = whisper_language if detected_is_final else None
     metrics = DecodeMetrics.from_metadata(decode_metadata)
     stt_info = _stt_info(decode_metadata)
     filter_reasons = []
@@ -539,7 +543,9 @@ def _on_text(
             gate_text = gate_quality.checked_text
             # Terms after sound-alike/alias correction: an utterance with a
             # monitored word is not dropped for a low avg_logprob alone.
-            gate_terms = check_transcript(gate_text).get("detected_words", ())
+            gate_terms = check_transcript(
+                gate_text, language=match_language,
+            ).get("detected_words", ())
             drop_reason = decode_gate(metrics, _FILTERS, gate_terms)
             if (
                 drop_reason
@@ -579,7 +585,7 @@ def _on_text(
             print(f"[TEXT_QUALITY] event={event_id} repeated_tail_trimmed=true")
         # Matching runs on the checked text (a looping tail trimmed); the
         # Whisper transcript below stays the unchanged evidence of record.
-        result = check_transcript(quality.checked_text)
+        result = check_transcript(quality.checked_text, language=match_language)
         result = _apply_term_filters(
             result, quality.checked_text, metrics, audio_event, event_id,
             stt_info.get("provider", "whisper"),
@@ -617,6 +623,7 @@ def _on_text(
         whisper_language,
         whisper_language_confidence,
         result.get("matched_terms", []),
+        detected_is_final=detected_is_final,
     )
     result["language"] = language
     result["language_confidence"] = language_confidence

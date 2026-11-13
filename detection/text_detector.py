@@ -31,7 +31,7 @@ from detection.llm_semantic import (
 )
 from detection.semantic import SemanticAnalyzer
 from detection.severity import calculate_severity, has_direct_target_evidence
-from detection.soundalike import FUZZY_PROVENANCE
+from detection.soundalike import FUZZY_PROVENANCE, spelling_key
 from detection.transcript_quality import assess_transcript_quality, phrase_matches
 
 # Reason recorded when only similarity-window (fuzzy) matches opened the
@@ -40,6 +40,12 @@ FUZZY_REVIEW_REASON = "fuzzy_match:capped_low_needs_review"
 from model.blacklist import check_transcript
 
 DETECTED_BY_MEANING_REASON = "semantic:detected_by_meaning"
+# A word found only by the sound-alike matcher (joined/re-split words or a
+# close sound, not the words as written or a word-for-word spelling variant)
+# opens an incident only if Claude, when it answered, calls it one of these.
+SOUNDALIKE_CONFIRM_LABELS = frozenset({"insult", "threat", "exclusion"})
+SOUNDALIKE_CONFIRM_MIN_CONFIDENCE = 0.6
+SOUNDALIKE_UNCONFIRMED_REASON = "suppressed:soundalike_not_confirmed_by_semantic"
 
 
 @dataclass(slots=True)
@@ -49,6 +55,7 @@ class PendingText:
     fields: dict
     reasons: list
     handle: object = None
+    soundalike_only: bool = False
 
 
 class TextDetector:
@@ -97,7 +104,9 @@ class TextDetector:
         observed_monotonic=None,
     ):
         quality = assess_transcript_quality(transcript)
-        result = check_transcript(quality.checked_text) if quality.accepted else {
+        result = check_transcript(
+            quality.checked_text, language=language,
+        ) if quality.accepted else {
             "has_profanity": False,
             "detected_words": [],
             "hard_hits": [],
@@ -246,6 +255,12 @@ class TextDetector:
             if provenance == FUZZY_PROVENANCE:
                 qualification_terms.append(term)
         qualification_terms = tuple(dict.fromkeys(qualification_terms))
+        soundalike_only = bool(qualification_terms) and all(
+            _from_soundalike_only(
+                term, provenance_by_term[term], result.get("corrections") or (),
+            )
+            for term in qualification_terms
+        )
         direct_target = bool(
             qualification_terms
             and has_direct_target_evidence(decision_text, qualification_terms)
@@ -386,7 +401,10 @@ class TextDetector:
             reaction_in_previous_turns=reaction_in_previous_turns,
             victim_reaction=victim_reaction,
         )
-        return PendingText(fields=fields, reasons=reasons, handle=handle)
+        return PendingText(
+            fields=fields, reasons=reasons, handle=handle,
+            soundalike_only=soundalike_only,
+        )
 
     def complete(self, pending: PendingText) -> TextEvidence:
         """Wait for the semantic judgement (bounded) and build the evidence."""
@@ -399,6 +417,19 @@ class TextDetector:
         elif self.semantic_gate.available:
             judgement = LLMJudgement(status="skipped")
         qualifies = fields["qualifies_to_open"]
+        # Only when Claude answered: without it the lexicon rules stand.
+        if (
+            qualifies
+            and pending.soundalike_only
+            and judgement is not None
+            and judgement.ok
+            and not (
+                judgement.label in SOUNDALIKE_CONFIRM_LABELS
+                and judgement.confidence >= SOUNDALIKE_CONFIRM_MIN_CONFIDENCE
+            )
+        ):
+            qualifies = False
+            reasons.append(SOUNDALIKE_UNCONFIRMED_REASON)
         opened_by_meaning = bool(
             not qualifies
             and fields["quality_accepted"]
@@ -447,6 +478,38 @@ class TextDetector:
             + (" repeated_pattern=true" if pattern_repeated else "")
         )
         return evidence
+
+
+def _from_soundalike_only(term, provenance, corrections):
+    """True when only the sound-alike matcher produced ``term``.
+
+    Words as written, the mishearing table and word-for-word spelling
+    variants ("kaayu" = "kaayo") do not count as sound-alike matches.
+    """
+
+    if provenance == "original_exact":
+        return False
+    related = []
+    for item in corrections:
+        if not isinstance(item, dict):
+            continue
+        corrected = str(item.get("term") or "").strip()
+        if corrected and (
+            phrase_matches(term, corrected) or phrase_matches(corrected, term)
+        ):
+            related.append(item)
+    if not related:
+        return False
+    for item in related:
+        if item.get("kind") != "soundalike":
+            return False
+        heard = str(item.get("heard") or "").split()
+        wanted = str(item.get("term") or "").split()
+        if item.get("provenance") == "trusted_alias" and len(heard) == len(wanted) and all(
+            spelling_key(a) == spelling_key(b) for a, b in zip(heard, wanted)
+        ):
+            return False
+    return True
 
 
 def _record_latency(utterance_id, submission):

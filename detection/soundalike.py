@@ -198,6 +198,13 @@ PRONOUNS = frozenset({
     "imo", "imong", "akong", "ta", "kami", "kamo", "sila", "siya", "you",
     "me", "i", "he", "she", "we", "they",
 })
+# Matching never joins words across one of these English function words:
+# "cut to" is never "kuto". A function word may only stay its own word.
+FUNCTION_WORDS = frozenset({
+    "to", "the", "a", "an", "you", "it", "is", "of", "in", "on", "at",
+})
+# Terms this short (letters) never match by joining or re-splitting words.
+SHORT_TERM_MAX_LETTERS = 4
 _FOLD = str.maketrans({
     "c": "k", "q": "k", "f": "p", "v": "b", "z": "s",
     "o": "u", "e": "i", "w": "u", "y": "i",
@@ -380,7 +387,43 @@ def _changes_common_word(span_tokens, candidate):
     )
 
 
-def _soundalike(span_tokens, candidates, blocked, single_terms, exact_only=False):
+def _same_words(span_tokens, candidate):
+    """Word for word the same after spelling folds (no word joined or split)."""
+
+    return len(span_tokens) == len(candidate.tokens) and all(
+        spelling_key(heard) == spelling_key(wanted)
+        for heard, wanted in zip(span_tokens, candidate.tokens)
+    )
+
+
+def _joins_across_words(span_tokens, candidate):
+    """A match that would join words in a way that invents a monitored word.
+
+    Short terms (4 letters or fewer) never come from joining or re-splitting
+    words, and a function word ("to", "the", "you", ...) must stay its own
+    word: "Let's cut to the chase" is never "kuto".
+    """
+
+    if len(span_tokens) < 2:
+        return False
+    if (
+        len(_NON_LETTERS.sub("", candidate.term.lower())) <= SHORT_TERM_MAX_LETTERS
+        and not _same_words(span_tokens, candidate)
+    ):
+        return True
+    for index, token in enumerate(span_tokens):
+        if token in FUNCTION_WORDS and (
+            len(span_tokens) != len(candidate.tokens)
+            or candidate.tokens[index] != token
+        ):
+            return True
+    return False
+
+
+def _soundalike(
+    span_tokens, candidates, blocked, single_terms, exact_only=False,
+    variants_only=False,
+):
     # A whole multi-word span with exactly a term's letters is not a
     # "correction" of a common word ("mura kag ungguy" = "mura kag unggoy"),
     # so only close matching respects the never-correct list.
@@ -397,6 +440,11 @@ def _soundalike(span_tokens, candidates, blocked, single_terms, exact_only=False
     for candidate in candidates:
         if candidate.term in LITERAL_ONLY_TERMS and span_tokens != candidate.tokens:
             continue
+        if _joins_across_words(span_tokens, candidate):
+            continue
+        # English: spelling variants of the same words only.
+        if variants_only and not _same_words(span_tokens, candidate):
+            continue
         if spelling == candidate.spelling and not _changes_blocked_word(
             span_tokens, candidate, blocked
         ) and not _changes_common_word(span_tokens, candidate) and (
@@ -411,6 +459,8 @@ def _soundalike(span_tokens, candidates, blocked, single_terms, exact_only=False
         if candidate.term in LITERAL_ONLY_TERMS and span_tokens != candidate.tokens:
             continue
         if _changes_common_word(span_tokens, candidate):
+            continue
+        if _joins_across_words(span_tokens, candidate):
             continue
         # Same letters, different word split ("sumbagonti ka" = "sumbagon
         # tika"): nothing is changed or invented, so a pronoun inside the
@@ -491,6 +541,8 @@ def _fuzzy_window(span_tokens, candidates, blocked, single_terms):
         if not _keeps_fixed_words(span_tokens, candidate, single_terms):
             continue
         if _changes_common_word(span_tokens, candidate):
+            continue
+        if _joins_across_words(span_tokens, candidate):
             continue
         # The target must really be heard as its own word: "kabus nga" is
         # not "kabus ka", "nobody wants to" is not "nobody wants you".
@@ -577,13 +629,16 @@ def correct_transcript(
     soundalike: bool = True,
     mishearings: bool = True,
     max_span_tokens: int = 3,
+    variants_only: bool = False,
 ) -> CorrectionResult:
     """Return ``text`` with mishearings rewritten to monitored terms.
 
     ``terms`` are the monitored terms (normalized). ``fuzzy_terms`` are the
     single-word terms allowed to match with one differing sound (hard
     insults). Segments are re-joined with ". " so later phrase matching
-    still cannot cross a sentence boundary.
+    still cannot cross a sentence boundary. ``variants_only`` (English
+    transcripts) keeps word-for-word spelling variants and the mishearing
+    table, with no sound-alike guesses and no joined or re-split words.
     """
 
     segments = transcript_token_segments(text)
@@ -591,7 +646,7 @@ def correct_transcript(
     # are short ("Pangít ka."); in long conversation Whisper's words are
     # trusted as written, so "giingong" (said) never becomes "gunggong".
     # Exact respellings and the mishearing table still apply everywhere.
-    close_matching = (
+    close_matching = not variants_only and (
         sum(len(segment) for segment in segments) <= CLOSE_MATCH_MAX_TOKENS
     )
     candidates, blocked = (
@@ -663,6 +718,7 @@ def correct_transcript(
                         continue
                     match = _soundalike(
                         span, candidates, blocked, single_terms, exact_only=exact,
+                        variants_only=variants_only,
                     )
                     if match is not None:
                         candidate = match.candidate
