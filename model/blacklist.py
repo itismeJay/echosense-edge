@@ -11,7 +11,9 @@ from detection.lexicon import (
     CONTEXT as LEX_CONTEXT,
     INSULT as LEX_INSULT,
     LEXICON,
+    REQUEST as LEX_REQUEST,
     SELF_HARM as LEX_SELF_HARM,
+    SEVERE as LEX_SEVERE,
     SWEAR as LEX_SWEAR,
     THREAT as LEX_THREAT,
 )
@@ -688,7 +690,9 @@ _CORE_CURATED = frozenset(
     term for term in _CURATED_TERMS
     if len(term.split()) == 1 or term.split()[-1] in ("ka", "tika", "taka")
 )
-HARD_TRIGGERS |= LEXICON.texts(LEX_INSULT, LEX_THREAT, LEX_SELF_HARM, LEX_SWEAR)
+HARD_TRIGGERS |= LEXICON.texts(
+    LEX_INSULT, LEX_THREAT, LEX_SELF_HARM, LEX_SWEAR, LEX_SEVERE, LEX_REQUEST,
+)
 SOFT_TRIGGERS |= LEXICON.texts(LEX_CONTEXT)
 END_ONLY_TERMS = LEXICON.end_only
 

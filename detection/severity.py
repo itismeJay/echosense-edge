@@ -10,7 +10,13 @@ from dataclasses import dataclass
 import re
 from typing import Iterable
 
-from detection.lexicon import LEXICON, SELF_HARM as _LEX_SELF_HARM, THREAT as _LEX_THREAT
+from detection.lexicon import (
+    LEXICON,
+    REQUEST as _LEX_REQUEST,
+    SELF_HARM as _LEX_SELF_HARM,
+    SEVERE as _LEX_SEVERE,
+    THREAT as _LEX_THREAT,
+)
 
 
 LOW = "LOW"
@@ -100,11 +106,16 @@ SEVERE_DIRECT_HARASSMENT_TERMS = frozenset({
     "uling",
     "murag uling",
     "agta",
-    "negra",
-    "negro",
     "kulisap ang buhok",
     "mukha kang unggoy",
-})
+}) | LEXICON.texts(_LEX_SEVERE)
+
+# Slurs (bayot, lakin-on, babayeon, negro) and money/baon extortion from the
+# lexicon: HIGH whenever said, unless negated or instructional.
+LEXICON_SEVERE_TERMS = LEXICON.texts(_LEX_SEVERE)
+# Pushy "friend" requests (copy my homework, buy me snacks, do my cleaning):
+# MEDIUM even with no "you" word ("palita ko og snacks").
+LEXICON_REQUEST_TERMS = LEXICON.texts(_LEX_REQUEST)
 
 # Social exclusion: MEDIUM even about a third person ("ayaw siya pasakya",
 # "dili ta mokuyog niya", "huwag mo siyang isali"). Phrases with an everyday
@@ -251,6 +262,23 @@ DESCRIPTIVE_TERMS = frozenset(LOW_RISK_MONITORED_TERMS | {
     "kutohon",
     "baboy",
     "leche",
+    # Everyday words that insult only in an aimed phrase: "itom nga lapis",
+    # "arte nga project", "samok kaayo ang dalan", "animal sa zoo". The
+    # aimed lexicon forms ("negro ka", "ka-arte nimo") still alert.
+    "arte",
+    "samok",
+    "animal",
+    "negro",
+    "negra",
+    # Personality words describe characters and siblings too ("hilakon
+    # pa ang akong manghod", "hambog ang karakter sa istorya").
+    "hilakon",
+    "hambog",
+    "pikon",
+    "sipsip",
+    "pabibo",
+    "papansin",
+    "kuripot",
     # Everyday phrases ("walay kwarta ko", "ayaw ug duol sa kalayo",
     # "layo diri ang balay"): exclusion only when aimed or shouted.
     "walay kwarta",
@@ -642,6 +670,12 @@ def calculate_severity(
         "social_exclusion": tuple(
             term for term in terms if term in SOCIAL_EXCLUSION_TERMS
         ),
+        "slur_or_extortion": tuple(
+            term for term in terms if term in LEXICON_SEVERE_TERMS
+        ),
+        "pressure_request": tuple(
+            term for term in terms if term in LEXICON_REQUEST_TERMS
+        ),
     }
     categories = {
         category: matched
@@ -690,8 +724,11 @@ def calculate_severity(
 
     exclusion = "social_exclusion" in categories
     context = _context_downgrade(tokens, terms)
-    if context and exclusion and context != "negated_or_instructional":
-        # "ayaw ug duol nako" is exclusion, not self-talk.
+    severe = "slur_or_extortion" in categories
+    request = "pressure_request" in categories
+    if context and (exclusion or severe or request) and context != "negated_or_instructional":
+        # "ayaw ug duol nako" is exclusion, not self-talk; "hatagi ko sa
+        # imong baon" and "palita ko og snacks" are aimed through "ko".
         context = None
     if context:
         reasons.append(f"held_low:{context}")
@@ -702,6 +739,9 @@ def calculate_severity(
             _CONTEXT_SUMMARY.get(context, "Word not aimed at anyone"), context,
         )
 
+    if severe:
+        reasons.append("high:slur_or_extortion")
+        return decision(HIGH, reasons, supporting, "Slur or extortion words")
     vulgar_floor = "vulgar_insult" in categories
     if direct_target and angry_tone:
         reasons.append("promoted_by:targeted_insult_angry_tone")
@@ -728,6 +768,9 @@ def calculate_severity(
         return decision(
             MEDIUM, reasons, supporting, f"Insult {angrily}, not aimed at anyone",
         )
+    if request:
+        reasons.append("medium_floor:pressure_request")
+        return decision(MEDIUM, reasons, supporting, "Pushy request (copying, snacks, chores)")
     if vulgar_floor:
         reasons.append("medium_floor:vulgar_insult")
         return decision(MEDIUM, reasons, supporting, "Vulgar insult")

@@ -73,6 +73,34 @@ class LexiconDetectionTests(unittest.TestCase):
         self.assertGreaterEqual(caught / len(variants), 0.97)
 
 
+class Grade6SeverityTests(unittest.TestCase):
+    def test_slurs_and_baon_extortion_are_high(self):
+        for text in ("Bayot kaayo ka.", "Hoy bayot!", "Ka-lakin-on nimo!",
+                     "Babayeon ka!", "Negro ka!", "Hatagi ko sa imong baon.",
+                     "Ugma, magdala ka og kwarta."):
+            with self.subTest(text=text):
+                self.assertEqual(quiet_sent(text), (True, "HIGH"))
+
+    def test_friend_requests_are_medium(self):
+        for text in ("Pakopyaha ko sa imong assignment.", "Palita ko og snacks sa canteen.",
+                     "Ikaw mag-cleaners para nako.", "Ikaw mo-buhat sa akong project."):
+            with self.subTest(text=text):
+                self.assertEqual(quiet_sent(text), (True, "MEDIUM"))
+
+    def test_affix_forms_and_ta_ka(self):
+        for text in ("Kabogo nimo!", "Ka-bogo nimo!", "Pagkabogo gyud nimo.",
+                     "Pagka-bogo gyud nimo.", "Ikaw ang pinaka-tambok sa klase.",
+                     "Hungoga nimo uy!", "Kangil-ad nimo!"):
+            with self.subTest(text=text):
+                self.assertEqual(quiet_sent(text), (True, "MEDIUM"))
+        for text in ("Sumbagon ta ka!", "Tamparon ta ka unya.", "Gusto ka mabunalan?"):
+            with self.subTest(text=text):
+                self.assertEqual(quiet_sent(text), (True, "HIGH"))
+
+    def test_negated_slur_does_not_alert(self):
+        self.assertFalse(quiet_sent("dili ka bayot")[0])
+
+
 class LexiconFalseAlarmTests(unittest.TestCase):
     def test_everyday_sentences_never_alert(self):
         alarms = [

@@ -25,6 +25,8 @@ SEVERITY = {
     "swear": "LOW (bare swear word)",
     "threat": "HIGH (always)",
     "self_harm": "HIGH (always)",
+    "severe": "HIGH (slur or extortion, unless negated)",
+    "request": "MEDIUM (pushy request, even when not aimed)",
 }
 OUT = ROOT / "lexicon" / "bisaya_bullying_review.csv"
 

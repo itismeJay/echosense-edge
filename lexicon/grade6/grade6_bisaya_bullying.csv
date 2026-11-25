@@ -1,0 +1,1534 @@
+id,category,severity,pattern,bisaya,english,base_word
+1,intelligence,med,{w} ka!,Bogo ka!,You're stupid!,bogo
+2,intelligence,med,{w} ka uy!,Bogo ka uy!,"You're stupid, ugh!",bogo
+3,intelligence,med,{w} ka oy!,Bogo ka oy!,"You're stupid, ugh!",bogo
+4,intelligence,med,{w} kaayo ka.,Bogo kaayo ka.,You're so stupid.,bogo
+5,intelligence,med,{w} kaau ka.,Bogo kaau ka.,You're so stupid.,bogo
+6,intelligence,med,{w} gyud ka.,Bogo gyud ka.,You're really stupid.,bogo
+7,intelligence,med,{w} jud ka uy.,Bogo jud ka uy.,You're really stupid.,bogo
+8,intelligence,med,Ka-{w} nimo!,Ka-bogo nimo!,You're so stupid!,bogo
+9,intelligence,med,Ka{w} nimo!,Kabogo nimo!,You're so stupid!,bogo
+10,intelligence,med,Ka-{w} nimo uy!,Ka-bogo nimo uy!,You're so stupid!,bogo
+11,intelligence,med,Pagka-{w} gyud nimo.,Pagka-bogo gyud nimo.,How stupid you really are.,bogo
+12,intelligence,med,Pagka{w} gyud nimo.,Pagkabogo gyud nimo.,How stupid you really are.,bogo
+13,intelligence,med,{w} man ka.,Bogo man ka.,You're stupid anyway.,bogo
+14,intelligence,med,{w} diay ka.,Bogo diay ka.,So you're stupid.,bogo
+15,intelligence,med,{w} na pud ka.,Bogo na pud ka.,You're being stupid again.,bogo
+16,intelligence,med,Ngano {w} man kaayo ka?,Ngano bogo man kaayo ka?,Why are you so stupid?,bogo
+17,intelligence,med,"Uy, {w}!","Uy, bogo!","Hey, stupid!",bogo
+18,intelligence,med,Hoy {w}!,Hoy bogo!,"Hey, stupid!",bogo
+19,intelligence,med,"{w} siya, oh!","Bogo siya, oh!","He/she's stupid, look!",bogo
+20,intelligence,med,"{w} kaayo siya, hahaha.","Bogo kaayo siya, hahaha.","He/she's so stupid, haha.",bogo
+21,intelligence,med,Kining {w} nga bata.,Kining bogo nga bata.,This stupid kid.,bogo
+22,intelligence,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-bogo sa klase.,You're the most stupid in class.,bogo
+23,intelligence,med,"{w} ka, mao wala kay higala.","Bogo ka, mao wala kay higala.","You're stupid, that's why you have no friends.",bogo
+24,intelligence,med,"{w} ka, ayaw ko duola.","Bogo ka, ayaw ko duola.","You're stupid, don't come near me.",bogo
+25,intelligence,med,{a} nimo uy!,Bogoa nimo uy!,You're so stupid!,bogo
+26,intelligence,med,{a} nimo oy!,Bogoa nimo oy!,You're so stupid!,bogo
+27,intelligence,med,Kining {a}!,Kining bogoa!,This stupid one!,bogo
+28,intelligence,med,{w} ka!,Bugo ka!,You're stupid!,bugo
+29,intelligence,med,{w} ka uy!,Bugo ka uy!,"You're stupid, ugh!",bugo
+30,intelligence,med,{w} ka oy!,Bugo ka oy!,"You're stupid, ugh!",bugo
+31,intelligence,med,{w} kaayo ka.,Bugo kaayo ka.,You're so stupid.,bugo
+32,intelligence,med,{w} kaau ka.,Bugo kaau ka.,You're so stupid.,bugo
+33,intelligence,med,{w} gyud ka.,Bugo gyud ka.,You're really stupid.,bugo
+34,intelligence,med,{w} jud ka uy.,Bugo jud ka uy.,You're really stupid.,bugo
+35,intelligence,med,Ka-{w} nimo!,Ka-bugo nimo!,You're so stupid!,bugo
+36,intelligence,med,Ka{w} nimo!,Kabugo nimo!,You're so stupid!,bugo
+37,intelligence,med,Ka-{w} nimo uy!,Ka-bugo nimo uy!,You're so stupid!,bugo
+38,intelligence,med,Pagka-{w} gyud nimo.,Pagka-bugo gyud nimo.,How stupid you really are.,bugo
+39,intelligence,med,Pagka{w} gyud nimo.,Pagkabugo gyud nimo.,How stupid you really are.,bugo
+40,intelligence,med,{w} man ka.,Bugo man ka.,You're stupid anyway.,bugo
+41,intelligence,med,{w} diay ka.,Bugo diay ka.,So you're stupid.,bugo
+42,intelligence,med,{w} na pud ka.,Bugo na pud ka.,You're being stupid again.,bugo
+43,intelligence,med,Ngano {w} man kaayo ka?,Ngano bugo man kaayo ka?,Why are you so stupid?,bugo
+44,intelligence,med,"Uy, {w}!","Uy, bugo!","Hey, stupid!",bugo
+45,intelligence,med,Hoy {w}!,Hoy bugo!,"Hey, stupid!",bugo
+46,intelligence,med,"{w} siya, oh!","Bugo siya, oh!","He/she's stupid, look!",bugo
+47,intelligence,med,"{w} kaayo siya, hahaha.","Bugo kaayo siya, hahaha.","He/she's so stupid, haha.",bugo
+48,intelligence,med,Kining {w} nga bata.,Kining bugo nga bata.,This stupid kid.,bugo
+49,intelligence,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-bugo sa klase.,You're the most stupid in class.,bugo
+50,intelligence,med,"{w} ka, mao wala kay higala.","Bugo ka, mao wala kay higala.","You're stupid, that's why you have no friends.",bugo
+51,intelligence,med,"{w} ka, ayaw ko duola.","Bugo ka, ayaw ko duola.","You're stupid, don't come near me.",bugo
+52,intelligence,med,{a} nimo uy!,Bugoa nimo uy!,You're so stupid!,bugo
+53,intelligence,med,{a} nimo oy!,Bugoa nimo oy!,You're so stupid!,bugo
+54,intelligence,med,Kining {a}!,Kining bugoa!,This stupid one!,bugo
+55,intelligence,med,{w} ka!,Buang ka!,You're crazy!,buang
+56,intelligence,med,{w} ka uy!,Buang ka uy!,"You're crazy, ugh!",buang
+57,intelligence,med,{w} ka oy!,Buang ka oy!,"You're crazy, ugh!",buang
+58,intelligence,med,{w} kaayo ka.,Buang kaayo ka.,You're so crazy.,buang
+59,intelligence,med,{w} kaau ka.,Buang kaau ka.,You're so crazy.,buang
+60,intelligence,med,{w} gyud ka.,Buang gyud ka.,You're really crazy.,buang
+61,intelligence,med,{w} jud ka uy.,Buang jud ka uy.,You're really crazy.,buang
+62,intelligence,med,Ka-{w} nimo!,Ka-buang nimo!,You're so crazy!,buang
+63,intelligence,med,Ka{w} nimo!,Kabuang nimo!,You're so crazy!,buang
+64,intelligence,med,Ka-{w} nimo uy!,Ka-buang nimo uy!,You're so crazy!,buang
+65,intelligence,med,Pagka-{w} gyud nimo.,Pagka-buang gyud nimo.,How crazy you really are.,buang
+66,intelligence,med,Pagka{w} gyud nimo.,Pagkabuang gyud nimo.,How crazy you really are.,buang
+67,intelligence,med,{w} man ka.,Buang man ka.,You're crazy anyway.,buang
+68,intelligence,med,{w} diay ka.,Buang diay ka.,So you're crazy.,buang
+69,intelligence,med,{w} na pud ka.,Buang na pud ka.,You're being crazy again.,buang
+70,intelligence,med,Ngano {w} man kaayo ka?,Ngano buang man kaayo ka?,Why are you so crazy?,buang
+71,intelligence,med,"Uy, {w}!","Uy, buang!","Hey, crazy!",buang
+72,intelligence,med,Hoy {w}!,Hoy buang!,"Hey, crazy!",buang
+73,intelligence,med,"{w} siya, oh!","Buang siya, oh!","He/she's crazy, look!",buang
+74,intelligence,med,"{w} kaayo siya, hahaha.","Buang kaayo siya, hahaha.","He/she's so crazy, haha.",buang
+75,intelligence,med,Kining {w} nga bata.,Kining buang nga bata.,This crazy kid.,buang
+76,intelligence,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-buang sa klase.,You're the most crazy in class.,buang
+77,intelligence,med,"{w} ka, mao wala kay higala.","Buang ka, mao wala kay higala.","You're crazy, that's why you have no friends.",buang
+78,intelligence,med,"{w} ka, ayaw ko duola.","Buang ka, ayaw ko duola.","You're crazy, don't come near me.",buang
+79,intelligence,med,{a} nimo uy!,Buanga nimo uy!,You're so crazy!,buang
+80,intelligence,med,{a} nimo oy!,Buanga nimo oy!,You're so crazy!,buang
+81,intelligence,med,Kining {a}!,Kining buanga!,This crazy one!,buang
+82,intelligence,med,{w} ka!,Boang ka!,You're crazy!,boang
+83,intelligence,med,{w} ka uy!,Boang ka uy!,"You're crazy, ugh!",boang
+84,intelligence,med,{w} ka oy!,Boang ka oy!,"You're crazy, ugh!",boang
+85,intelligence,med,{w} kaayo ka.,Boang kaayo ka.,You're so crazy.,boang
+86,intelligence,med,{w} kaau ka.,Boang kaau ka.,You're so crazy.,boang
+87,intelligence,med,{w} gyud ka.,Boang gyud ka.,You're really crazy.,boang
+88,intelligence,med,{w} jud ka uy.,Boang jud ka uy.,You're really crazy.,boang
+89,intelligence,med,Ka-{w} nimo!,Ka-boang nimo!,You're so crazy!,boang
+90,intelligence,med,Ka{w} nimo!,Kaboang nimo!,You're so crazy!,boang
+91,intelligence,med,Ka-{w} nimo uy!,Ka-boang nimo uy!,You're so crazy!,boang
+92,intelligence,med,Pagka-{w} gyud nimo.,Pagka-boang gyud nimo.,How crazy you really are.,boang
+93,intelligence,med,Pagka{w} gyud nimo.,Pagkaboang gyud nimo.,How crazy you really are.,boang
+94,intelligence,med,{w} man ka.,Boang man ka.,You're crazy anyway.,boang
+95,intelligence,med,{w} diay ka.,Boang diay ka.,So you're crazy.,boang
+96,intelligence,med,{w} na pud ka.,Boang na pud ka.,You're being crazy again.,boang
+97,intelligence,med,Ngano {w} man kaayo ka?,Ngano boang man kaayo ka?,Why are you so crazy?,boang
+98,intelligence,med,"Uy, {w}!","Uy, boang!","Hey, crazy!",boang
+99,intelligence,med,Hoy {w}!,Hoy boang!,"Hey, crazy!",boang
+100,intelligence,med,"{w} siya, oh!","Boang siya, oh!","He/she's crazy, look!",boang
+101,intelligence,med,"{w} kaayo siya, hahaha.","Boang kaayo siya, hahaha.","He/she's so crazy, haha.",boang
+102,intelligence,med,Kining {w} nga bata.,Kining boang nga bata.,This crazy kid.,boang
+103,intelligence,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-boang sa klase.,You're the most crazy in class.,boang
+104,intelligence,med,"{w} ka, mao wala kay higala.","Boang ka, mao wala kay higala.","You're crazy, that's why you have no friends.",boang
+105,intelligence,med,"{w} ka, ayaw ko duola.","Boang ka, ayaw ko duola.","You're crazy, don't come near me.",boang
+106,intelligence,med,{a} nimo uy!,Boanga nimo uy!,You're so crazy!,boang
+107,intelligence,med,{a} nimo oy!,Boanga nimo oy!,You're so crazy!,boang
+108,intelligence,med,Kining {a}!,Kining boanga!,This crazy one!,boang
+109,intelligence,med,{w} ka!,Tanga ka!,You're dumb!,tanga
+110,intelligence,med,{w} ka uy!,Tanga ka uy!,"You're dumb, ugh!",tanga
+111,intelligence,med,{w} ka oy!,Tanga ka oy!,"You're dumb, ugh!",tanga
+112,intelligence,med,{w} kaayo ka.,Tanga kaayo ka.,You're so dumb.,tanga
+113,intelligence,med,{w} kaau ka.,Tanga kaau ka.,You're so dumb.,tanga
+114,intelligence,med,{w} gyud ka.,Tanga gyud ka.,You're really dumb.,tanga
+115,intelligence,med,{w} jud ka uy.,Tanga jud ka uy.,You're really dumb.,tanga
+116,intelligence,med,Ka-{w} nimo!,Ka-tanga nimo!,You're so dumb!,tanga
+117,intelligence,med,Ka{w} nimo!,Katanga nimo!,You're so dumb!,tanga
+118,intelligence,med,Ka-{w} nimo uy!,Ka-tanga nimo uy!,You're so dumb!,tanga
+119,intelligence,med,Pagka-{w} gyud nimo.,Pagka-tanga gyud nimo.,How dumb you really are.,tanga
+120,intelligence,med,Pagka{w} gyud nimo.,Pagkatanga gyud nimo.,How dumb you really are.,tanga
+121,intelligence,med,{w} man ka.,Tanga man ka.,You're dumb anyway.,tanga
+122,intelligence,med,{w} diay ka.,Tanga diay ka.,So you're dumb.,tanga
+123,intelligence,med,{w} na pud ka.,Tanga na pud ka.,You're being dumb again.,tanga
+124,intelligence,med,Ngano {w} man kaayo ka?,Ngano tanga man kaayo ka?,Why are you so dumb?,tanga
+125,intelligence,med,"Uy, {w}!","Uy, tanga!","Hey, dumb!",tanga
+126,intelligence,med,Hoy {w}!,Hoy tanga!,"Hey, dumb!",tanga
+127,intelligence,med,"{w} siya, oh!","Tanga siya, oh!","He/she's dumb, look!",tanga
+128,intelligence,med,"{w} kaayo siya, hahaha.","Tanga kaayo siya, hahaha.","He/she's so dumb, haha.",tanga
+129,intelligence,med,Kining {w} nga bata.,Kining tanga nga bata.,This dumb kid.,tanga
+130,intelligence,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-tanga sa klase.,You're the most dumb in class.,tanga
+131,intelligence,med,"{w} ka, mao wala kay higala.","Tanga ka, mao wala kay higala.","You're dumb, that's why you have no friends.",tanga
+132,intelligence,med,"{w} ka, ayaw ko duola.","Tanga ka, ayaw ko duola.","You're dumb, don't come near me.",tanga
+133,intelligence,med,{a} nimo uy!,Tangaa nimo uy!,You're so dumb!,tanga
+134,intelligence,med,{a} nimo oy!,Tangaa nimo oy!,You're so dumb!,tanga
+135,intelligence,med,Kining {a}!,Kining tangaa!,This dumb one!,tanga
+136,intelligence,med,{w} ka!,Bobo ka!,You're dumb!,bobo
+137,intelligence,med,{w} ka uy!,Bobo ka uy!,"You're dumb, ugh!",bobo
+138,intelligence,med,{w} ka oy!,Bobo ka oy!,"You're dumb, ugh!",bobo
+139,intelligence,med,{w} kaayo ka.,Bobo kaayo ka.,You're so dumb.,bobo
+140,intelligence,med,{w} kaau ka.,Bobo kaau ka.,You're so dumb.,bobo
+141,intelligence,med,{w} gyud ka.,Bobo gyud ka.,You're really dumb.,bobo
+142,intelligence,med,{w} jud ka uy.,Bobo jud ka uy.,You're really dumb.,bobo
+143,intelligence,med,Ka-{w} nimo!,Ka-bobo nimo!,You're so dumb!,bobo
+144,intelligence,med,Ka{w} nimo!,Kabobo nimo!,You're so dumb!,bobo
+145,intelligence,med,Ka-{w} nimo uy!,Ka-bobo nimo uy!,You're so dumb!,bobo
+146,intelligence,med,Pagka-{w} gyud nimo.,Pagka-bobo gyud nimo.,How dumb you really are.,bobo
+147,intelligence,med,Pagka{w} gyud nimo.,Pagkabobo gyud nimo.,How dumb you really are.,bobo
+148,intelligence,med,{w} man ka.,Bobo man ka.,You're dumb anyway.,bobo
+149,intelligence,med,{w} diay ka.,Bobo diay ka.,So you're dumb.,bobo
+150,intelligence,med,{w} na pud ka.,Bobo na pud ka.,You're being dumb again.,bobo
+151,intelligence,med,Ngano {w} man kaayo ka?,Ngano bobo man kaayo ka?,Why are you so dumb?,bobo
+152,intelligence,med,"Uy, {w}!","Uy, bobo!","Hey, dumb!",bobo
+153,intelligence,med,Hoy {w}!,Hoy bobo!,"Hey, dumb!",bobo
+154,intelligence,med,"{w} siya, oh!","Bobo siya, oh!","He/she's dumb, look!",bobo
+155,intelligence,med,"{w} kaayo siya, hahaha.","Bobo kaayo siya, hahaha.","He/she's so dumb, haha.",bobo
+156,intelligence,med,Kining {w} nga bata.,Kining bobo nga bata.,This dumb kid.,bobo
+157,intelligence,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-bobo sa klase.,You're the most dumb in class.,bobo
+158,intelligence,med,"{w} ka, mao wala kay higala.","Bobo ka, mao wala kay higala.","You're dumb, that's why you have no friends.",bobo
+159,intelligence,med,"{w} ka, ayaw ko duola.","Bobo ka, ayaw ko duola.","You're dumb, don't come near me.",bobo
+160,intelligence,med,{w} ka!,Hungog ka!,You're foolish!,hungog
+161,intelligence,med,{w} ka uy!,Hungog ka uy!,"You're foolish, ugh!",hungog
+162,intelligence,med,{w} ka oy!,Hungog ka oy!,"You're foolish, ugh!",hungog
+163,intelligence,med,{w} kaayo ka.,Hungog kaayo ka.,You're so foolish.,hungog
+164,intelligence,med,{w} kaau ka.,Hungog kaau ka.,You're so foolish.,hungog
+165,intelligence,med,{w} gyud ka.,Hungog gyud ka.,You're really foolish.,hungog
+166,intelligence,med,{w} jud ka uy.,Hungog jud ka uy.,You're really foolish.,hungog
+167,intelligence,med,Ka-{w} nimo!,Ka-hungog nimo!,You're so foolish!,hungog
+168,intelligence,med,Ka{w} nimo!,Kahungog nimo!,You're so foolish!,hungog
+169,intelligence,med,Ka-{w} nimo uy!,Ka-hungog nimo uy!,You're so foolish!,hungog
+170,intelligence,med,Pagka-{w} gyud nimo.,Pagka-hungog gyud nimo.,How foolish you really are.,hungog
+171,intelligence,med,Pagka{w} gyud nimo.,Pagkahungog gyud nimo.,How foolish you really are.,hungog
+172,intelligence,med,{w} man ka.,Hungog man ka.,You're foolish anyway.,hungog
+173,intelligence,med,{w} diay ka.,Hungog diay ka.,So you're foolish.,hungog
+174,intelligence,med,{w} na pud ka.,Hungog na pud ka.,You're being foolish again.,hungog
+175,intelligence,med,Ngano {w} man kaayo ka?,Ngano hungog man kaayo ka?,Why are you so foolish?,hungog
+176,intelligence,med,"Uy, {w}!","Uy, hungog!","Hey, foolish!",hungog
+177,intelligence,med,Hoy {w}!,Hoy hungog!,"Hey, foolish!",hungog
+178,intelligence,med,"{w} siya, oh!","Hungog siya, oh!","He/she's foolish, look!",hungog
+179,intelligence,med,"{w} kaayo siya, hahaha.","Hungog kaayo siya, hahaha.","He/she's so foolish, haha.",hungog
+180,intelligence,med,Kining {w} nga bata.,Kining hungog nga bata.,This foolish kid.,hungog
+181,intelligence,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-hungog sa klase.,You're the most foolish in class.,hungog
+182,intelligence,med,"{w} ka, mao wala kay higala.","Hungog ka, mao wala kay higala.","You're foolish, that's why you have no friends.",hungog
+183,intelligence,med,"{w} ka, ayaw ko duola.","Hungog ka, ayaw ko duola.","You're foolish, don't come near me.",hungog
+184,intelligence,med,{a} nimo uy!,Hungoga nimo uy!,You're so foolish!,hungog
+185,intelligence,med,{a} nimo oy!,Hungoga nimo oy!,You're so foolish!,hungog
+186,intelligence,med,Kining {a}!,Kining hungoga!,This foolish one!,hungog
+187,intelligence,med,{w} ka!,Abno ka!,You're weird/abnormal!,abno
+188,intelligence,med,{w} ka uy!,Abno ka uy!,"You're weird/abnormal, ugh!",abno
+189,intelligence,med,{w} ka oy!,Abno ka oy!,"You're weird/abnormal, ugh!",abno
+190,intelligence,med,{w} kaayo ka.,Abno kaayo ka.,You're so weird/abnormal.,abno
+191,intelligence,med,{w} kaau ka.,Abno kaau ka.,You're so weird/abnormal.,abno
+192,intelligence,med,{w} gyud ka.,Abno gyud ka.,You're really weird/abnormal.,abno
+193,intelligence,med,{w} jud ka uy.,Abno jud ka uy.,You're really weird/abnormal.,abno
+194,intelligence,med,Ka-{w} nimo!,Ka-abno nimo!,You're so weird/abnormal!,abno
+195,intelligence,med,Ka{w} nimo!,Kaabno nimo!,You're so weird/abnormal!,abno
+196,intelligence,med,Ka-{w} nimo uy!,Ka-abno nimo uy!,You're so weird/abnormal!,abno
+197,intelligence,med,Pagka-{w} gyud nimo.,Pagka-abno gyud nimo.,How weird/abnormal you really are.,abno
+198,intelligence,med,Pagka{w} gyud nimo.,Pagkaabno gyud nimo.,How weird/abnormal you really are.,abno
+199,intelligence,med,{w} man ka.,Abno man ka.,You're weird/abnormal anyway.,abno
+200,intelligence,med,{w} diay ka.,Abno diay ka.,So you're weird/abnormal.,abno
+201,intelligence,med,{w} na pud ka.,Abno na pud ka.,You're being weird/abnormal again.,abno
+202,intelligence,med,Ngano {w} man kaayo ka?,Ngano abno man kaayo ka?,Why are you so weird/abnormal?,abno
+203,intelligence,med,"Uy, {w}!","Uy, abno!","Hey, weird/abnormal!",abno
+204,intelligence,med,Hoy {w}!,Hoy abno!,"Hey, weird/abnormal!",abno
+205,intelligence,med,"{w} siya, oh!","Abno siya, oh!","He/she's weird/abnormal, look!",abno
+206,intelligence,med,"{w} kaayo siya, hahaha.","Abno kaayo siya, hahaha.","He/she's so weird/abnormal, haha.",abno
+207,intelligence,med,Kining {w} nga bata.,Kining abno nga bata.,This weird/abnormal kid.,abno
+208,intelligence,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-abno sa klase.,You're the most weird/abnormal in class.,abno
+209,intelligence,med,"{w} ka, mao wala kay higala.","Abno ka, mao wala kay higala.","You're weird/abnormal, that's why you have no friends.",abno
+210,intelligence,med,"{w} ka, ayaw ko duola.","Abno ka, ayaw ko duola.","You're weird/abnormal, don't come near me.",abno
+211,intelligence,med,{a} nimo uy!,Abnoa nimo uy!,You're so weird/abnormal!,abno
+212,intelligence,med,{a} nimo oy!,Abnoa nimo oy!,You're so weird/abnormal!,abno
+213,intelligence,med,Kining {a}!,Kining abnoa!,This weird/abnormal one!,abno
+214,appearance,med,{w} ka!,Pangit ka!,You're ugly!,pangit
+215,appearance,med,{w} ka uy!,Pangit ka uy!,"You're ugly, ugh!",pangit
+216,appearance,med,{w} ka oy!,Pangit ka oy!,"You're ugly, ugh!",pangit
+217,appearance,med,{w} kaayo ka.,Pangit kaayo ka.,You're so ugly.,pangit
+218,appearance,med,{w} kaau ka.,Pangit kaau ka.,You're so ugly.,pangit
+219,appearance,med,{w} gyud ka.,Pangit gyud ka.,You're really ugly.,pangit
+220,appearance,med,{w} jud ka uy.,Pangit jud ka uy.,You're really ugly.,pangit
+221,appearance,med,Ka-{w} nimo!,Ka-pangit nimo!,You're so ugly!,pangit
+222,appearance,med,Ka{w} nimo!,Kapangit nimo!,You're so ugly!,pangit
+223,appearance,med,Ka-{w} nimo uy!,Ka-pangit nimo uy!,You're so ugly!,pangit
+224,appearance,med,Pagka-{w} gyud nimo.,Pagka-pangit gyud nimo.,How ugly you really are.,pangit
+225,appearance,med,Pagka{w} gyud nimo.,Pagkapangit gyud nimo.,How ugly you really are.,pangit
+226,appearance,med,{w} man ka.,Pangit man ka.,You're ugly anyway.,pangit
+227,appearance,med,{w} diay ka.,Pangit diay ka.,So you're ugly.,pangit
+228,appearance,med,{w} na pud ka.,Pangit na pud ka.,You're being ugly again.,pangit
+229,appearance,med,Ngano {w} man kaayo ka?,Ngano pangit man kaayo ka?,Why are you so ugly?,pangit
+230,appearance,med,"Uy, {w}!","Uy, pangit!","Hey, ugly!",pangit
+231,appearance,med,Hoy {w}!,Hoy pangit!,"Hey, ugly!",pangit
+232,appearance,med,"{w} siya, oh!","Pangit siya, oh!","He/she's ugly, look!",pangit
+233,appearance,med,"{w} kaayo siya, hahaha.","Pangit kaayo siya, hahaha.","He/she's so ugly, haha.",pangit
+234,appearance,med,Kining {w} nga bata.,Kining pangit nga bata.,This ugly kid.,pangit
+235,appearance,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-pangit sa klase.,You're the most ugly in class.,pangit
+236,appearance,med,"{w} ka, mao wala kay higala.","Pangit ka, mao wala kay higala.","You're ugly, that's why you have no friends.",pangit
+237,appearance,med,"{w} ka, ayaw ko duola.","Pangit ka, ayaw ko duola.","You're ugly, don't come near me.",pangit
+238,appearance,med,{a} nimo uy!,Pangita nimo uy!,You're so ugly!,pangit
+239,appearance,med,{a} nimo oy!,Pangita nimo oy!,You're so ugly!,pangit
+240,appearance,med,Kining {a}!,Kining pangita!,This ugly one!,pangit
+241,appearance,med,{w} ka!,Ngil-ad ka!,You're ugly!,ngil-ad
+242,appearance,med,{w} ka uy!,Ngil-ad ka uy!,"You're ugly, ugh!",ngil-ad
+243,appearance,med,{w} ka oy!,Ngil-ad ka oy!,"You're ugly, ugh!",ngil-ad
+244,appearance,med,{w} kaayo ka.,Ngil-ad kaayo ka.,You're so ugly.,ngil-ad
+245,appearance,med,{w} kaau ka.,Ngil-ad kaau ka.,You're so ugly.,ngil-ad
+246,appearance,med,{w} gyud ka.,Ngil-ad gyud ka.,You're really ugly.,ngil-ad
+247,appearance,med,{w} jud ka uy.,Ngil-ad jud ka uy.,You're really ugly.,ngil-ad
+248,appearance,med,Ka-{w} nimo!,Ka-ngil-ad nimo!,You're so ugly!,ngil-ad
+249,appearance,med,Ka{w} nimo!,Kangil-ad nimo!,You're so ugly!,ngil-ad
+250,appearance,med,Ka-{w} nimo uy!,Ka-ngil-ad nimo uy!,You're so ugly!,ngil-ad
+251,appearance,med,Pagka-{w} gyud nimo.,Pagka-ngil-ad gyud nimo.,How ugly you really are.,ngil-ad
+252,appearance,med,Pagka{w} gyud nimo.,Pagkangil-ad gyud nimo.,How ugly you really are.,ngil-ad
+253,appearance,med,{w} man ka.,Ngil-ad man ka.,You're ugly anyway.,ngil-ad
+254,appearance,med,{w} diay ka.,Ngil-ad diay ka.,So you're ugly.,ngil-ad
+255,appearance,med,{w} na pud ka.,Ngil-ad na pud ka.,You're being ugly again.,ngil-ad
+256,appearance,med,Ngano {w} man kaayo ka?,Ngano ngil-ad man kaayo ka?,Why are you so ugly?,ngil-ad
+257,appearance,med,"Uy, {w}!","Uy, ngil-ad!","Hey, ugly!",ngil-ad
+258,appearance,med,Hoy {w}!,Hoy ngil-ad!,"Hey, ugly!",ngil-ad
+259,appearance,med,"{w} siya, oh!","Ngil-ad siya, oh!","He/she's ugly, look!",ngil-ad
+260,appearance,med,"{w} kaayo siya, hahaha.","Ngil-ad kaayo siya, hahaha.","He/she's so ugly, haha.",ngil-ad
+261,appearance,med,Kining {w} nga bata.,Kining ngil-ad nga bata.,This ugly kid.,ngil-ad
+262,appearance,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-ngil-ad sa klase.,You're the most ugly in class.,ngil-ad
+263,appearance,med,"{w} ka, mao wala kay higala.","Ngil-ad ka, mao wala kay higala.","You're ugly, that's why you have no friends.",ngil-ad
+264,appearance,med,"{w} ka, ayaw ko duola.","Ngil-ad ka, ayaw ko duola.","You're ugly, don't come near me.",ngil-ad
+265,appearance,med,{w} ka!,Tambok ka!,You're fat!,tambok
+266,appearance,med,{w} ka uy!,Tambok ka uy!,"You're fat, ugh!",tambok
+267,appearance,med,{w} ka oy!,Tambok ka oy!,"You're fat, ugh!",tambok
+268,appearance,med,{w} kaayo ka.,Tambok kaayo ka.,You're so fat.,tambok
+269,appearance,med,{w} kaau ka.,Tambok kaau ka.,You're so fat.,tambok
+270,appearance,med,{w} gyud ka.,Tambok gyud ka.,You're really fat.,tambok
+271,appearance,med,{w} jud ka uy.,Tambok jud ka uy.,You're really fat.,tambok
+272,appearance,med,Ka-{w} nimo!,Ka-tambok nimo!,You're so fat!,tambok
+273,appearance,med,Ka{w} nimo!,Katambok nimo!,You're so fat!,tambok
+274,appearance,med,Ka-{w} nimo uy!,Ka-tambok nimo uy!,You're so fat!,tambok
+275,appearance,med,Pagka-{w} gyud nimo.,Pagka-tambok gyud nimo.,How fat you really are.,tambok
+276,appearance,med,Pagka{w} gyud nimo.,Pagkatambok gyud nimo.,How fat you really are.,tambok
+277,appearance,med,{w} man ka.,Tambok man ka.,You're fat anyway.,tambok
+278,appearance,med,{w} diay ka.,Tambok diay ka.,So you're fat.,tambok
+279,appearance,med,{w} na pud ka.,Tambok na pud ka.,You're being fat again.,tambok
+280,appearance,med,Ngano {w} man kaayo ka?,Ngano tambok man kaayo ka?,Why are you so fat?,tambok
+281,appearance,med,"Uy, {w}!","Uy, tambok!","Hey, fat!",tambok
+282,appearance,med,Hoy {w}!,Hoy tambok!,"Hey, fat!",tambok
+283,appearance,med,"{w} siya, oh!","Tambok siya, oh!","He/she's fat, look!",tambok
+284,appearance,med,"{w} kaayo siya, hahaha.","Tambok kaayo siya, hahaha.","He/she's so fat, haha.",tambok
+285,appearance,med,Kining {w} nga bata.,Kining tambok nga bata.,This fat kid.,tambok
+286,appearance,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-tambok sa klase.,You're the most fat in class.,tambok
+287,appearance,med,"{w} ka, mao wala kay higala.","Tambok ka, mao wala kay higala.","You're fat, that's why you have no friends.",tambok
+288,appearance,med,"{w} ka, ayaw ko duola.","Tambok ka, ayaw ko duola.","You're fat, don't come near me.",tambok
+289,appearance,med,{a} nimo uy!,Tamboka nimo uy!,You're so fat!,tambok
+290,appearance,med,{a} nimo oy!,Tamboka nimo oy!,You're so fat!,tambok
+291,appearance,med,Kining {a}!,Kining tamboka!,This fat one!,tambok
+292,appearance,med,{w} ka!,Niwang ka!,You're skinny!,niwang
+293,appearance,med,{w} ka uy!,Niwang ka uy!,"You're skinny, ugh!",niwang
+294,appearance,med,{w} ka oy!,Niwang ka oy!,"You're skinny, ugh!",niwang
+295,appearance,med,{w} kaayo ka.,Niwang kaayo ka.,You're so skinny.,niwang
+296,appearance,med,{w} kaau ka.,Niwang kaau ka.,You're so skinny.,niwang
+297,appearance,med,{w} gyud ka.,Niwang gyud ka.,You're really skinny.,niwang
+298,appearance,med,{w} jud ka uy.,Niwang jud ka uy.,You're really skinny.,niwang
+299,appearance,med,Ka-{w} nimo!,Ka-niwang nimo!,You're so skinny!,niwang
+300,appearance,med,Ka{w} nimo!,Kaniwang nimo!,You're so skinny!,niwang
+301,appearance,med,Ka-{w} nimo uy!,Ka-niwang nimo uy!,You're so skinny!,niwang
+302,appearance,med,Pagka-{w} gyud nimo.,Pagka-niwang gyud nimo.,How skinny you really are.,niwang
+303,appearance,med,Pagka{w} gyud nimo.,Pagkaniwang gyud nimo.,How skinny you really are.,niwang
+304,appearance,med,{w} man ka.,Niwang man ka.,You're skinny anyway.,niwang
+305,appearance,med,{w} diay ka.,Niwang diay ka.,So you're skinny.,niwang
+306,appearance,med,{w} na pud ka.,Niwang na pud ka.,You're being skinny again.,niwang
+307,appearance,med,Ngano {w} man kaayo ka?,Ngano niwang man kaayo ka?,Why are you so skinny?,niwang
+308,appearance,med,"Uy, {w}!","Uy, niwang!","Hey, skinny!",niwang
+309,appearance,med,Hoy {w}!,Hoy niwang!,"Hey, skinny!",niwang
+310,appearance,med,"{w} siya, oh!","Niwang siya, oh!","He/she's skinny, look!",niwang
+311,appearance,med,"{w} kaayo siya, hahaha.","Niwang kaayo siya, hahaha.","He/she's so skinny, haha.",niwang
+312,appearance,med,Kining {w} nga bata.,Kining niwang nga bata.,This skinny kid.,niwang
+313,appearance,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-niwang sa klase.,You're the most skinny in class.,niwang
+314,appearance,med,"{w} ka, mao wala kay higala.","Niwang ka, mao wala kay higala.","You're skinny, that's why you have no friends.",niwang
+315,appearance,med,"{w} ka, ayaw ko duola.","Niwang ka, ayaw ko duola.","You're skinny, don't come near me.",niwang
+316,appearance,med,{a} nimo uy!,Niwanga nimo uy!,You're so skinny!,niwang
+317,appearance,med,{a} nimo oy!,Niwanga nimo oy!,You're so skinny!,niwang
+318,appearance,med,Kining {a}!,Kining niwanga!,This skinny one!,niwang
+319,appearance,high,{w} ka!,Itom ka!,You're dark-skinned!,itom
+320,appearance,high,{w} ka uy!,Itom ka uy!,"You're dark-skinned, ugh!",itom
+321,appearance,high,{w} ka oy!,Itom ka oy!,"You're dark-skinned, ugh!",itom
+322,appearance,high,{w} kaayo ka.,Itom kaayo ka.,You're so dark-skinned.,itom
+323,appearance,high,{w} kaau ka.,Itom kaau ka.,You're so dark-skinned.,itom
+324,appearance,high,{w} gyud ka.,Itom gyud ka.,You're really dark-skinned.,itom
+325,appearance,high,{w} jud ka uy.,Itom jud ka uy.,You're really dark-skinned.,itom
+326,appearance,high,Ka-{w} nimo!,Ka-itom nimo!,You're so dark-skinned!,itom
+327,appearance,high,Ka{w} nimo!,Kaitom nimo!,You're so dark-skinned!,itom
+328,appearance,high,Ka-{w} nimo uy!,Ka-itom nimo uy!,You're so dark-skinned!,itom
+329,appearance,high,Pagka-{w} gyud nimo.,Pagka-itom gyud nimo.,How dark-skinned you really are.,itom
+330,appearance,high,Pagka{w} gyud nimo.,Pagkaitom gyud nimo.,How dark-skinned you really are.,itom
+331,appearance,high,{w} man ka.,Itom man ka.,You're dark-skinned anyway.,itom
+332,appearance,high,{w} diay ka.,Itom diay ka.,So you're dark-skinned.,itom
+333,appearance,high,{w} na pud ka.,Itom na pud ka.,You're being dark-skinned again.,itom
+334,appearance,high,Ngano {w} man kaayo ka?,Ngano itom man kaayo ka?,Why are you so dark-skinned?,itom
+335,appearance,high,"Uy, {w}!","Uy, itom!","Hey, dark-skinned!",itom
+336,appearance,high,Hoy {w}!,Hoy itom!,"Hey, dark-skinned!",itom
+337,appearance,high,"{w} siya, oh!","Itom siya, oh!","He/she's dark-skinned, look!",itom
+338,appearance,high,"{w} kaayo siya, hahaha.","Itom kaayo siya, hahaha.","He/she's so dark-skinned, haha.",itom
+339,appearance,high,Kining {w} nga bata.,Kining itom nga bata.,This dark-skinned kid.,itom
+340,appearance,high,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-itom sa klase.,You're the most dark-skinned in class.,itom
+341,appearance,high,"{w} ka, mao wala kay higala.","Itom ka, mao wala kay higala.","You're dark-skinned, that's why you have no friends.",itom
+342,appearance,high,"{w} ka, ayaw ko duola.","Itom ka, ayaw ko duola.","You're dark-skinned, don't come near me.",itom
+343,appearance,high,{a} nimo uy!,Itoma nimo uy!,You're so dark-skinned!,itom
+344,appearance,high,{a} nimo oy!,Itoma nimo oy!,You're so dark-skinned!,itom
+345,appearance,high,Kining {a}!,Kining itoma!,This dark-skinned one!,itom
+346,appearance,med,{w} ka!,Baho ka!,You're smelly!,baho
+347,appearance,med,{w} ka uy!,Baho ka uy!,"You're smelly, ugh!",baho
+348,appearance,med,{w} ka oy!,Baho ka oy!,"You're smelly, ugh!",baho
+349,appearance,med,{w} kaayo ka.,Baho kaayo ka.,You're so smelly.,baho
+350,appearance,med,{w} kaau ka.,Baho kaau ka.,You're so smelly.,baho
+351,appearance,med,{w} gyud ka.,Baho gyud ka.,You're really smelly.,baho
+352,appearance,med,{w} jud ka uy.,Baho jud ka uy.,You're really smelly.,baho
+353,appearance,med,Ka-{w} nimo!,Ka-baho nimo!,You're so smelly!,baho
+354,appearance,med,Ka{w} nimo!,Kabaho nimo!,You're so smelly!,baho
+355,appearance,med,Ka-{w} nimo uy!,Ka-baho nimo uy!,You're so smelly!,baho
+356,appearance,med,Pagka-{w} gyud nimo.,Pagka-baho gyud nimo.,How smelly you really are.,baho
+357,appearance,med,Pagka{w} gyud nimo.,Pagkabaho gyud nimo.,How smelly you really are.,baho
+358,appearance,med,{w} man ka.,Baho man ka.,You're smelly anyway.,baho
+359,appearance,med,{w} diay ka.,Baho diay ka.,So you're smelly.,baho
+360,appearance,med,{w} na pud ka.,Baho na pud ka.,You're being smelly again.,baho
+361,appearance,med,Ngano {w} man kaayo ka?,Ngano baho man kaayo ka?,Why are you so smelly?,baho
+362,appearance,med,"Uy, {w}!","Uy, baho!","Hey, smelly!",baho
+363,appearance,med,Hoy {w}!,Hoy baho!,"Hey, smelly!",baho
+364,appearance,med,"{w} siya, oh!","Baho siya, oh!","He/she's smelly, look!",baho
+365,appearance,med,"{w} kaayo siya, hahaha.","Baho kaayo siya, hahaha.","He/she's so smelly, haha.",baho
+366,appearance,med,Kining {w} nga bata.,Kining baho nga bata.,This smelly kid.,baho
+367,appearance,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-baho sa klase.,You're the most smelly in class.,baho
+368,appearance,med,"{w} ka, mao wala kay higala.","Baho ka, mao wala kay higala.","You're smelly, that's why you have no friends.",baho
+369,appearance,med,"{w} ka, ayaw ko duola.","Baho ka, ayaw ko duola.","You're smelly, don't come near me.",baho
+370,appearance,med,{w} ka!,Hugaw ka!,You're dirty!,hugaw
+371,appearance,med,{w} ka uy!,Hugaw ka uy!,"You're dirty, ugh!",hugaw
+372,appearance,med,{w} ka oy!,Hugaw ka oy!,"You're dirty, ugh!",hugaw
+373,appearance,med,{w} kaayo ka.,Hugaw kaayo ka.,You're so dirty.,hugaw
+374,appearance,med,{w} kaau ka.,Hugaw kaau ka.,You're so dirty.,hugaw
+375,appearance,med,{w} gyud ka.,Hugaw gyud ka.,You're really dirty.,hugaw
+376,appearance,med,{w} jud ka uy.,Hugaw jud ka uy.,You're really dirty.,hugaw
+377,appearance,med,Ka-{w} nimo!,Ka-hugaw nimo!,You're so dirty!,hugaw
+378,appearance,med,Ka{w} nimo!,Kahugaw nimo!,You're so dirty!,hugaw
+379,appearance,med,Ka-{w} nimo uy!,Ka-hugaw nimo uy!,You're so dirty!,hugaw
+380,appearance,med,Pagka-{w} gyud nimo.,Pagka-hugaw gyud nimo.,How dirty you really are.,hugaw
+381,appearance,med,Pagka{w} gyud nimo.,Pagkahugaw gyud nimo.,How dirty you really are.,hugaw
+382,appearance,med,{w} man ka.,Hugaw man ka.,You're dirty anyway.,hugaw
+383,appearance,med,{w} diay ka.,Hugaw diay ka.,So you're dirty.,hugaw
+384,appearance,med,{w} na pud ka.,Hugaw na pud ka.,You're being dirty again.,hugaw
+385,appearance,med,Ngano {w} man kaayo ka?,Ngano hugaw man kaayo ka?,Why are you so dirty?,hugaw
+386,appearance,med,"Uy, {w}!","Uy, hugaw!","Hey, dirty!",hugaw
+387,appearance,med,Hoy {w}!,Hoy hugaw!,"Hey, dirty!",hugaw
+388,appearance,med,"{w} siya, oh!","Hugaw siya, oh!","He/she's dirty, look!",hugaw
+389,appearance,med,"{w} kaayo siya, hahaha.","Hugaw kaayo siya, hahaha.","He/she's so dirty, haha.",hugaw
+390,appearance,med,Kining {w} nga bata.,Kining hugaw nga bata.,This dirty kid.,hugaw
+391,appearance,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-hugaw sa klase.,You're the most dirty in class.,hugaw
+392,appearance,med,"{w} ka, mao wala kay higala.","Hugaw ka, mao wala kay higala.","You're dirty, that's why you have no friends.",hugaw
+393,appearance,med,"{w} ka, ayaw ko duola.","Hugaw ka, ayaw ko duola.","You're dirty, don't come near me.",hugaw
+394,appearance,med,{a} nimo uy!,Hugawa nimo uy!,You're so dirty!,hugaw
+395,appearance,med,{a} nimo oy!,Hugawa nimo oy!,You're so dirty!,hugaw
+396,appearance,med,Kining {a}!,Kining hugawa!,This dirty one!,hugaw
+397,appearance,med,{w} ka!,Bulingit ka!,You're filthy!,bulingit
+398,appearance,med,{w} ka uy!,Bulingit ka uy!,"You're filthy, ugh!",bulingit
+399,appearance,med,{w} ka oy!,Bulingit ka oy!,"You're filthy, ugh!",bulingit
+400,appearance,med,{w} kaayo ka.,Bulingit kaayo ka.,You're so filthy.,bulingit
+401,appearance,med,{w} kaau ka.,Bulingit kaau ka.,You're so filthy.,bulingit
+402,appearance,med,{w} gyud ka.,Bulingit gyud ka.,You're really filthy.,bulingit
+403,appearance,med,{w} jud ka uy.,Bulingit jud ka uy.,You're really filthy.,bulingit
+404,appearance,med,Ka-{w} nimo!,Ka-bulingit nimo!,You're so filthy!,bulingit
+405,appearance,med,Ka{w} nimo!,Kabulingit nimo!,You're so filthy!,bulingit
+406,appearance,med,Ka-{w} nimo uy!,Ka-bulingit nimo uy!,You're so filthy!,bulingit
+407,appearance,med,Pagka-{w} gyud nimo.,Pagka-bulingit gyud nimo.,How filthy you really are.,bulingit
+408,appearance,med,Pagka{w} gyud nimo.,Pagkabulingit gyud nimo.,How filthy you really are.,bulingit
+409,appearance,med,{w} man ka.,Bulingit man ka.,You're filthy anyway.,bulingit
+410,appearance,med,{w} diay ka.,Bulingit diay ka.,So you're filthy.,bulingit
+411,appearance,med,{w} na pud ka.,Bulingit na pud ka.,You're being filthy again.,bulingit
+412,appearance,med,Ngano {w} man kaayo ka?,Ngano bulingit man kaayo ka?,Why are you so filthy?,bulingit
+413,appearance,med,"Uy, {w}!","Uy, bulingit!","Hey, filthy!",bulingit
+414,appearance,med,Hoy {w}!,Hoy bulingit!,"Hey, filthy!",bulingit
+415,appearance,med,"{w} siya, oh!","Bulingit siya, oh!","He/she's filthy, look!",bulingit
+416,appearance,med,"{w} kaayo siya, hahaha.","Bulingit kaayo siya, hahaha.","He/she's so filthy, haha.",bulingit
+417,appearance,med,Kining {w} nga bata.,Kining bulingit nga bata.,This filthy kid.,bulingit
+418,appearance,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-bulingit sa klase.,You're the most filthy in class.,bulingit
+419,appearance,med,"{w} ka, mao wala kay higala.","Bulingit ka, mao wala kay higala.","You're filthy, that's why you have no friends.",bulingit
+420,appearance,med,"{w} ka, ayaw ko duola.","Bulingit ka, ayaw ko duola.","You're filthy, don't come near me.",bulingit
+421,appearance,med,{a} nimo uy!,Bulingita nimo uy!,You're so filthy!,bulingit
+422,appearance,med,{a} nimo oy!,Bulingita nimo oy!,You're so filthy!,bulingit
+423,appearance,med,Kining {a}!,Kining bulingita!,This filthy one!,bulingit
+424,appearance,med,{w} ka!,Bungi ka!,You're gap-toothed!,bungi
+425,appearance,med,{w} ka uy!,Bungi ka uy!,"You're gap-toothed, ugh!",bungi
+426,appearance,med,{w} ka oy!,Bungi ka oy!,"You're gap-toothed, ugh!",bungi
+427,appearance,med,{w} kaayo ka.,Bungi kaayo ka.,You're so gap-toothed.,bungi
+428,appearance,med,{w} kaau ka.,Bungi kaau ka.,You're so gap-toothed.,bungi
+429,appearance,med,{w} gyud ka.,Bungi gyud ka.,You're really gap-toothed.,bungi
+430,appearance,med,{w} jud ka uy.,Bungi jud ka uy.,You're really gap-toothed.,bungi
+431,appearance,med,Ka-{w} nimo!,Ka-bungi nimo!,You're so gap-toothed!,bungi
+432,appearance,med,Ka{w} nimo!,Kabungi nimo!,You're so gap-toothed!,bungi
+433,appearance,med,Ka-{w} nimo uy!,Ka-bungi nimo uy!,You're so gap-toothed!,bungi
+434,appearance,med,Pagka-{w} gyud nimo.,Pagka-bungi gyud nimo.,How gap-toothed you really are.,bungi
+435,appearance,med,Pagka{w} gyud nimo.,Pagkabungi gyud nimo.,How gap-toothed you really are.,bungi
+436,appearance,med,{w} man ka.,Bungi man ka.,You're gap-toothed anyway.,bungi
+437,appearance,med,{w} diay ka.,Bungi diay ka.,So you're gap-toothed.,bungi
+438,appearance,med,{w} na pud ka.,Bungi na pud ka.,You're being gap-toothed again.,bungi
+439,appearance,med,Ngano {w} man kaayo ka?,Ngano bungi man kaayo ka?,Why are you so gap-toothed?,bungi
+440,appearance,med,"Uy, {w}!","Uy, bungi!","Hey, gap-toothed!",bungi
+441,appearance,med,Hoy {w}!,Hoy bungi!,"Hey, gap-toothed!",bungi
+442,appearance,med,"{w} siya, oh!","Bungi siya, oh!","He/she's gap-toothed, look!",bungi
+443,appearance,med,"{w} kaayo siya, hahaha.","Bungi kaayo siya, hahaha.","He/she's so gap-toothed, haha.",bungi
+444,appearance,med,Kining {w} nga bata.,Kining bungi nga bata.,This gap-toothed kid.,bungi
+445,appearance,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-bungi sa klase.,You're the most gap-toothed in class.,bungi
+446,appearance,med,"{w} ka, mao wala kay higala.","Bungi ka, mao wala kay higala.","You're gap-toothed, that's why you have no friends.",bungi
+447,appearance,med,"{w} ka, ayaw ko duola.","Bungi ka, ayaw ko duola.","You're gap-toothed, don't come near me.",bungi
+448,appearance,med,{w} ka!,Pandak ka!,You're short!,pandak
+449,appearance,med,{w} ka uy!,Pandak ka uy!,"You're short, ugh!",pandak
+450,appearance,med,{w} ka oy!,Pandak ka oy!,"You're short, ugh!",pandak
+451,appearance,med,{w} kaayo ka.,Pandak kaayo ka.,You're so short.,pandak
+452,appearance,med,{w} kaau ka.,Pandak kaau ka.,You're so short.,pandak
+453,appearance,med,{w} gyud ka.,Pandak gyud ka.,You're really short.,pandak
+454,appearance,med,{w} jud ka uy.,Pandak jud ka uy.,You're really short.,pandak
+455,appearance,med,Ka-{w} nimo!,Ka-pandak nimo!,You're so short!,pandak
+456,appearance,med,Ka{w} nimo!,Kapandak nimo!,You're so short!,pandak
+457,appearance,med,Ka-{w} nimo uy!,Ka-pandak nimo uy!,You're so short!,pandak
+458,appearance,med,Pagka-{w} gyud nimo.,Pagka-pandak gyud nimo.,How short you really are.,pandak
+459,appearance,med,Pagka{w} gyud nimo.,Pagkapandak gyud nimo.,How short you really are.,pandak
+460,appearance,med,{w} man ka.,Pandak man ka.,You're short anyway.,pandak
+461,appearance,med,{w} diay ka.,Pandak diay ka.,So you're short.,pandak
+462,appearance,med,{w} na pud ka.,Pandak na pud ka.,You're being short again.,pandak
+463,appearance,med,Ngano {w} man kaayo ka?,Ngano pandak man kaayo ka?,Why are you so short?,pandak
+464,appearance,med,"Uy, {w}!","Uy, pandak!","Hey, short!",pandak
+465,appearance,med,Hoy {w}!,Hoy pandak!,"Hey, short!",pandak
+466,appearance,med,"{w} siya, oh!","Pandak siya, oh!","He/she's short, look!",pandak
+467,appearance,med,"{w} kaayo siya, hahaha.","Pandak kaayo siya, hahaha.","He/she's so short, haha.",pandak
+468,appearance,med,Kining {w} nga bata.,Kining pandak nga bata.,This short kid.,pandak
+469,appearance,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-pandak sa klase.,You're the most short in class.,pandak
+470,appearance,med,"{w} ka, mao wala kay higala.","Pandak ka, mao wala kay higala.","You're short, that's why you have no friends.",pandak
+471,appearance,med,"{w} ka, ayaw ko duola.","Pandak ka, ayaw ko duola.","You're short, don't come near me.",pandak
+472,appearance,med,{a} nimo uy!,Pandaka nimo uy!,You're so short!,pandak
+473,appearance,med,{a} nimo oy!,Pandaka nimo oy!,You're so short!,pandak
+474,appearance,med,Kining {a}!,Kining pandaka!,This short one!,pandak
+475,appearance,med,{w} ka!,Kutohon ka!,You're lice-ridden!,kutohon
+476,appearance,med,{w} ka uy!,Kutohon ka uy!,"You're lice-ridden, ugh!",kutohon
+477,appearance,med,{w} ka oy!,Kutohon ka oy!,"You're lice-ridden, ugh!",kutohon
+478,appearance,med,{w} kaayo ka.,Kutohon kaayo ka.,You're so lice-ridden.,kutohon
+479,appearance,med,{w} kaau ka.,Kutohon kaau ka.,You're so lice-ridden.,kutohon
+480,appearance,med,{w} gyud ka.,Kutohon gyud ka.,You're really lice-ridden.,kutohon
+481,appearance,med,{w} jud ka uy.,Kutohon jud ka uy.,You're really lice-ridden.,kutohon
+482,appearance,med,Ka-{w} nimo!,Ka-kutohon nimo!,You're so lice-ridden!,kutohon
+483,appearance,med,Ka{w} nimo!,Kakutohon nimo!,You're so lice-ridden!,kutohon
+484,appearance,med,Ka-{w} nimo uy!,Ka-kutohon nimo uy!,You're so lice-ridden!,kutohon
+485,appearance,med,Pagka-{w} gyud nimo.,Pagka-kutohon gyud nimo.,How lice-ridden you really are.,kutohon
+486,appearance,med,Pagka{w} gyud nimo.,Pagkakutohon gyud nimo.,How lice-ridden you really are.,kutohon
+487,appearance,med,{w} man ka.,Kutohon man ka.,You're lice-ridden anyway.,kutohon
+488,appearance,med,{w} diay ka.,Kutohon diay ka.,So you're lice-ridden.,kutohon
+489,appearance,med,{w} na pud ka.,Kutohon na pud ka.,You're being lice-ridden again.,kutohon
+490,appearance,med,Ngano {w} man kaayo ka?,Ngano kutohon man kaayo ka?,Why are you so lice-ridden?,kutohon
+491,appearance,med,"Uy, {w}!","Uy, kutohon!","Hey, lice-ridden!",kutohon
+492,appearance,med,Hoy {w}!,Hoy kutohon!,"Hey, lice-ridden!",kutohon
+493,appearance,med,"{w} siya, oh!","Kutohon siya, oh!","He/she's lice-ridden, look!",kutohon
+494,appearance,med,"{w} kaayo siya, hahaha.","Kutohon kaayo siya, hahaha.","He/she's so lice-ridden, haha.",kutohon
+495,appearance,med,Kining {w} nga bata.,Kining kutohon nga bata.,This lice-ridden kid.,kutohon
+496,appearance,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-kutohon sa klase.,You're the most lice-ridden in class.,kutohon
+497,appearance,med,"{w} ka, mao wala kay higala.","Kutohon ka, mao wala kay higala.","You're lice-ridden, that's why you have no friends.",kutohon
+498,appearance,med,"{w} ka, ayaw ko duola.","Kutohon ka, ayaw ko duola.","You're lice-ridden, don't come near me.",kutohon
+499,personality,low,{w} ka!,Hilakon ka!,You're a crybaby!,hilakon
+500,personality,low,{w} ka uy!,Hilakon ka uy!,"You're a crybaby, ugh!",hilakon
+501,personality,low,{w} ka oy!,Hilakon ka oy!,"You're a crybaby, ugh!",hilakon
+502,personality,low,{w} kaayo ka.,Hilakon kaayo ka.,You're so crybaby.,hilakon
+503,personality,low,{w} kaau ka.,Hilakon kaau ka.,You're so crybaby.,hilakon
+504,personality,low,{w} gyud ka.,Hilakon gyud ka.,You're really crybaby.,hilakon
+505,personality,low,{w} jud ka uy.,Hilakon jud ka uy.,You're really crybaby.,hilakon
+506,personality,low,Ka-{w} nimo!,Ka-hilakon nimo!,You're so crybaby!,hilakon
+507,personality,low,Ka{w} nimo!,Kahilakon nimo!,You're so crybaby!,hilakon
+508,personality,low,Ka-{w} nimo uy!,Ka-hilakon nimo uy!,You're so crybaby!,hilakon
+509,personality,low,Pagka-{w} gyud nimo.,Pagka-hilakon gyud nimo.,How crybaby you really are.,hilakon
+510,personality,low,Pagka{w} gyud nimo.,Pagkahilakon gyud nimo.,How crybaby you really are.,hilakon
+511,personality,low,{w} man ka.,Hilakon man ka.,You're a crybaby anyway.,hilakon
+512,personality,low,{w} diay ka.,Hilakon diay ka.,So you're a crybaby.,hilakon
+513,personality,low,{w} na pud ka.,Hilakon na pud ka.,You're being crybaby again.,hilakon
+514,personality,low,Ngano {w} man kaayo ka?,Ngano hilakon man kaayo ka?,Why are you so crybaby?,hilakon
+515,personality,low,"Uy, {w}!","Uy, hilakon!","Hey, crybaby!",hilakon
+516,personality,low,Hoy {w}!,Hoy hilakon!,"Hey, crybaby!",hilakon
+517,personality,low,"{w} siya, oh!","Hilakon siya, oh!","He/she's a crybaby, look!",hilakon
+518,personality,low,"{w} kaayo siya, hahaha.","Hilakon kaayo siya, hahaha.","He/she's so crybaby, haha.",hilakon
+519,personality,low,Kining {w} nga bata.,Kining hilakon nga bata.,This crybaby kid.,hilakon
+520,personality,low,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-hilakon sa klase.,You're the most crybaby in class.,hilakon
+521,personality,low,"{w} ka, mao wala kay higala.","Hilakon ka, mao wala kay higala.","You're a crybaby, that's why you have no friends.",hilakon
+522,personality,low,"{w} ka, ayaw ko duola.","Hilakon ka, ayaw ko duola.","You're a crybaby, don't come near me.",hilakon
+523,personality,low,{w} ka!,Pikon ka!,You're a sore loser!,pikon
+524,personality,low,{w} ka uy!,Pikon ka uy!,"You're a sore loser, ugh!",pikon
+525,personality,low,{w} ka oy!,Pikon ka oy!,"You're a sore loser, ugh!",pikon
+526,personality,low,{w} kaayo ka.,Pikon kaayo ka.,You're so sore loser.,pikon
+527,personality,low,{w} kaau ka.,Pikon kaau ka.,You're so sore loser.,pikon
+528,personality,low,{w} gyud ka.,Pikon gyud ka.,You're really sore loser.,pikon
+529,personality,low,{w} jud ka uy.,Pikon jud ka uy.,You're really sore loser.,pikon
+530,personality,low,Ka-{w} nimo!,Ka-pikon nimo!,You're so sore loser!,pikon
+531,personality,low,Ka{w} nimo!,Kapikon nimo!,You're so sore loser!,pikon
+532,personality,low,Ka-{w} nimo uy!,Ka-pikon nimo uy!,You're so sore loser!,pikon
+533,personality,low,Pagka-{w} gyud nimo.,Pagka-pikon gyud nimo.,How sore loser you really are.,pikon
+534,personality,low,Pagka{w} gyud nimo.,Pagkapikon gyud nimo.,How sore loser you really are.,pikon
+535,personality,low,{w} man ka.,Pikon man ka.,You're a sore loser anyway.,pikon
+536,personality,low,{w} diay ka.,Pikon diay ka.,So you're a sore loser.,pikon
+537,personality,low,{w} na pud ka.,Pikon na pud ka.,You're being sore loser again.,pikon
+538,personality,low,Ngano {w} man kaayo ka?,Ngano pikon man kaayo ka?,Why are you so sore loser?,pikon
+539,personality,low,"Uy, {w}!","Uy, pikon!","Hey, sore loser!",pikon
+540,personality,low,Hoy {w}!,Hoy pikon!,"Hey, sore loser!",pikon
+541,personality,low,"{w} siya, oh!","Pikon siya, oh!","He/she's a sore loser, look!",pikon
+542,personality,low,"{w} kaayo siya, hahaha.","Pikon kaayo siya, hahaha.","He/she's so sore loser, haha.",pikon
+543,personality,low,Kining {w} nga bata.,Kining pikon nga bata.,This sore loser kid.,pikon
+544,personality,low,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-pikon sa klase.,You're the most sore loser in class.,pikon
+545,personality,low,"{w} ka, mao wala kay higala.","Pikon ka, mao wala kay higala.","You're a sore loser, that's why you have no friends.",pikon
+546,personality,low,"{w} ka, ayaw ko duola.","Pikon ka, ayaw ko duola.","You're a sore loser, don't come near me.",pikon
+547,personality,low,{w} ka!,Sipsip ka!,You're a suck-up!,sipsip
+548,personality,low,{w} ka uy!,Sipsip ka uy!,"You're a suck-up, ugh!",sipsip
+549,personality,low,{w} ka oy!,Sipsip ka oy!,"You're a suck-up, ugh!",sipsip
+550,personality,low,{w} kaayo ka.,Sipsip kaayo ka.,You're so suck-up.,sipsip
+551,personality,low,{w} kaau ka.,Sipsip kaau ka.,You're so suck-up.,sipsip
+552,personality,low,{w} gyud ka.,Sipsip gyud ka.,You're really suck-up.,sipsip
+553,personality,low,{w} jud ka uy.,Sipsip jud ka uy.,You're really suck-up.,sipsip
+554,personality,low,Ka-{w} nimo!,Ka-sipsip nimo!,You're so suck-up!,sipsip
+555,personality,low,Ka{w} nimo!,Kasipsip nimo!,You're so suck-up!,sipsip
+556,personality,low,Ka-{w} nimo uy!,Ka-sipsip nimo uy!,You're so suck-up!,sipsip
+557,personality,low,Pagka-{w} gyud nimo.,Pagka-sipsip gyud nimo.,How suck-up you really are.,sipsip
+558,personality,low,Pagka{w} gyud nimo.,Pagkasipsip gyud nimo.,How suck-up you really are.,sipsip
+559,personality,low,{w} man ka.,Sipsip man ka.,You're a suck-up anyway.,sipsip
+560,personality,low,{w} diay ka.,Sipsip diay ka.,So you're a suck-up.,sipsip
+561,personality,low,{w} na pud ka.,Sipsip na pud ka.,You're being suck-up again.,sipsip
+562,personality,low,Ngano {w} man kaayo ka?,Ngano sipsip man kaayo ka?,Why are you so suck-up?,sipsip
+563,personality,low,"Uy, {w}!","Uy, sipsip!","Hey, suck-up!",sipsip
+564,personality,low,Hoy {w}!,Hoy sipsip!,"Hey, suck-up!",sipsip
+565,personality,low,"{w} siya, oh!","Sipsip siya, oh!","He/she's a suck-up, look!",sipsip
+566,personality,low,"{w} kaayo siya, hahaha.","Sipsip kaayo siya, hahaha.","He/she's so suck-up, haha.",sipsip
+567,personality,low,Kining {w} nga bata.,Kining sipsip nga bata.,This suck-up kid.,sipsip
+568,personality,low,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-sipsip sa klase.,You're the most suck-up in class.,sipsip
+569,personality,low,"{w} ka, mao wala kay higala.","Sipsip ka, mao wala kay higala.","You're a suck-up, that's why you have no friends.",sipsip
+570,personality,low,"{w} ka, ayaw ko duola.","Sipsip ka, ayaw ko duola.","You're a suck-up, don't come near me.",sipsip
+571,personality,low,{w} ka!,Pabibo ka!,You're a show-off!,pabibo
+572,personality,low,{w} ka uy!,Pabibo ka uy!,"You're a show-off, ugh!",pabibo
+573,personality,low,{w} ka oy!,Pabibo ka oy!,"You're a show-off, ugh!",pabibo
+574,personality,low,{w} kaayo ka.,Pabibo kaayo ka.,You're so show-off.,pabibo
+575,personality,low,{w} kaau ka.,Pabibo kaau ka.,You're so show-off.,pabibo
+576,personality,low,{w} gyud ka.,Pabibo gyud ka.,You're really show-off.,pabibo
+577,personality,low,{w} jud ka uy.,Pabibo jud ka uy.,You're really show-off.,pabibo
+578,personality,low,Ka-{w} nimo!,Ka-pabibo nimo!,You're so show-off!,pabibo
+579,personality,low,Ka{w} nimo!,Kapabibo nimo!,You're so show-off!,pabibo
+580,personality,low,Ka-{w} nimo uy!,Ka-pabibo nimo uy!,You're so show-off!,pabibo
+581,personality,low,Pagka-{w} gyud nimo.,Pagka-pabibo gyud nimo.,How show-off you really are.,pabibo
+582,personality,low,Pagka{w} gyud nimo.,Pagkapabibo gyud nimo.,How show-off you really are.,pabibo
+583,personality,low,{w} man ka.,Pabibo man ka.,You're a show-off anyway.,pabibo
+584,personality,low,{w} diay ka.,Pabibo diay ka.,So you're a show-off.,pabibo
+585,personality,low,{w} na pud ka.,Pabibo na pud ka.,You're being show-off again.,pabibo
+586,personality,low,Ngano {w} man kaayo ka?,Ngano pabibo man kaayo ka?,Why are you so show-off?,pabibo
+587,personality,low,"Uy, {w}!","Uy, pabibo!","Hey, show-off!",pabibo
+588,personality,low,Hoy {w}!,Hoy pabibo!,"Hey, show-off!",pabibo
+589,personality,low,"{w} siya, oh!","Pabibo siya, oh!","He/she's a show-off, look!",pabibo
+590,personality,low,"{w} kaayo siya, hahaha.","Pabibo kaayo siya, hahaha.","He/she's so show-off, haha.",pabibo
+591,personality,low,Kining {w} nga bata.,Kining pabibo nga bata.,This show-off kid.,pabibo
+592,personality,low,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-pabibo sa klase.,You're the most show-off in class.,pabibo
+593,personality,low,"{w} ka, mao wala kay higala.","Pabibo ka, mao wala kay higala.","You're a show-off, that's why you have no friends.",pabibo
+594,personality,low,"{w} ka, ayaw ko duola.","Pabibo ka, ayaw ko duola.","You're a show-off, don't come near me.",pabibo
+595,personality,low,{w} ka!,Papansin ka!,You're an attention-seeker!,papansin
+596,personality,low,{w} ka uy!,Papansin ka uy!,"You're an attention-seeker, ugh!",papansin
+597,personality,low,{w} ka oy!,Papansin ka oy!,"You're an attention-seeker, ugh!",papansin
+598,personality,low,{w} kaayo ka.,Papansin kaayo ka.,You're so attention-seeker.,papansin
+599,personality,low,{w} kaau ka.,Papansin kaau ka.,You're so attention-seeker.,papansin
+600,personality,low,{w} gyud ka.,Papansin gyud ka.,You're really attention-seeker.,papansin
+601,personality,low,{w} jud ka uy.,Papansin jud ka uy.,You're really attention-seeker.,papansin
+602,personality,low,Ka-{w} nimo!,Ka-papansin nimo!,You're so attention-seeker!,papansin
+603,personality,low,Ka{w} nimo!,Kapapansin nimo!,You're so attention-seeker!,papansin
+604,personality,low,Ka-{w} nimo uy!,Ka-papansin nimo uy!,You're so attention-seeker!,papansin
+605,personality,low,Pagka-{w} gyud nimo.,Pagka-papansin gyud nimo.,How attention-seeker you really are.,papansin
+606,personality,low,Pagka{w} gyud nimo.,Pagkapapansin gyud nimo.,How attention-seeker you really are.,papansin
+607,personality,low,{w} man ka.,Papansin man ka.,You're an attention-seeker anyway.,papansin
+608,personality,low,{w} diay ka.,Papansin diay ka.,So you're an attention-seeker.,papansin
+609,personality,low,{w} na pud ka.,Papansin na pud ka.,You're being attention-seeker again.,papansin
+610,personality,low,Ngano {w} man kaayo ka?,Ngano papansin man kaayo ka?,Why are you so attention-seeker?,papansin
+611,personality,low,"Uy, {w}!","Uy, papansin!","Hey, attention-seeker!",papansin
+612,personality,low,Hoy {w}!,Hoy papansin!,"Hey, attention-seeker!",papansin
+613,personality,low,"{w} siya, oh!","Papansin siya, oh!","He/she's an attention-seeker, look!",papansin
+614,personality,low,"{w} kaayo siya, hahaha.","Papansin kaayo siya, hahaha.","He/she's so attention-seeker, haha.",papansin
+615,personality,low,Kining {w} nga bata.,Kining papansin nga bata.,This attention-seeker kid.,papansin
+616,personality,low,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-papansin sa klase.,You're the most attention-seeker in class.,papansin
+617,personality,low,"{w} ka, mao wala kay higala.","Papansin ka, mao wala kay higala.","You're an attention-seeker, that's why you have no friends.",papansin
+618,personality,low,"{w} ka, ayaw ko duola.","Papansin ka, ayaw ko duola.","You're an attention-seeker, don't come near me.",papansin
+619,personality,low,{w} ka!,Hambog ka!,You're boastful!,hambog
+620,personality,low,{w} ka uy!,Hambog ka uy!,"You're boastful, ugh!",hambog
+621,personality,low,{w} ka oy!,Hambog ka oy!,"You're boastful, ugh!",hambog
+622,personality,low,{w} kaayo ka.,Hambog kaayo ka.,You're so boastful.,hambog
+623,personality,low,{w} kaau ka.,Hambog kaau ka.,You're so boastful.,hambog
+624,personality,low,{w} gyud ka.,Hambog gyud ka.,You're really boastful.,hambog
+625,personality,low,{w} jud ka uy.,Hambog jud ka uy.,You're really boastful.,hambog
+626,personality,low,Ka-{w} nimo!,Ka-hambog nimo!,You're so boastful!,hambog
+627,personality,low,Ka{w} nimo!,Kahambog nimo!,You're so boastful!,hambog
+628,personality,low,Ka-{w} nimo uy!,Ka-hambog nimo uy!,You're so boastful!,hambog
+629,personality,low,Pagka-{w} gyud nimo.,Pagka-hambog gyud nimo.,How boastful you really are.,hambog
+630,personality,low,Pagka{w} gyud nimo.,Pagkahambog gyud nimo.,How boastful you really are.,hambog
+631,personality,low,{w} man ka.,Hambog man ka.,You're boastful anyway.,hambog
+632,personality,low,{w} diay ka.,Hambog diay ka.,So you're boastful.,hambog
+633,personality,low,{w} na pud ka.,Hambog na pud ka.,You're being boastful again.,hambog
+634,personality,low,Ngano {w} man kaayo ka?,Ngano hambog man kaayo ka?,Why are you so boastful?,hambog
+635,personality,low,"Uy, {w}!","Uy, hambog!","Hey, boastful!",hambog
+636,personality,low,Hoy {w}!,Hoy hambog!,"Hey, boastful!",hambog
+637,personality,low,"{w} siya, oh!","Hambog siya, oh!","He/she's boastful, look!",hambog
+638,personality,low,"{w} kaayo siya, hahaha.","Hambog kaayo siya, hahaha.","He/she's so boastful, haha.",hambog
+639,personality,low,Kining {w} nga bata.,Kining hambog nga bata.,This boastful kid.,hambog
+640,personality,low,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-hambog sa klase.,You're the most boastful in class.,hambog
+641,personality,low,"{w} ka, mao wala kay higala.","Hambog ka, mao wala kay higala.","You're boastful, that's why you have no friends.",hambog
+642,personality,low,"{w} ka, ayaw ko duola.","Hambog ka, ayaw ko duola.","You're boastful, don't come near me.",hambog
+643,personality,low,{a} nimo uy!,Hamboga nimo uy!,You're so boastful!,hambog
+644,personality,low,{a} nimo oy!,Hamboga nimo oy!,You're so boastful!,hambog
+645,personality,low,Kining {a}!,Kining hamboga!,This boastful one!,hambog
+646,personality,low,{w} ka!,Arte ka!,You're so pretentious!,arte
+647,personality,low,{w} ka uy!,Arte ka uy!,"You're so pretentious, ugh!",arte
+648,personality,low,{w} ka oy!,Arte ka oy!,"You're so pretentious, ugh!",arte
+649,personality,low,{w} kaayo ka.,Arte kaayo ka.,You're so pretentious.,arte
+650,personality,low,{w} kaau ka.,Arte kaau ka.,You're so pretentious.,arte
+651,personality,low,{w} gyud ka.,Arte gyud ka.,You're really so pretentious.,arte
+652,personality,low,{w} jud ka uy.,Arte jud ka uy.,You're really so pretentious.,arte
+653,personality,low,Ka-{w} nimo!,Ka-arte nimo!,You're so pretentious!,arte
+654,personality,low,Ka{w} nimo!,Kaarte nimo!,You're so pretentious!,arte
+655,personality,low,Ka-{w} nimo uy!,Ka-arte nimo uy!,You're so pretentious!,arte
+656,personality,low,Pagka-{w} gyud nimo.,Pagka-arte gyud nimo.,How so pretentious you really are.,arte
+657,personality,low,Pagka{w} gyud nimo.,Pagkaarte gyud nimo.,How so pretentious you really are.,arte
+658,personality,low,{w} man ka.,Arte man ka.,You're so pretentious anyway.,arte
+659,personality,low,{w} diay ka.,Arte diay ka.,So you're so pretentious.,arte
+660,personality,low,{w} na pud ka.,Arte na pud ka.,You're being so pretentious again.,arte
+661,personality,low,Ngano {w} man kaayo ka?,Ngano arte man kaayo ka?,Why are you so pretentious?,arte
+662,personality,low,"Uy, {w}!","Uy, arte!","Hey, so pretentious!",arte
+663,personality,low,Hoy {w}!,Hoy arte!,"Hey, so pretentious!",arte
+664,personality,low,"{w} siya, oh!","Arte siya, oh!","He/she's so pretentious, look!",arte
+665,personality,low,"{w} kaayo siya, hahaha.","Arte kaayo siya, hahaha.","He/she's so pretentious, haha.",arte
+666,personality,low,Kining {w} nga bata.,Kining arte nga bata.,This so pretentious kid.,arte
+667,personality,low,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-arte sa klase.,You're the most so pretentious in class.,arte
+668,personality,low,"{w} ka, mao wala kay higala.","Arte ka, mao wala kay higala.","You're so pretentious, that's why you have no friends.",arte
+669,personality,low,"{w} ka, ayaw ko duola.","Arte ka, ayaw ko duola.","You're so pretentious, don't come near me.",arte
+670,personality,low,{w} ka!,Samok ka!,You're annoying!,samok
+671,personality,low,{w} ka uy!,Samok ka uy!,"You're annoying, ugh!",samok
+672,personality,low,{w} ka oy!,Samok ka oy!,"You're annoying, ugh!",samok
+673,personality,low,{w} kaayo ka.,Samok kaayo ka.,You're so annoying.,samok
+674,personality,low,{w} kaau ka.,Samok kaau ka.,You're so annoying.,samok
+675,personality,low,{w} gyud ka.,Samok gyud ka.,You're really annoying.,samok
+676,personality,low,{w} jud ka uy.,Samok jud ka uy.,You're really annoying.,samok
+677,personality,low,Ka-{w} nimo!,Ka-samok nimo!,You're so annoying!,samok
+678,personality,low,Ka{w} nimo!,Kasamok nimo!,You're so annoying!,samok
+679,personality,low,Ka-{w} nimo uy!,Ka-samok nimo uy!,You're so annoying!,samok
+680,personality,low,Pagka-{w} gyud nimo.,Pagka-samok gyud nimo.,How annoying you really are.,samok
+681,personality,low,Pagka{w} gyud nimo.,Pagkasamok gyud nimo.,How annoying you really are.,samok
+682,personality,low,{w} man ka.,Samok man ka.,You're annoying anyway.,samok
+683,personality,low,{w} diay ka.,Samok diay ka.,So you're annoying.,samok
+684,personality,low,{w} na pud ka.,Samok na pud ka.,You're being annoying again.,samok
+685,personality,low,Ngano {w} man kaayo ka?,Ngano samok man kaayo ka?,Why are you so annoying?,samok
+686,personality,low,"Uy, {w}!","Uy, samok!","Hey, annoying!",samok
+687,personality,low,Hoy {w}!,Hoy samok!,"Hey, annoying!",samok
+688,personality,low,"{w} siya, oh!","Samok siya, oh!","He/she's annoying, look!",samok
+689,personality,low,"{w} kaayo siya, hahaha.","Samok kaayo siya, hahaha.","He/she's so annoying, haha.",samok
+690,personality,low,Kining {w} nga bata.,Kining samok nga bata.,This annoying kid.,samok
+691,personality,low,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-samok sa klase.,You're the most annoying in class.,samok
+692,personality,low,"{w} ka, mao wala kay higala.","Samok ka, mao wala kay higala.","You're annoying, that's why you have no friends.",samok
+693,personality,low,"{w} ka, ayaw ko duola.","Samok ka, ayaw ko duola.","You're annoying, don't come near me.",samok
+694,personality,low,{a} nimo uy!,Samoka nimo uy!,You're so annoying!,samok
+695,personality,low,{a} nimo oy!,Samoka nimo oy!,You're so annoying!,samok
+696,personality,low,Kining {a}!,Kining samoka!,This annoying one!,samok
+697,personality,low,{w} ka!,Kuripot ka!,You're stingy!,kuripot
+698,personality,low,{w} ka uy!,Kuripot ka uy!,"You're stingy, ugh!",kuripot
+699,personality,low,{w} ka oy!,Kuripot ka oy!,"You're stingy, ugh!",kuripot
+700,personality,low,{w} kaayo ka.,Kuripot kaayo ka.,You're so stingy.,kuripot
+701,personality,low,{w} kaau ka.,Kuripot kaau ka.,You're so stingy.,kuripot
+702,personality,low,{w} gyud ka.,Kuripot gyud ka.,You're really stingy.,kuripot
+703,personality,low,{w} jud ka uy.,Kuripot jud ka uy.,You're really stingy.,kuripot
+704,personality,low,Ka-{w} nimo!,Ka-kuripot nimo!,You're so stingy!,kuripot
+705,personality,low,Ka{w} nimo!,Kakuripot nimo!,You're so stingy!,kuripot
+706,personality,low,Ka-{w} nimo uy!,Ka-kuripot nimo uy!,You're so stingy!,kuripot
+707,personality,low,Pagka-{w} gyud nimo.,Pagka-kuripot gyud nimo.,How stingy you really are.,kuripot
+708,personality,low,Pagka{w} gyud nimo.,Pagkakuripot gyud nimo.,How stingy you really are.,kuripot
+709,personality,low,{w} man ka.,Kuripot man ka.,You're stingy anyway.,kuripot
+710,personality,low,{w} diay ka.,Kuripot diay ka.,So you're stingy.,kuripot
+711,personality,low,{w} na pud ka.,Kuripot na pud ka.,You're being stingy again.,kuripot
+712,personality,low,Ngano {w} man kaayo ka?,Ngano kuripot man kaayo ka?,Why are you so stingy?,kuripot
+713,personality,low,"Uy, {w}!","Uy, kuripot!","Hey, stingy!",kuripot
+714,personality,low,Hoy {w}!,Hoy kuripot!,"Hey, stingy!",kuripot
+715,personality,low,"{w} siya, oh!","Kuripot siya, oh!","He/she's stingy, look!",kuripot
+716,personality,low,"{w} kaayo siya, hahaha.","Kuripot kaayo siya, hahaha.","He/she's so stingy, haha.",kuripot
+717,personality,low,Kining {w} nga bata.,Kining kuripot nga bata.,This stingy kid.,kuripot
+718,personality,low,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-kuripot sa klase.,You're the most stingy in class.,kuripot
+719,personality,low,"{w} ka, mao wala kay higala.","Kuripot ka, mao wala kay higala.","You're stingy, that's why you have no friends.",kuripot
+720,personality,low,"{w} ka, ayaw ko duola.","Kuripot ka, ayaw ko duola.","You're stingy, don't come near me.",kuripot
+721,personality,med,{w} ka!,Sumbungero ka!,You're a tattletale!,sumbungero
+722,personality,med,{w} ka uy!,Sumbungero ka uy!,"You're a tattletale, ugh!",sumbungero
+723,personality,med,{w} ka oy!,Sumbungero ka oy!,"You're a tattletale, ugh!",sumbungero
+724,personality,med,{w} kaayo ka.,Sumbungero kaayo ka.,You're so tattletale.,sumbungero
+725,personality,med,{w} kaau ka.,Sumbungero kaau ka.,You're so tattletale.,sumbungero
+726,personality,med,{w} gyud ka.,Sumbungero gyud ka.,You're really tattletale.,sumbungero
+727,personality,med,{w} jud ka uy.,Sumbungero jud ka uy.,You're really tattletale.,sumbungero
+728,personality,med,Ka-{w} nimo!,Ka-sumbungero nimo!,You're so tattletale!,sumbungero
+729,personality,med,Ka{w} nimo!,Kasumbungero nimo!,You're so tattletale!,sumbungero
+730,personality,med,Ka-{w} nimo uy!,Ka-sumbungero nimo uy!,You're so tattletale!,sumbungero
+731,personality,med,Pagka-{w} gyud nimo.,Pagka-sumbungero gyud nimo.,How tattletale you really are.,sumbungero
+732,personality,med,Pagka{w} gyud nimo.,Pagkasumbungero gyud nimo.,How tattletale you really are.,sumbungero
+733,personality,med,{w} man ka.,Sumbungero man ka.,You're a tattletale anyway.,sumbungero
+734,personality,med,{w} diay ka.,Sumbungero diay ka.,So you're a tattletale.,sumbungero
+735,personality,med,{w} na pud ka.,Sumbungero na pud ka.,You're being tattletale again.,sumbungero
+736,personality,med,Ngano {w} man kaayo ka?,Ngano sumbungero man kaayo ka?,Why are you so tattletale?,sumbungero
+737,personality,med,"Uy, {w}!","Uy, sumbungero!","Hey, tattletale!",sumbungero
+738,personality,med,Hoy {w}!,Hoy sumbungero!,"Hey, tattletale!",sumbungero
+739,personality,med,"{w} siya, oh!","Sumbungero siya, oh!","He/she's a tattletale, look!",sumbungero
+740,personality,med,"{w} kaayo siya, hahaha.","Sumbungero kaayo siya, hahaha.","He/she's so tattletale, haha.",sumbungero
+741,personality,med,Kining {w} nga bata.,Kining sumbungero nga bata.,This tattletale kid.,sumbungero
+742,personality,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-sumbungero sa klase.,You're the most tattletale in class.,sumbungero
+743,personality,med,"{w} ka, mao wala kay higala.","Sumbungero ka, mao wala kay higala.","You're a tattletale, that's why you have no friends.",sumbungero
+744,personality,med,"{w} ka, ayaw ko duola.","Sumbungero ka, ayaw ko duola.","You're a tattletale, don't come near me.",sumbungero
+745,personality,med,{w} ka!,Sumbungera ka!,You're a tattletale (girl)!,sumbungera
+746,personality,med,{w} ka uy!,Sumbungera ka uy!,"You're a tattletale (girl), ugh!",sumbungera
+747,personality,med,{w} ka oy!,Sumbungera ka oy!,"You're a tattletale (girl), ugh!",sumbungera
+748,personality,med,{w} kaayo ka.,Sumbungera kaayo ka.,You're so tattletale (girl).,sumbungera
+749,personality,med,{w} kaau ka.,Sumbungera kaau ka.,You're so tattletale (girl).,sumbungera
+750,personality,med,{w} gyud ka.,Sumbungera gyud ka.,You're really tattletale (girl).,sumbungera
+751,personality,med,{w} jud ka uy.,Sumbungera jud ka uy.,You're really tattletale (girl).,sumbungera
+752,personality,med,Ka-{w} nimo!,Ka-sumbungera nimo!,You're so tattletale (girl)!,sumbungera
+753,personality,med,Ka{w} nimo!,Kasumbungera nimo!,You're so tattletale (girl)!,sumbungera
+754,personality,med,Ka-{w} nimo uy!,Ka-sumbungera nimo uy!,You're so tattletale (girl)!,sumbungera
+755,personality,med,Pagka-{w} gyud nimo.,Pagka-sumbungera gyud nimo.,How tattletale (girl) you really are.,sumbungera
+756,personality,med,Pagka{w} gyud nimo.,Pagkasumbungera gyud nimo.,How tattletale (girl) you really are.,sumbungera
+757,personality,med,{w} man ka.,Sumbungera man ka.,You're a tattletale (girl) anyway.,sumbungera
+758,personality,med,{w} diay ka.,Sumbungera diay ka.,So you're a tattletale (girl).,sumbungera
+759,personality,med,{w} na pud ka.,Sumbungera na pud ka.,You're being tattletale (girl) again.,sumbungera
+760,personality,med,Ngano {w} man kaayo ka?,Ngano sumbungera man kaayo ka?,Why are you so tattletale (girl)?,sumbungera
+761,personality,med,"Uy, {w}!","Uy, sumbungera!","Hey, tattletale (girl)!",sumbungera
+762,personality,med,Hoy {w}!,Hoy sumbungera!,"Hey, tattletale (girl)!",sumbungera
+763,personality,med,"{w} siya, oh!","Sumbungera siya, oh!","He/she's a tattletale (girl), look!",sumbungera
+764,personality,med,"{w} kaayo siya, hahaha.","Sumbungera kaayo siya, hahaha.","He/she's so tattletale (girl), haha.",sumbungera
+765,personality,med,Kining {w} nga bata.,Kining sumbungera nga bata.,This tattletale (girl) kid.,sumbungera
+766,personality,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-sumbungera sa klase.,You're the most tattletale (girl) in class.,sumbungera
+767,personality,med,"{w} ka, mao wala kay higala.","Sumbungera ka, mao wala kay higala.","You're a tattletale (girl), that's why you have no friends.",sumbungera
+768,personality,med,"{w} ka, ayaw ko duola.","Sumbungera ka, ayaw ko duola.","You're a tattletale (girl), don't come near me.",sumbungera
+769,poverty,med,{w} ka!,Pobre ka!,You're poor!,pobre
+770,poverty,med,{w} ka uy!,Pobre ka uy!,"You're poor, ugh!",pobre
+771,poverty,med,{w} ka oy!,Pobre ka oy!,"You're poor, ugh!",pobre
+772,poverty,med,{w} kaayo ka.,Pobre kaayo ka.,You're so poor.,pobre
+773,poverty,med,{w} kaau ka.,Pobre kaau ka.,You're so poor.,pobre
+774,poverty,med,{w} gyud ka.,Pobre gyud ka.,You're really poor.,pobre
+775,poverty,med,{w} jud ka uy.,Pobre jud ka uy.,You're really poor.,pobre
+776,poverty,med,Ka-{w} nimo!,Ka-pobre nimo!,You're so poor!,pobre
+777,poverty,med,Ka{w} nimo!,Kapobre nimo!,You're so poor!,pobre
+778,poverty,med,Ka-{w} nimo uy!,Ka-pobre nimo uy!,You're so poor!,pobre
+779,poverty,med,Pagka-{w} gyud nimo.,Pagka-pobre gyud nimo.,How poor you really are.,pobre
+780,poverty,med,Pagka{w} gyud nimo.,Pagkapobre gyud nimo.,How poor you really are.,pobre
+781,poverty,med,{w} man ka.,Pobre man ka.,You're poor anyway.,pobre
+782,poverty,med,{w} diay ka.,Pobre diay ka.,So you're poor.,pobre
+783,poverty,med,{w} na pud ka.,Pobre na pud ka.,You're being poor again.,pobre
+784,poverty,med,Ngano {w} man kaayo ka?,Ngano pobre man kaayo ka?,Why are you so poor?,pobre
+785,poverty,med,"Uy, {w}!","Uy, pobre!","Hey, poor!",pobre
+786,poverty,med,Hoy {w}!,Hoy pobre!,"Hey, poor!",pobre
+787,poverty,med,"{w} siya, oh!","Pobre siya, oh!","He/she's poor, look!",pobre
+788,poverty,med,"{w} kaayo siya, hahaha.","Pobre kaayo siya, hahaha.","He/she's so poor, haha.",pobre
+789,poverty,med,Kining {w} nga bata.,Kining pobre nga bata.,This poor kid.,pobre
+790,poverty,med,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-pobre sa klase.,You're the most poor in class.,pobre
+791,poverty,med,"{w} ka, mao wala kay higala.","Pobre ka, mao wala kay higala.","You're poor, that's why you have no friends.",pobre
+792,poverty,med,"{w} ka, ayaw ko duola.","Pobre ka, ayaw ko duola.","You're poor, don't come near me.",pobre
+793,poverty,med,{a} nimo uy!,Pobrea nimo uy!,You're so poor!,pobre
+794,poverty,med,{a} nimo oy!,Pobrea nimo oy!,You're so poor!,pobre
+795,poverty,med,Kining {a}!,Kining pobrea!,This poor one!,pobre
+796,identity,high,{w} ka!,Bayot ka!,You're gay (slur use)!,bayot
+797,identity,high,{w} ka uy!,Bayot ka uy!,"You're gay (slur use), ugh!",bayot
+798,identity,high,{w} ka oy!,Bayot ka oy!,"You're gay (slur use), ugh!",bayot
+799,identity,high,{w} kaayo ka.,Bayot kaayo ka.,You're so gay (slur use).,bayot
+800,identity,high,{w} kaau ka.,Bayot kaau ka.,You're so gay (slur use).,bayot
+801,identity,high,{w} gyud ka.,Bayot gyud ka.,You're really gay (slur use).,bayot
+802,identity,high,{w} jud ka uy.,Bayot jud ka uy.,You're really gay (slur use).,bayot
+803,identity,high,Ka-{w} nimo!,Ka-bayot nimo!,You're so gay (slur use)!,bayot
+804,identity,high,Ka{w} nimo!,Kabayot nimo!,You're so gay (slur use)!,bayot
+805,identity,high,Ka-{w} nimo uy!,Ka-bayot nimo uy!,You're so gay (slur use)!,bayot
+806,identity,high,Pagka-{w} gyud nimo.,Pagka-bayot gyud nimo.,How gay (slur use) you really are.,bayot
+807,identity,high,Pagka{w} gyud nimo.,Pagkabayot gyud nimo.,How gay (slur use) you really are.,bayot
+808,identity,high,{w} man ka.,Bayot man ka.,You're gay (slur use) anyway.,bayot
+809,identity,high,{w} diay ka.,Bayot diay ka.,So you're gay (slur use).,bayot
+810,identity,high,{w} na pud ka.,Bayot na pud ka.,You're being gay (slur use) again.,bayot
+811,identity,high,Ngano {w} man kaayo ka?,Ngano bayot man kaayo ka?,Why are you so gay (slur use)?,bayot
+812,identity,high,"Uy, {w}!","Uy, bayot!","Hey, gay (slur use)!",bayot
+813,identity,high,Hoy {w}!,Hoy bayot!,"Hey, gay (slur use)!",bayot
+814,identity,high,"{w} siya, oh!","Bayot siya, oh!","He/she's gay (slur use), look!",bayot
+815,identity,high,"{w} kaayo siya, hahaha.","Bayot kaayo siya, hahaha.","He/she's so gay (slur use), haha.",bayot
+816,identity,high,Kining {w} nga bata.,Kining bayot nga bata.,This gay (slur use) kid.,bayot
+817,identity,high,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-bayot sa klase.,You're the most gay (slur use) in class.,bayot
+818,identity,high,"{w} ka, mao wala kay higala.","Bayot ka, mao wala kay higala.","You're gay (slur use), that's why you have no friends.",bayot
+819,identity,high,"{w} ka, ayaw ko duola.","Bayot ka, ayaw ko duola.","You're gay (slur use), don't come near me.",bayot
+820,identity,high,{a} nimo uy!,Bayota nimo uy!,You're so gay (slur use)!,bayot
+821,identity,high,{a} nimo oy!,Bayota nimo oy!,You're so gay (slur use)!,bayot
+822,identity,high,Kining {a}!,Kining bayota!,This gay (slur use) one!,bayot
+823,identity,high,{w} ka!,Lakin-on ka!,You're mannish (slur use)!,lakin-on
+824,identity,high,{w} ka uy!,Lakin-on ka uy!,"You're mannish (slur use), ugh!",lakin-on
+825,identity,high,{w} ka oy!,Lakin-on ka oy!,"You're mannish (slur use), ugh!",lakin-on
+826,identity,high,{w} kaayo ka.,Lakin-on kaayo ka.,You're so mannish (slur use).,lakin-on
+827,identity,high,{w} kaau ka.,Lakin-on kaau ka.,You're so mannish (slur use).,lakin-on
+828,identity,high,{w} gyud ka.,Lakin-on gyud ka.,You're really mannish (slur use).,lakin-on
+829,identity,high,{w} jud ka uy.,Lakin-on jud ka uy.,You're really mannish (slur use).,lakin-on
+830,identity,high,Ka-{w} nimo!,Ka-lakin-on nimo!,You're so mannish (slur use)!,lakin-on
+831,identity,high,Ka{w} nimo!,Kalakin-on nimo!,You're so mannish (slur use)!,lakin-on
+832,identity,high,Ka-{w} nimo uy!,Ka-lakin-on nimo uy!,You're so mannish (slur use)!,lakin-on
+833,identity,high,Pagka-{w} gyud nimo.,Pagka-lakin-on gyud nimo.,How mannish (slur use) you really are.,lakin-on
+834,identity,high,Pagka{w} gyud nimo.,Pagkalakin-on gyud nimo.,How mannish (slur use) you really are.,lakin-on
+835,identity,high,{w} man ka.,Lakin-on man ka.,You're mannish (slur use) anyway.,lakin-on
+836,identity,high,{w} diay ka.,Lakin-on diay ka.,So you're mannish (slur use).,lakin-on
+837,identity,high,{w} na pud ka.,Lakin-on na pud ka.,You're being mannish (slur use) again.,lakin-on
+838,identity,high,Ngano {w} man kaayo ka?,Ngano lakin-on man kaayo ka?,Why are you so mannish (slur use)?,lakin-on
+839,identity,high,"Uy, {w}!","Uy, lakin-on!","Hey, mannish (slur use)!",lakin-on
+840,identity,high,Hoy {w}!,Hoy lakin-on!,"Hey, mannish (slur use)!",lakin-on
+841,identity,high,"{w} siya, oh!","Lakin-on siya, oh!","He/she's mannish (slur use), look!",lakin-on
+842,identity,high,"{w} kaayo siya, hahaha.","Lakin-on kaayo siya, hahaha.","He/she's so mannish (slur use), haha.",lakin-on
+843,identity,high,Kining {w} nga bata.,Kining lakin-on nga bata.,This mannish (slur use) kid.,lakin-on
+844,identity,high,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-lakin-on sa klase.,You're the most mannish (slur use) in class.,lakin-on
+845,identity,high,"{w} ka, mao wala kay higala.","Lakin-on ka, mao wala kay higala.","You're mannish (slur use), that's why you have no friends.",lakin-on
+846,identity,high,"{w} ka, ayaw ko duola.","Lakin-on ka, ayaw ko duola.","You're mannish (slur use), don't come near me.",lakin-on
+847,identity,high,{w} ka!,Babayeon ka!,"You're girly (slur use, boys)!",babayeon
+848,identity,high,{w} ka uy!,Babayeon ka uy!,"You're girly (slur use, boys), ugh!",babayeon
+849,identity,high,{w} ka oy!,Babayeon ka oy!,"You're girly (slur use, boys), ugh!",babayeon
+850,identity,high,{w} kaayo ka.,Babayeon kaayo ka.,"You're so girly (slur use, boys).",babayeon
+851,identity,high,{w} kaau ka.,Babayeon kaau ka.,"You're so girly (slur use, boys).",babayeon
+852,identity,high,{w} gyud ka.,Babayeon gyud ka.,"You're really girly (slur use, boys).",babayeon
+853,identity,high,{w} jud ka uy.,Babayeon jud ka uy.,"You're really girly (slur use, boys).",babayeon
+854,identity,high,Ka-{w} nimo!,Ka-babayeon nimo!,"You're so girly (slur use, boys)!",babayeon
+855,identity,high,Ka{w} nimo!,Kababayeon nimo!,"You're so girly (slur use, boys)!",babayeon
+856,identity,high,Ka-{w} nimo uy!,Ka-babayeon nimo uy!,"You're so girly (slur use, boys)!",babayeon
+857,identity,high,Pagka-{w} gyud nimo.,Pagka-babayeon gyud nimo.,"How girly (slur use, boys) you really are.",babayeon
+858,identity,high,Pagka{w} gyud nimo.,Pagkababayeon gyud nimo.,"How girly (slur use, boys) you really are.",babayeon
+859,identity,high,{w} man ka.,Babayeon man ka.,"You're girly (slur use, boys) anyway.",babayeon
+860,identity,high,{w} diay ka.,Babayeon diay ka.,"So you're girly (slur use, boys).",babayeon
+861,identity,high,{w} na pud ka.,Babayeon na pud ka.,"You're being girly (slur use, boys) again.",babayeon
+862,identity,high,Ngano {w} man kaayo ka?,Ngano babayeon man kaayo ka?,"Why are you so girly (slur use, boys)?",babayeon
+863,identity,high,"Uy, {w}!","Uy, babayeon!","Hey, girly (slur use, boys)!",babayeon
+864,identity,high,Hoy {w}!,Hoy babayeon!,"Hey, girly (slur use, boys)!",babayeon
+865,identity,high,"{w} siya, oh!","Babayeon siya, oh!","He/she's girly (slur use, boys), look!",babayeon
+866,identity,high,"{w} kaayo siya, hahaha.","Babayeon kaayo siya, hahaha.","He/she's so girly (slur use, boys), haha.",babayeon
+867,identity,high,Kining {w} nga bata.,Kining babayeon nga bata.,"This girly (slur use, boys) kid.",babayeon
+868,identity,high,Ikaw ang pinaka-{w} sa klase.,Ikaw ang pinaka-babayeon sa klase.,"You're the most girly (slur use, boys) in class.",babayeon
+869,identity,high,"{w} ka, mao wala kay higala.","Babayeon ka, mao wala kay higala.","You're girly (slur use, boys), that's why you have no friends.",babayeon
+870,identity,high,"{w} ka, ayaw ko duola.","Babayeon ka, ayaw ko duola.","You're girly (slur use, boys), don't come near me.",babayeon
+871,profanity,high,{w} ka!,Yawa ka!,You devil!,yawa
+872,profanity,high,{w} ka uy!,Yawa ka uy!,"You devil, ugh!",yawa
+873,profanity,high,{w}!,Yawa!,devil!,yawa
+874,profanity,high,"Uy, {w}!","Uy, yawa!","Hey, devil!",yawa
+875,profanity,high,Murag {w} ka.,Murag yawa ka.,You're like a devil.,yawa
+876,profanity,high,{w} nga bata!,Yawa nga bata!,devil kid!,yawa
+877,profanity,high,{w} man diay ka.,Yawa man diay ka.,So you're a devil.,yawa
+878,profanity,high,"Hoy {w}, hilom diha!","Hoy yawa, hilom diha!","Hey devil, shut up!",yawa
+879,profanity,high,{w} kaayo ka.,Yawa kaayo ka.,You're such a devil.,yawa
+880,profanity,high,Pisteng {w}!,Pisteng yawa!,Damn devil!,yawa
+881,profanity,high,{w} ka!,Piste ka!,You pest/damn!,piste
+882,profanity,high,{w} ka uy!,Piste ka uy!,"You pest/damn, ugh!",piste
+883,profanity,high,{w}!,Piste!,pest/damn!,piste
+884,profanity,high,"Uy, {w}!","Uy, piste!","Hey, pest/damn!",piste
+885,profanity,high,Murag {w} ka.,Murag piste ka.,You're like a pest/damn.,piste
+886,profanity,high,{w} nga bata!,Piste nga bata!,pest/damn kid!,piste
+887,profanity,high,{w} man diay ka.,Piste man diay ka.,So you're a pest/damn.,piste
+888,profanity,high,"Hoy {w}, hilom diha!","Hoy piste, hilom diha!","Hey pest/damn, shut up!",piste
+889,profanity,high,{w} kaayo ka.,Piste kaayo ka.,You're such a pest/damn.,piste
+890,profanity,high,{w} ka!,Animal ka!,You animal!,animal
+891,profanity,high,{w} ka uy!,Animal ka uy!,"You animal, ugh!",animal
+892,profanity,high,{w}!,Animal!,animal!,animal
+893,profanity,high,"Uy, {w}!","Uy, animal!","Hey, animal!",animal
+894,profanity,high,Murag {w} ka.,Murag animal ka.,You're like an animal.,animal
+895,profanity,high,{w} nga bata!,Animal nga bata!,animal kid!,animal
+896,profanity,high,{w} man diay ka.,Animal man diay ka.,So you're an animal.,animal
+897,profanity,high,"Hoy {w}, hilom diha!","Hoy animal, hilom diha!","Hey animal, shut up!",animal
+898,profanity,high,{w} kaayo ka.,Animal kaayo ka.,You're such an animal.,animal
+899,profanity,high,Pisteng {w}!,Pisteng animal!,Damn animal!,animal
+900,profanity,high,{w} ka!,Hayop ka!,You beast!,hayop
+901,profanity,high,{w} ka uy!,Hayop ka uy!,"You beast, ugh!",hayop
+902,profanity,high,{w}!,Hayop!,beast!,hayop
+903,profanity,high,"Uy, {w}!","Uy, hayop!","Hey, beast!",hayop
+904,profanity,high,Murag {w} ka.,Murag hayop ka.,You're like a beast.,hayop
+905,profanity,high,{w} nga bata!,Hayop nga bata!,beast kid!,hayop
+906,profanity,high,{w} man diay ka.,Hayop man diay ka.,So you're a beast.,hayop
+907,profanity,high,"Hoy {w}, hilom diha!","Hoy hayop, hilom diha!","Hey beast, shut up!",hayop
+908,profanity,high,{w} kaayo ka.,Hayop kaayo ka.,You're such a beast.,hayop
+909,profanity,high,Pisteng {w}!,Pisteng hayop!,Damn beast!,hayop
+910,profanity,high,{w} ka!,Gago ka!,You idiot!,gago
+911,profanity,high,{w} ka uy!,Gago ka uy!,"You idiot, ugh!",gago
+912,profanity,high,{w}!,Gago!,idiot!,gago
+913,profanity,high,"Uy, {w}!","Uy, gago!","Hey, idiot!",gago
+914,profanity,high,Murag {w} ka.,Murag gago ka.,You're like an idiot.,gago
+915,profanity,high,{w} nga bata!,Gago nga bata!,idiot kid!,gago
+916,profanity,high,{w} man diay ka.,Gago man diay ka.,So you're an idiot.,gago
+917,profanity,high,"Hoy {w}, hilom diha!","Hoy gago, hilom diha!","Hey idiot, shut up!",gago
+918,profanity,high,{w} kaayo ka.,Gago kaayo ka.,You're such an idiot.,gago
+919,profanity,high,Pisteng {w}!,Pisteng gago!,Damn idiot!,gago
+920,profanity,high,{w} ka!,Ulol ka!,You idiot!,ulol
+921,profanity,high,{w} ka uy!,Ulol ka uy!,"You idiot, ugh!",ulol
+922,profanity,high,{w}!,Ulol!,idiot!,ulol
+923,profanity,high,"Uy, {w}!","Uy, ulol!","Hey, idiot!",ulol
+924,profanity,high,Murag {w} ka.,Murag ulol ka.,You're like an idiot.,ulol
+925,profanity,high,{w} nga bata!,Ulol nga bata!,idiot kid!,ulol
+926,profanity,high,{w} man diay ka.,Ulol man diay ka.,So you're an idiot.,ulol
+927,profanity,high,"Hoy {w}, hilom diha!","Hoy ulol, hilom diha!","Hey idiot, shut up!",ulol
+928,profanity,high,{w} kaayo ka.,Ulol kaayo ka.,You're such an idiot.,ulol
+929,profanity,high,Pisteng {w}!,Pisteng ulol!,Damn idiot!,ulol
+930,profanity,med,{w} ka!,Bwisit ka!,You nuisance!,bwisit
+931,profanity,med,{w} ka uy!,Bwisit ka uy!,"You nuisance, ugh!",bwisit
+932,profanity,med,{w}!,Bwisit!,nuisance!,bwisit
+933,profanity,med,"Uy, {w}!","Uy, bwisit!","Hey, nuisance!",bwisit
+934,profanity,med,Murag {w} ka.,Murag bwisit ka.,You're like a nuisance.,bwisit
+935,profanity,med,{w} nga bata!,Bwisit nga bata!,nuisance kid!,bwisit
+936,profanity,med,{w} man diay ka.,Bwisit man diay ka.,So you're a nuisance.,bwisit
+937,profanity,med,"Hoy {w}, hilom diha!","Hoy bwisit, hilom diha!","Hey nuisance, shut up!",bwisit
+938,profanity,med,{w} kaayo ka.,Bwisit kaayo ka.,You're such a nuisance.,bwisit
+939,profanity,med,Pisteng {w}!,Pisteng bwisit!,Damn nuisance!,bwisit
+940,appearance,med,{w} ka!,Baboy ka!,You pig!,baboy
+941,appearance,med,{w} ka uy!,Baboy ka uy!,"You pig, ugh!",baboy
+942,appearance,med,{w}!,Baboy!,pig!,baboy
+943,appearance,med,"Uy, {w}!","Uy, baboy!","Hey, pig!",baboy
+944,appearance,med,Murag {w} ka.,Murag baboy ka.,You're like a pig.,baboy
+945,appearance,med,{w} nga bata!,Baboy nga bata!,pig kid!,baboy
+946,appearance,med,{w} man diay ka.,Baboy man diay ka.,So you're a pig.,baboy
+947,appearance,med,"Hoy {w}, hilom diha!","Hoy baboy, hilom diha!","Hey pig, shut up!",baboy
+948,appearance,med,{w} kaayo ka.,Baboy kaayo ka.,You're such a pig.,baboy
+949,appearance,med,Pisteng {w}!,Pisteng baboy!,Damn pig!,baboy
+950,appearance,med,{w} ka!,Unggoy ka!,You monkey!,unggoy
+951,appearance,med,{w} ka uy!,Unggoy ka uy!,"You monkey, ugh!",unggoy
+952,appearance,med,{w}!,Unggoy!,monkey!,unggoy
+953,appearance,med,"Uy, {w}!","Uy, unggoy!","Hey, monkey!",unggoy
+954,appearance,med,Murag {w} ka.,Murag unggoy ka.,You're like a monkey.,unggoy
+955,appearance,med,{w} nga bata!,Unggoy nga bata!,monkey kid!,unggoy
+956,appearance,med,{w} man diay ka.,Unggoy man diay ka.,So you're a monkey.,unggoy
+957,appearance,med,"Hoy {w}, hilom diha!","Hoy unggoy, hilom diha!","Hey monkey, shut up!",unggoy
+958,appearance,med,{w} kaayo ka.,Unggoy kaayo ka.,You're such a monkey.,unggoy
+959,appearance,med,Pisteng {w}!,Pisteng unggoy!,Damn monkey!,unggoy
+960,appearance,med,{w} ka!,Kalansay ka!,You skeleton!,kalansay
+961,appearance,med,{w} ka uy!,Kalansay ka uy!,"You skeleton, ugh!",kalansay
+962,appearance,med,{w}!,Kalansay!,skeleton!,kalansay
+963,appearance,med,"Uy, {w}!","Uy, kalansay!","Hey, skeleton!",kalansay
+964,appearance,med,Murag {w} ka.,Murag kalansay ka.,You're like a skeleton.,kalansay
+965,appearance,med,{w} nga bata!,Kalansay nga bata!,skeleton kid!,kalansay
+966,appearance,med,{w} man diay ka.,Kalansay man diay ka.,So you're a skeleton.,kalansay
+967,appearance,med,"Hoy {w}, hilom diha!","Hoy kalansay, hilom diha!","Hey skeleton, shut up!",kalansay
+968,appearance,med,{w} kaayo ka.,Kalansay kaayo ka.,You're such a skeleton.,kalansay
+969,appearance,med,Pisteng {w}!,Pisteng kalansay!,Damn skeleton!,kalansay
+970,appearance,med,{w} ka!,Unano ka!,You dwarf!,unano
+971,appearance,med,{w} ka uy!,Unano ka uy!,"You dwarf, ugh!",unano
+972,appearance,med,{w}!,Unano!,dwarf!,unano
+973,appearance,med,"Uy, {w}!","Uy, unano!","Hey, dwarf!",unano
+974,appearance,med,Murag {w} ka.,Murag unano ka.,You're like a dwarf.,unano
+975,appearance,med,{w} nga bata!,Unano nga bata!,dwarf kid!,unano
+976,appearance,med,{w} man diay ka.,Unano man diay ka.,So you're a dwarf.,unano
+977,appearance,med,"Hoy {w}, hilom diha!","Hoy unano, hilom diha!","Hey dwarf, shut up!",unano
+978,appearance,med,{w} kaayo ka.,Unano kaayo ka.,You're such a dwarf.,unano
+979,appearance,med,Pisteng {w}!,Pisteng unano!,Damn dwarf!,unano
+980,appearance,high,{w} ka!,Negro ka!,You negro (colorism)!,negro
+981,appearance,high,{w} ka uy!,Negro ka uy!,"You negro (colorism), ugh!",negro
+982,appearance,high,{w}!,Negro!,negro (colorism)!,negro
+983,appearance,high,"Uy, {w}!","Uy, negro!","Hey, negro (colorism)!",negro
+984,appearance,high,Murag {w} ka.,Murag negro ka.,You're like a negro (colorism).,negro
+985,appearance,high,{w} nga bata!,Negro nga bata!,negro (colorism) kid!,negro
+986,appearance,high,{w} man diay ka.,Negro man diay ka.,So you're a negro (colorism).,negro
+987,appearance,high,"Hoy {w}, hilom diha!","Hoy negro, hilom diha!","Hey negro (colorism), shut up!",negro
+988,appearance,high,{w} kaayo ka.,Negro kaayo ka.,You're such a negro (colorism).,negro
+989,appearance,high,Pisteng {w}!,Pisteng negro!,Damn negro (colorism)!,negro
+990,personality,med,{w} ka!,Bugoy ka!,You delinquent!,bugoy
+991,personality,med,{w} ka uy!,Bugoy ka uy!,"You delinquent, ugh!",bugoy
+992,personality,med,{w}!,Bugoy!,delinquent!,bugoy
+993,personality,med,"Uy, {w}!","Uy, bugoy!","Hey, delinquent!",bugoy
+994,personality,med,Murag {w} ka.,Murag bugoy ka.,You're like a delinquent.,bugoy
+995,personality,med,{w} nga bata!,Bugoy nga bata!,delinquent kid!,bugoy
+996,personality,med,{w} man diay ka.,Bugoy man diay ka.,So you're a delinquent.,bugoy
+997,personality,med,"Hoy {w}, hilom diha!","Hoy bugoy, hilom diha!","Hey delinquent, shut up!",bugoy
+998,personality,med,{w} kaayo ka.,Bugoy kaayo ka.,You're such a delinquent.,bugoy
+999,personality,med,Pisteng {w}!,Pisteng bugoy!,Damn delinquent!,bugoy
+1000,personality,low,{w} ka!,Buwaya ka!,You ball hog/greedy!,buwaya
+1001,personality,low,{w} ka uy!,Buwaya ka uy!,"You ball hog/greedy, ugh!",buwaya
+1002,personality,low,{w}!,Buwaya!,ball hog/greedy!,buwaya
+1003,personality,low,"Uy, {w}!","Uy, buwaya!","Hey, ball hog/greedy!",buwaya
+1004,personality,low,Murag {w} ka.,Murag buwaya ka.,You're like a ball hog/greedy.,buwaya
+1005,personality,low,{w} nga bata!,Buwaya nga bata!,ball hog/greedy kid!,buwaya
+1006,personality,low,{w} man diay ka.,Buwaya man diay ka.,So you're a ball hog/greedy.,buwaya
+1007,personality,low,"Hoy {w}, hilom diha!","Hoy buwaya, hilom diha!","Hey ball hog/greedy, shut up!",buwaya
+1008,personality,low,{w} kaayo ka.,Buwaya kaayo ka.,You're such a ball hog/greedy.,buwaya
+1009,personality,low,Pisteng {w}!,Pisteng buwaya!,Damn ball hog/greedy!,buwaya
+1010,appearance,med,{w} ka!,Duwende ka!,You goblin!,duwende
+1011,appearance,med,{w} ka uy!,Duwende ka uy!,"You goblin, ugh!",duwende
+1012,appearance,med,{w}!,Duwende!,goblin!,duwende
+1013,appearance,med,"Uy, {w}!","Uy, duwende!","Hey, goblin!",duwende
+1014,appearance,med,Murag {w} ka.,Murag duwende ka.,You're like a goblin.,duwende
+1015,appearance,med,{w} nga bata!,Duwende nga bata!,goblin kid!,duwende
+1016,appearance,med,{w} man diay ka.,Duwende man diay ka.,So you're a goblin.,duwende
+1017,appearance,med,"Hoy {w}, hilom diha!","Hoy duwende, hilom diha!","Hey goblin, shut up!",duwende
+1018,appearance,med,{w} kaayo ka.,Duwende kaayo ka.,You're such a goblin.,duwende
+1019,appearance,med,Pisteng {w}!,Pisteng duwende!,Damn goblin!,duwende
+1020,personality,low,{w} ka!,Iyakin ka!,You crybaby!,iyakin
+1021,personality,low,{w} ka uy!,Iyakin ka uy!,"You crybaby, ugh!",iyakin
+1022,personality,low,{w}!,Iyakin!,crybaby!,iyakin
+1023,personality,low,"Uy, {w}!","Uy, iyakin!","Hey, crybaby!",iyakin
+1024,personality,low,Murag {w} ka.,Murag iyakin ka.,You're like a crybaby.,iyakin
+1025,personality,low,{w} nga bata!,Iyakin nga bata!,crybaby kid!,iyakin
+1026,personality,low,{w} man diay ka.,Iyakin man diay ka.,So you're a crybaby.,iyakin
+1027,personality,low,"Hoy {w}, hilom diha!","Hoy iyakin, hilom diha!","Hey crybaby, shut up!",iyakin
+1028,personality,low,{w} kaayo ka.,Iyakin kaayo ka.,You're such a crybaby.,iyakin
+1029,personality,low,Pisteng {w}!,Pisteng iyakin!,Damn crybaby!,iyakin
+1030,threat,high,{v} tika!,Bunalan tika!,I'll beat you!,bunalan
+1031,threat,high,{v} ta ka!,Bunalan ta ka!,I'll beat you!,bunalan
+1032,threat,high,{v} tika unya.,Bunalan tika unya.,I'll beat you later.,bunalan
+1033,threat,high,{v} tika sa gawas.,Bunalan tika sa gawas.,I'll beat you outside.,bunalan
+1034,threat,high,{v} tika sa uwian.,Bunalan tika sa uwian.,I'll beat you at dismissal.,bunalan
+1035,threat,high,{v} gyud tika!,Bunalan gyud tika!,I'll really beat you!,bunalan
+1036,threat,high,"Ugma, {v} tika.","Ugma, bunalan tika.",Tomorrow I'll beat you.,bunalan
+1037,threat,high,"{v} tika, tan-awa ra.","Bunalan tika, tan-awa ra.","I'll beat you, just watch.",bunalan
+1038,threat,high,Gusto ka {p}?,Gusto ka mabunalan?,You want to get beaten?,bunalan
+1039,threat,high,Basin {p} ka.,Basin mabunalan ka.,You might get beaten.,bunalan
+1040,threat,high,"Kung mosumbong ka, {v} tika.","Kung mosumbong ka, bunalan tika.","If you snitch, I'll beat you.",bunalan
+1041,threat,high,Ayaw ko pilia kay {v} tika.,Ayaw ko pilia kay bunalan tika.,Don't mess with me or I'll beat you.,bunalan
+1042,threat,high,Hilom diha kay {v} tika.,Hilom diha kay bunalan tika.,Shut up or I'll beat you.,bunalan
+1043,threat,high,{v} tika kung dili nimo ihatag imong baon.,Bunalan tika kung dili nimo ihatag imong baon.,I'll beat you if you don't hand over your allowance.,bunalan
+1044,threat,high,{v} tika!,Sumbagon tika!,I'll punch you!,sumbagon
+1045,threat,high,{v} ta ka!,Sumbagon ta ka!,I'll punch you!,sumbagon
+1046,threat,high,{v} tika unya.,Sumbagon tika unya.,I'll punch you later.,sumbagon
+1047,threat,high,{v} tika sa gawas.,Sumbagon tika sa gawas.,I'll punch you outside.,sumbagon
+1048,threat,high,{v} tika sa uwian.,Sumbagon tika sa uwian.,I'll punch you at dismissal.,sumbagon
+1049,threat,high,{v} gyud tika!,Sumbagon gyud tika!,I'll really punch you!,sumbagon
+1050,threat,high,"Ugma, {v} tika.","Ugma, sumbagon tika.",Tomorrow I'll punch you.,sumbagon
+1051,threat,high,"{v} tika, tan-awa ra.","Sumbagon tika, tan-awa ra.","I'll punch you, just watch.",sumbagon
+1052,threat,high,Gusto ka {p}?,Gusto ka masumbag?,You want to get punched?,sumbagon
+1053,threat,high,Basin {p} ka.,Basin masumbag ka.,You might get punched.,sumbagon
+1054,threat,high,"Kung mosumbong ka, {v} tika.","Kung mosumbong ka, sumbagon tika.","If you snitch, I'll punch you.",sumbagon
+1055,threat,high,Ayaw ko pilia kay {v} tika.,Ayaw ko pilia kay sumbagon tika.,Don't mess with me or I'll punch you.,sumbagon
+1056,threat,high,Hilom diha kay {v} tika.,Hilom diha kay sumbagon tika.,Shut up or I'll punch you.,sumbagon
+1057,threat,high,{v} tika kung dili nimo ihatag imong baon.,Sumbagon tika kung dili nimo ihatag imong baon.,I'll punch you if you don't hand over your allowance.,sumbagon
+1058,threat,high,{v} tika!,Sagpaon tika!,I'll slap you!,sagpaon
+1059,threat,high,{v} ta ka!,Sagpaon ta ka!,I'll slap you!,sagpaon
+1060,threat,high,{v} tika unya.,Sagpaon tika unya.,I'll slap you later.,sagpaon
+1061,threat,high,{v} tika sa gawas.,Sagpaon tika sa gawas.,I'll slap you outside.,sagpaon
+1062,threat,high,{v} tika sa uwian.,Sagpaon tika sa uwian.,I'll slap you at dismissal.,sagpaon
+1063,threat,high,{v} gyud tika!,Sagpaon gyud tika!,I'll really slap you!,sagpaon
+1064,threat,high,"Ugma, {v} tika.","Ugma, sagpaon tika.",Tomorrow I'll slap you.,sagpaon
+1065,threat,high,"{v} tika, tan-awa ra.","Sagpaon tika, tan-awa ra.","I'll slap you, just watch.",sagpaon
+1066,threat,high,Gusto ka {p}?,Gusto ka masagpa?,You want to get slapped?,sagpaon
+1067,threat,high,Basin {p} ka.,Basin masagpa ka.,You might get slapped.,sagpaon
+1068,threat,high,"Kung mosumbong ka, {v} tika.","Kung mosumbong ka, sagpaon tika.","If you snitch, I'll slap you.",sagpaon
+1069,threat,high,Ayaw ko pilia kay {v} tika.,Ayaw ko pilia kay sagpaon tika.,Don't mess with me or I'll slap you.,sagpaon
+1070,threat,high,Hilom diha kay {v} tika.,Hilom diha kay sagpaon tika.,Shut up or I'll slap you.,sagpaon
+1071,threat,high,{v} tika kung dili nimo ihatag imong baon.,Sagpaon tika kung dili nimo ihatag imong baon.,I'll slap you if you don't hand over your allowance.,sagpaon
+1072,threat,high,{v} tika!,Tamparon tika!,I'll slap you!,tamparon
+1073,threat,high,{v} ta ka!,Tamparon ta ka!,I'll slap you!,tamparon
+1074,threat,high,{v} tika unya.,Tamparon tika unya.,I'll slap you later.,tamparon
+1075,threat,high,{v} tika sa gawas.,Tamparon tika sa gawas.,I'll slap you outside.,tamparon
+1076,threat,high,{v} tika sa uwian.,Tamparon tika sa uwian.,I'll slap you at dismissal.,tamparon
+1077,threat,high,{v} gyud tika!,Tamparon gyud tika!,I'll really slap you!,tamparon
+1078,threat,high,"Ugma, {v} tika.","Ugma, tamparon tika.",Tomorrow I'll slap you.,tamparon
+1079,threat,high,"{v} tika, tan-awa ra.","Tamparon tika, tan-awa ra.","I'll slap you, just watch.",tamparon
+1080,threat,high,Gusto ka {p}?,Gusto ka matampal?,You want to get slapped?,tamparon
+1081,threat,high,Basin {p} ka.,Basin matampal ka.,You might get slapped.,tamparon
+1082,threat,high,"Kung mosumbong ka, {v} tika.","Kung mosumbong ka, tamparon tika.","If you snitch, I'll slap you.",tamparon
+1083,threat,high,Ayaw ko pilia kay {v} tika.,Ayaw ko pilia kay tamparon tika.,Don't mess with me or I'll slap you.,tamparon
+1084,threat,high,Hilom diha kay {v} tika.,Hilom diha kay tamparon tika.,Shut up or I'll slap you.,tamparon
+1085,threat,high,{v} tika kung dili nimo ihatag imong baon.,Tamparon tika kung dili nimo ihatag imong baon.,I'll slap you if you don't hand over your allowance.,tamparon
+1086,threat,high,{v} tika!,Sipaon tika!,I'll kick you!,sipaon
+1087,threat,high,{v} ta ka!,Sipaon ta ka!,I'll kick you!,sipaon
+1088,threat,high,{v} tika unya.,Sipaon tika unya.,I'll kick you later.,sipaon
+1089,threat,high,{v} tika sa gawas.,Sipaon tika sa gawas.,I'll kick you outside.,sipaon
+1090,threat,high,{v} tika sa uwian.,Sipaon tika sa uwian.,I'll kick you at dismissal.,sipaon
+1091,threat,high,{v} gyud tika!,Sipaon gyud tika!,I'll really kick you!,sipaon
+1092,threat,high,"Ugma, {v} tika.","Ugma, sipaon tika.",Tomorrow I'll kick you.,sipaon
+1093,threat,high,"{v} tika, tan-awa ra.","Sipaon tika, tan-awa ra.","I'll kick you, just watch.",sipaon
+1094,threat,high,Gusto ka {p}?,Gusto ka masipa?,You want to get kicked?,sipaon
+1095,threat,high,Basin {p} ka.,Basin masipa ka.,You might get kicked.,sipaon
+1096,threat,high,"Kung mosumbong ka, {v} tika.","Kung mosumbong ka, sipaon tika.","If you snitch, I'll kick you.",sipaon
+1097,threat,high,Ayaw ko pilia kay {v} tika.,Ayaw ko pilia kay sipaon tika.,Don't mess with me or I'll kick you.,sipaon
+1098,threat,high,Hilom diha kay {v} tika.,Hilom diha kay sipaon tika.,Shut up or I'll kick you.,sipaon
+1099,threat,high,{v} tika kung dili nimo ihatag imong baon.,Sipaon tika kung dili nimo ihatag imong baon.,I'll kick you if you don't hand over your allowance.,sipaon
+1100,threat,high,{v} tika!,Itulod tika!,I'll push you!,itulod
+1101,threat,high,{v} ta ka!,Itulod ta ka!,I'll push you!,itulod
+1102,threat,high,{v} tika unya.,Itulod tika unya.,I'll push you later.,itulod
+1103,threat,high,{v} tika sa gawas.,Itulod tika sa gawas.,I'll push you outside.,itulod
+1104,threat,high,{v} tika sa uwian.,Itulod tika sa uwian.,I'll push you at dismissal.,itulod
+1105,threat,high,{v} gyud tika!,Itulod gyud tika!,I'll really push you!,itulod
+1106,threat,high,"Ugma, {v} tika.","Ugma, itulod tika.",Tomorrow I'll push you.,itulod
+1107,threat,high,"{v} tika, tan-awa ra.","Itulod tika, tan-awa ra.","I'll push you, just watch.",itulod
+1108,threat,high,Gusto ka {p}?,Gusto ka matulod?,You want to get pushed?,itulod
+1109,threat,high,Basin {p} ka.,Basin matulod ka.,You might get pushed.,itulod
+1110,threat,high,"Kung mosumbong ka, {v} tika.","Kung mosumbong ka, itulod tika.","If you snitch, I'll push you.",itulod
+1111,threat,high,Ayaw ko pilia kay {v} tika.,Ayaw ko pilia kay itulod tika.,Don't mess with me or I'll push you.,itulod
+1112,threat,high,Hilom diha kay {v} tika.,Hilom diha kay itulod tika.,Shut up or I'll push you.,itulod
+1113,threat,high,{v} tika kung dili nimo ihatag imong baon.,Itulod tika kung dili nimo ihatag imong baon.,I'll push you if you don't hand over your allowance.,itulod
+1114,threat,high,{v} tika!,Patyon tika!,I'll kill you!,patyon
+1115,threat,high,{v} ta ka!,Patyon ta ka!,I'll kill you!,patyon
+1116,threat,high,{v} tika unya.,Patyon tika unya.,I'll kill you later.,patyon
+1117,threat,high,{v} tika sa gawas.,Patyon tika sa gawas.,I'll kill you outside.,patyon
+1118,threat,high,{v} tika sa uwian.,Patyon tika sa uwian.,I'll kill you at dismissal.,patyon
+1119,threat,high,{v} gyud tika!,Patyon gyud tika!,I'll really kill you!,patyon
+1120,threat,high,"Ugma, {v} tika.","Ugma, patyon tika.",Tomorrow I'll kill you.,patyon
+1121,threat,high,"{v} tika, tan-awa ra.","Patyon tika, tan-awa ra.","I'll kill you, just watch.",patyon
+1122,threat,high,Gusto ka {p}?,Gusto ka mapatay?,You want to get killed?,patyon
+1123,threat,high,Basin {p} ka.,Basin mapatay ka.,You might get killed.,patyon
+1124,threat,high,"Kung mosumbong ka, {v} tika.","Kung mosumbong ka, patyon tika.","If you snitch, I'll kill you.",patyon
+1125,threat,high,Ayaw ko pilia kay {v} tika.,Ayaw ko pilia kay patyon tika.,Don't mess with me or I'll kill you.,patyon
+1126,threat,high,Hilom diha kay {v} tika.,Hilom diha kay patyon tika.,Shut up or I'll kill you.,patyon
+1127,threat,high,{v} tika kung dili nimo ihatag imong baon.,Patyon tika kung dili nimo ihatag imong baon.,I'll kill you if you don't hand over your allowance.,patyon
+1128,threat,high,{v} tika!,Kuniton tika!,I'll pinch you!,kuniton
+1129,threat,high,{v} ta ka!,Kuniton ta ka!,I'll pinch you!,kuniton
+1130,threat,high,{v} tika unya.,Kuniton tika unya.,I'll pinch you later.,kuniton
+1131,threat,high,{v} tika sa gawas.,Kuniton tika sa gawas.,I'll pinch you outside.,kuniton
+1132,threat,high,{v} tika sa uwian.,Kuniton tika sa uwian.,I'll pinch you at dismissal.,kuniton
+1133,threat,high,{v} gyud tika!,Kuniton gyud tika!,I'll really pinch you!,kuniton
+1134,threat,high,"Ugma, {v} tika.","Ugma, kuniton tika.",Tomorrow I'll pinch you.,kuniton
+1135,threat,high,"{v} tika, tan-awa ra.","Kuniton tika, tan-awa ra.","I'll pinch you, just watch.",kuniton
+1136,threat,high,Gusto ka {p}?,Gusto ka makunit?,You want to get pinched?,kuniton
+1137,threat,high,Basin {p} ka.,Basin makunit ka.,You might get pinched.,kuniton
+1138,threat,high,"Kung mosumbong ka, {v} tika.","Kung mosumbong ka, kuniton tika.","If you snitch, I'll pinch you.",kuniton
+1139,threat,high,Ayaw ko pilia kay {v} tika.,Ayaw ko pilia kay kuniton tika.,Don't mess with me or I'll pinch you.,kuniton
+1140,threat,high,Hilom diha kay {v} tika.,Hilom diha kay kuniton tika.,Shut up or I'll pinch you.,kuniton
+1141,threat,high,{v} tika kung dili nimo ihatag imong baon.,Kuniton tika kung dili nimo ihatag imong baon.,I'll pinch you if you don't hand over your allowance.,kuniton
+1142,threat,high,{v} tika!,Labayon tika!,I'll throw something at you!,labayon
+1143,threat,high,{v} ta ka!,Labayon ta ka!,I'll throw something at you!,labayon
+1144,threat,high,{v} tika unya.,Labayon tika unya.,I'll throw something at you later.,labayon
+1145,threat,high,{v} tika sa gawas.,Labayon tika sa gawas.,I'll throw something at you outside.,labayon
+1146,threat,high,{v} tika sa uwian.,Labayon tika sa uwian.,I'll throw something at you at dismissal.,labayon
+1147,threat,high,{v} gyud tika!,Labayon gyud tika!,I'll really throw something at you!,labayon
+1148,threat,high,"Ugma, {v} tika.","Ugma, labayon tika.",Tomorrow I'll throw something at you.,labayon
+1149,threat,high,"{v} tika, tan-awa ra.","Labayon tika, tan-awa ra.","I'll throw something at you, just watch.",labayon
+1150,threat,high,Gusto ka {p}?,Gusto ka malabay?,You want to get hit?,labayon
+1151,threat,high,Basin {p} ka.,Basin malabay ka.,You might get hit.,labayon
+1152,threat,high,"Kung mosumbong ka, {v} tika.","Kung mosumbong ka, labayon tika.","If you snitch, I'll throw something at you.",labayon
+1153,threat,high,Ayaw ko pilia kay {v} tika.,Ayaw ko pilia kay labayon tika.,Don't mess with me or I'll throw something at you.,labayon
+1154,threat,high,Hilom diha kay {v} tika.,Hilom diha kay labayon tika.,Shut up or I'll throw something at you.,labayon
+1155,threat,high,{v} tika kung dili nimo ihatag imong baon.,Labayon tika kung dili nimo ihatag imong baon.,I'll throw something at you if you don't hand over your allowance.,labayon
+1156,threat,high,{v} tika!,Bugbogon tika!,I'll beat you up!,bugbogon
+1157,threat,high,{v} ta ka!,Bugbogon ta ka!,I'll beat you up!,bugbogon
+1158,threat,high,{v} tika unya.,Bugbogon tika unya.,I'll beat you up later.,bugbogon
+1159,threat,high,{v} tika sa gawas.,Bugbogon tika sa gawas.,I'll beat you up outside.,bugbogon
+1160,threat,high,{v} tika sa uwian.,Bugbogon tika sa uwian.,I'll beat you up at dismissal.,bugbogon
+1161,threat,high,{v} gyud tika!,Bugbogon gyud tika!,I'll really beat you up!,bugbogon
+1162,threat,high,"Ugma, {v} tika.","Ugma, bugbogon tika.",Tomorrow I'll beat you up.,bugbogon
+1163,threat,high,"{v} tika, tan-awa ra.","Bugbogon tika, tan-awa ra.","I'll beat you up, just watch.",bugbogon
+1164,threat,high,Gusto ka {p}?,Gusto ka mabugbog?,You want to get beaten up?,bugbogon
+1165,threat,high,Basin {p} ka.,Basin mabugbog ka.,You might get beaten up.,bugbogon
+1166,threat,high,"Kung mosumbong ka, {v} tika.","Kung mosumbong ka, bugbogon tika.","If you snitch, I'll beat you up.",bugbogon
+1167,threat,high,Ayaw ko pilia kay {v} tika.,Ayaw ko pilia kay bugbogon tika.,Don't mess with me or I'll beat you up.,bugbogon
+1168,threat,high,Hilom diha kay {v} tika.,Hilom diha kay bugbogon tika.,Shut up or I'll beat you up.,bugbogon
+1169,threat,high,{v} tika kung dili nimo ihatag imong baon.,Bugbogon tika kung dili nimo ihatag imong baon.,I'll beat you up if you don't hand over your allowance.,bugbogon
+1170,threat,high,{v} tika!,Kulataon tika!,I'll beat you!,kulataon
+1171,threat,high,{v} ta ka!,Kulataon ta ka!,I'll beat you!,kulataon
+1172,threat,high,{v} tika unya.,Kulataon tika unya.,I'll beat you later.,kulataon
+1173,threat,high,{v} tika sa gawas.,Kulataon tika sa gawas.,I'll beat you outside.,kulataon
+1174,threat,high,{v} tika sa uwian.,Kulataon tika sa uwian.,I'll beat you at dismissal.,kulataon
+1175,threat,high,{v} gyud tika!,Kulataon gyud tika!,I'll really beat you!,kulataon
+1176,threat,high,"Ugma, {v} tika.","Ugma, kulataon tika.",Tomorrow I'll beat you.,kulataon
+1177,threat,high,"{v} tika, tan-awa ra.","Kulataon tika, tan-awa ra.","I'll beat you, just watch.",kulataon
+1178,threat,high,Gusto ka {p}?,Gusto ka makulata?,You want to get beaten?,kulataon
+1179,threat,high,Basin {p} ka.,Basin makulata ka.,You might get beaten.,kulataon
+1180,threat,high,"Kung mosumbong ka, {v} tika.","Kung mosumbong ka, kulataon tika.","If you snitch, I'll beat you.",kulataon
+1181,threat,high,Ayaw ko pilia kay {v} tika.,Ayaw ko pilia kay kulataon tika.,Don't mess with me or I'll beat you.,kulataon
+1182,threat,high,Hilom diha kay {v} tika.,Hilom diha kay kulataon tika.,Shut up or I'll beat you.,kulataon
+1183,threat,high,{v} tika kung dili nimo ihatag imong baon.,Kulataon tika kung dili nimo ihatag imong baon.,I'll beat you if you don't hand over your allowance.,kulataon
+1184,threat,high,{v} tika!,Sabunutan tika!,I'll pull your hair!,sabunutan
+1185,threat,high,{v} ta ka!,Sabunutan ta ka!,I'll pull your hair!,sabunutan
+1186,threat,high,{v} tika unya.,Sabunutan tika unya.,I'll pull your hair later.,sabunutan
+1187,threat,high,{v} tika sa gawas.,Sabunutan tika sa gawas.,I'll pull your hair outside.,sabunutan
+1188,threat,high,{v} tika sa uwian.,Sabunutan tika sa uwian.,I'll pull your hair at dismissal.,sabunutan
+1189,threat,high,{v} gyud tika!,Sabunutan gyud tika!,I'll really pull your hair!,sabunutan
+1190,threat,high,"Ugma, {v} tika.","Ugma, sabunutan tika.",Tomorrow I'll pull your hair.,sabunutan
+1191,threat,high,"{v} tika, tan-awa ra.","Sabunutan tika, tan-awa ra.","I'll pull your hair, just watch.",sabunutan
+1192,threat,high,Gusto ka {p}?,Gusto ka masabunutan?,You want to get hair-pulled?,sabunutan
+1193,threat,high,Basin {p} ka.,Basin masabunutan ka.,You might get hair-pulled.,sabunutan
+1194,threat,high,"Kung mosumbong ka, {v} tika.","Kung mosumbong ka, sabunutan tika.","If you snitch, I'll pull your hair.",sabunutan
+1195,threat,high,Ayaw ko pilia kay {v} tika.,Ayaw ko pilia kay sabunutan tika.,Don't mess with me or I'll pull your hair.,sabunutan
+1196,threat,high,Hilom diha kay {v} tika.,Hilom diha kay sabunutan tika.,Shut up or I'll pull your hair.,sabunutan
+1197,threat,high,{v} tika kung dili nimo ihatag imong baon.,Sabunutan tika kung dili nimo ihatag imong baon.,I'll pull your hair if you don't hand over your allowance.,sabunutan
+1198,exclusion,med,fixed,Bati na ta!,We're not friends anymore!,
+1199,exclusion,med,fixed,Dili na ko makig-friend nimo.,I won't be your friend anymore.,
+1200,exclusion,med,fixed,Ayaw siya apila sa dula.,Don't let him/her join the game.,
+1201,exclusion,med,fixed,Out ka sa among grupo.,You're out of our group.,
+1202,exclusion,med,fixed,Dili ka namo friend.,You're not our friend.,
+1203,exclusion,med,fixed,Walay gusto mo-group nimo.,Nobody wants to group with you.,
+1204,exclusion,med,fixed,Ayaw siya tabi-i.,Don't sit next to him/her.,
+1205,exclusion,med,fixed,Ayaw siya istoryahi.,Don't talk to him/her.,
+1206,exclusion,med,fixed,"Balhin didto, ayaw diri.","Move over there, not here.",
+1207,exclusion,med,fixed,Kinsa man nagdapit nimo?,Who invited you?,
+1208,exclusion,med,fixed,"Layo diha, kadiri ka.","Go away, you're gross.",
+1209,exclusion,med,fixed,"Ayaw ko hikapa, naa kay kuto.","Don't touch me, you have lice.",
+1210,extortion,high,fixed,Hatagi ko sa imong baon.,Give me your allowance.,
+1211,extortion,high,fixed,Pila imong baon? Akoa na lang.,How much is your allowance? I'll take it.,
+1212,extortion,med,fixed,Palita ko og snacks sa canteen.,Buy me snacks at the canteen.,
+1213,extortion,high,fixed,"Ilibre ko kay kung dili, bati ta.",Treat me or we're not friends.,
+1214,extortion,med,fixed,Pakopyaha ko sa imong assignment.,Let me copy your assignment.,
+1215,extortion,med,fixed,Ikaw mo-buhat sa akong project.,You'll do my project.,
+1216,extortion,high,fixed,Akoa na ning imong ballpen.,Your pen is mine now.,
+1217,extortion,med,fixed,Ikaw mag-cleaners para nako.,You do my cleaning duty.,
+1218,extortion,high,fixed,Ugma magdala ka og kwarta.,Tomorrow you bring money.,
+1219,snitching,high,fixed,Ayaw sumbong sa maestra ha.,"Don't tell the teacher, okay.",
+1220,snitching,high,fixed,Ayaw sumbong ni ma'am.,Don't tell ma'am.,
+1221,snitching,high,fixed,"Isumbong ka? Sige, tan-awa ra.","You'll tell? Go ahead, just watch.",
+1222,snitching,med,fixed,Sumbungero! Mosumbong sa mama.,Tattletale! Running to mama.,
+1223,snitching,high,fixed,"Kung mosumbong ka, bati ta ug patay ka.","If you tell, we're not friends and you're dead.",
+1224,mockery,low,fixed,"Ayeee, crush nimo siya no?","Ooh, you have a crush on him/her, right?",
+1225,mockery,low,fixed,Uyab nimo siya! Ayeee!,He/she's your boyfriend/girlfriend! Ooh!,
+1226,mockery,med,fixed,Mama's boy man ka.,You're a mama's boy.,
+1227,mockery,med,fixed,"Mohilak na siya, oh!","Look, he/she's going to cry!",
+1228,mockery,med,fixed,Nag-ihi siya sa iyang karsones!,He/she peed his/her pants!,
+1229,mockery,med,fixed,Bisaya kaayo ka mo-English.,Your English is so Bisaya.,
+1230,mockery,med,fixed,"Wala kay baon, pobre.","You have no allowance, poor kid.",
+1231,mockery,med,fixed,"Gisi imong sapatos, hahaha.","Your shoes are torn, haha.",
+1232,mockery,med,fixed,Pareho ra imong uniporme matag adlaw.,Same uniform every day.,
+1233,mockery,med,fixed,"Bagsak na pud ka sa quiz, bogo.","You failed the quiz again, dummy.",
+1234,mockery,low,fixed,Feeling nimo gwapo ka?,You think you're handsome?,
+1235,mockery,low,fixed,Feeling nimo gwapa ka?,You think you're pretty?,
+1236,mockery,med,fixed,"Wala kay papa, no?","You don't have a dad, right?",
+1237,mockery,med,fixed,Imong papa hubog man.,Your dad's a drunk.,
+1238,provocation,high,fixed,"Unsa man, ha? Away ta?","What, huh? Want to fight?",
+1239,provocation,high,fixed,Unsa'y problema nimo?,What's your problem?,
+1240,provocation,high,fixed,Imong mama!,Your mom! (fight starter),
+1241,provocation,high,fixed,Yawa imong mama!,Damn your mom!,
+1242,provocation,high,fixed,Abangan tika sa gawas.,I'll wait for you outside.,
+1243,provocation,high,fixed,Hulat lang ka sa uwian.,Just wait till dismissal.,
+1244,provocation,high,fixed,Ipabunal tika sa akong kuya.,I'll have my big brother beat you.,
+1245,property,high,fixed,Ilabay nako imong bag.,I'll throw your bag.,
+1246,property,high,fixed,Gisi-on nako imong notebook.,I'll tear your notebook.,
+1247,property,high,fixed,Tagoan nako imong tsinelas.,I'll hide your slippers.,
+1248,online,med,fixed,Ayaw siya i-add sa GC.,Don't add him/her to the group chat.,
+1249,online,med,fixed,I-kick siya sa GC.,Kick him/her from the GC.,
+1250,online,high,fixed,I-post nako imong pic para kataw-an ka.,I'll post your pic so people laugh at you.,
+1251,combo,high,opener+core+followup,"Piste, bobo kaayo ka, bunalan tika unya.","[Piste,] you're so dumb, [bunalan tika unya.]",bobo
+1252,combo,med,opener+core+followup,"Piste, bungi kaayo ka, hahaha.","[Piste,] you're so gap-toothed, [hahaha.]",bungi
+1253,combo,med,opener+core+followup,"Uy, ngil-ad kaayo ka, mohilak na siya, oh.","[Uy,] you're so ugly, [mohilak na siya, oh.]",ngil-ad
+1254,combo,low,opener+core+followup,"Tan-awa ni, papansin kaayo ka, ayaw sumbong ha.","[Tan-awa ni,] you're so attention-seeker, [ayaw sumbong ha.]",papansin
+1255,combo,med,opener+core+followup,"Piste, bugo kaayo ka, layo diha.","[Piste,] you're so stupid, [layo diha.]",bugo
+1256,combo,high,opener+core+followup,"Tan-awa ni, itom kaayo ka, abangan tika sa gawas.","[Tan-awa ni,] you're so dark-skinned, [abangan tika sa gawas.]",itom
+1257,combo,med,opener+core+followup,"Hahaha, hungog kaayo ka, hilom diha.","[Hahaha,] you're so foolish, [hilom diha.]",hungog
+1258,combo,med,opener+core+followup,"Hahaha, bungi kaayo ka, mohilak na siya, oh.","[Hahaha,] you're so gap-toothed, [mohilak na siya, oh.]",bungi
+1259,combo,high,opener+core+followup,"Yawa, bobo kaayo ka, abangan tika sa gawas.","[Yawa,] you're so dumb, [abangan tika sa gawas.]",bobo
+1260,combo,med,opener+core+followup,"Unsa man? bobo kaayo ka, ayaw sumbong ha.","[Unsa man?] you're so dumb, [ayaw sumbong ha.]",bobo
+1261,combo,low,opener+core+followup,"Piste, samok kaayo ka, layo diha.","[Piste,] you're so annoying, [layo diha.]",samok
+1262,combo,med,opener+core+followup,"Tan-awa ni, hungog kaayo ka, hilom diha.","[Tan-awa ni,] you're so foolish, [hilom diha.]",hungog
+1263,combo,med,opener+core+followup,"Yawa, kutohon kaayo ka, ayaw ko duola.","[Yawa,] you're so lice-ridden, [ayaw ko duola.]",kutohon
+1264,combo,high,opener+core+followup,"Uy, itom kaayo ka, ayaw sumbong ha.","[Uy,] you're so dark-skinned, [ayaw sumbong ha.]",itom
+1265,combo,high,opener+core+followup,"Tan-awa ni, itom kaayo ka, out ka sa among grupo.","[Tan-awa ni,] you're so dark-skinned, [out ka sa among grupo.]",itom
+1266,combo,high,opener+core+followup,"Hahaha, lakin-on kaayo ka, hahaha.","[Hahaha,] you're so mannish (slur use), [hahaha.]",lakin-on
+1267,combo,low,opener+core+followup,"Yawa, papansin kaayo ka, hilom diha.","[Yawa,] you're so attention-seeker, [hilom diha.]",papansin
+1268,combo,low,opener+core+followup,"Hahaha, kuripot kaayo ka, layo diha.","[Hahaha,] you're so stingy, [layo diha.]",kuripot
+1269,combo,med,opener+core+followup,"Unsa man? abno kaayo ka, ayaw ko duola.","[Unsa man?] you're so weird/abnormal, [ayaw ko duola.]",abno
+1270,combo,high,opener+core+followup,"Hahaha, babayeon kaayo ka, hilom diha.","[Hahaha,] you're so girly (slur use, boys), [hilom diha.]",babayeon
+1271,combo,med,opener+core+followup,"Uy, pandak kaayo ka, layo diha.","[Uy,] you're so short, [layo diha.]",pandak
+1272,combo,high,opener+core+followup,"Yawa, itom kaayo ka, abangan tika sa gawas.","[Yawa,] you're so dark-skinned, [abangan tika sa gawas.]",itom
+1273,combo,med,opener+core+followup,"Tan-awa ni, hugaw kaayo ka, wala kay higala.","[Tan-awa ni,] you're so dirty, [wala kay higala.]",hugaw
+1274,combo,med,opener+core+followup,"Hahaha, baho kaayo ka, out ka sa among grupo.","[Hahaha,] you're so smelly, [out ka sa among grupo.]",baho
+1275,combo,high,opener+core+followup,"Uy, itom kaayo ka, wala kay higala.","[Uy,] you're so dark-skinned, [wala kay higala.]",itom
+1276,combo,low,opener+core+followup,"Uy, sipsip kaayo ka, out ka sa among grupo.","[Uy,] you're so suck-up, [out ka sa among grupo.]",sipsip
+1277,combo,low,opener+core+followup,"Yawa, hilakon kaayo ka, ayaw sumbong ha.","[Yawa,] you're so crybaby, [ayaw sumbong ha.]",hilakon
+1278,combo,high,opener+core+followup,"Tan-awa ni, babayeon kaayo ka, abangan tika sa gawas.","[Tan-awa ni,] you're so girly (slur use, boys), [abangan tika sa gawas.]",babayeon
+1279,combo,high,opener+core+followup,"Unsa man? pangit kaayo ka, bunalan tika unya.","[Unsa man?] you're so ugly, [bunalan tika unya.]",pangit
+1280,combo,high,opener+core+followup,"Uy, niwang kaayo ka, abangan tika sa gawas.","[Uy,] you're so skinny, [abangan tika sa gawas.]",niwang
+1281,combo,low,opener+core+followup,"Hahaha, arte kaayo ka, ayaw ko duola.","[Hahaha,] you're so pretentious, [ayaw ko duola.]",arte
+1282,combo,med,opener+core+followup,"Tan-awa ni, bulingit kaayo ka, ayaw ko duola.","[Tan-awa ni,] you're so filthy, [ayaw ko duola.]",bulingit
+1283,combo,high,opener+core+followup,"Hahaha, sumbungero kaayo ka, bunalan tika unya.","[Hahaha,] you're so tattletale, [bunalan tika unya.]",sumbungero
+1284,combo,low,opener+core+followup,"Piste, hambog kaayo ka, ayaw ko duola.","[Piste,] you're so boastful, [ayaw ko duola.]",hambog
+1285,combo,high,opener+core+followup,"Hahaha, kuripot kaayo ka, bunalan tika unya.","[Hahaha,] you're so stingy, [bunalan tika unya.]",kuripot
+1286,combo,low,opener+core+followup,"Unsa man? samok kaayo ka, ayaw ko duola.","[Unsa man?] you're so annoying, [ayaw ko duola.]",samok
+1287,combo,high,opener+core+followup,"Hoy, pandak kaayo ka, bunalan tika unya.","[Hoy,] you're so short, [bunalan tika unya.]",pandak
+1288,combo,med,opener+core+followup,"Tan-awa ni, niwang kaayo ka, hahaha.","[Tan-awa ni,] you're so skinny, [hahaha.]",niwang
+1289,combo,med,opener+core+followup,"Uy, abno kaayo ka, layo diha.","[Uy,] you're so weird/abnormal, [layo diha.]",abno
+1290,combo,low,opener+core+followup,"Hahaha, papansin kaayo ka, hilom diha.","[Hahaha,] you're so attention-seeker, [hilom diha.]",papansin
+1291,combo,high,opener+core+followup,"Unsa man? lakin-on kaayo ka, bunalan tika unya.","[Unsa man?] you're so mannish (slur use), [bunalan tika unya.]",lakin-on
+1292,combo,high,opener+core+followup,"Unsa man? babayeon kaayo ka, layo diha.","[Unsa man?] you're so girly (slur use, boys), [layo diha.]",babayeon
+1293,combo,low,opener+core+followup,"Tan-awa ni, samok kaayo ka, mohilak na siya, oh.","[Tan-awa ni,] you're so annoying, [mohilak na siya, oh.]",samok
+1294,combo,med,opener+core+followup,"Tan-awa ni, pandak kaayo ka, mohilak na siya, oh.","[Tan-awa ni,] you're so short, [mohilak na siya, oh.]",pandak
+1295,combo,high,opener+core+followup,"Tan-awa ni, pobre kaayo ka, bunalan tika unya.","[Tan-awa ni,] you're so poor, [bunalan tika unya.]",pobre
+1296,combo,high,opener+core+followup,"Hoy, hambog kaayo ka, bunalan tika unya.","[Hoy,] you're so boastful, [bunalan tika unya.]",hambog
+1297,combo,med,opener+core+followup,"Unsa man? sumbungera kaayo ka, ayaw sumbong ha.","[Unsa man?] you're so tattletale (girl), [ayaw sumbong ha.]",sumbungera
+1298,combo,med,opener+core+followup,"Unsa man? tambok kaayo ka, mohilak na siya, oh.","[Unsa man?] you're so fat, [mohilak na siya, oh.]",tambok
+1299,combo,med,opener+core+followup,"Tan-awa ni, pandak kaayo ka, ayaw sumbong ha.","[Tan-awa ni,] you're so short, [ayaw sumbong ha.]",pandak
+1300,combo,high,opener+core+followup,"Yawa, arte kaayo ka, bunalan tika unya.","[Yawa,] you're so pretentious, [bunalan tika unya.]",arte
+1301,combo,med,opener+core+followup,"Yawa, tambok kaayo ka, layo diha.","[Yawa,] you're so fat, [layo diha.]",tambok
+1302,combo,med,opener+core+followup,"Hahaha, bogo kaayo ka, mohilak na siya, oh.","[Hahaha,] you're so stupid, [mohilak na siya, oh.]",bogo
+1303,combo,med,opener+core+followup,"Tan-awa ni, boang kaayo ka, wala kay higala.","[Tan-awa ni,] you're so crazy, [wala kay higala.]",boang
+1304,combo,med,opener+core+followup,"Uy, abno kaayo ka, ayaw sumbong ha.","[Uy,] you're so weird/abnormal, [ayaw sumbong ha.]",abno
+1305,combo,high,opener+core+followup,"Unsa man? bayot kaayo ka, mohilak na siya, oh.","[Unsa man?] you're so gay (slur use), [mohilak na siya, oh.]",bayot
+1306,combo,high,opener+core+followup,"Unsa man? bogo kaayo ka, abangan tika sa gawas.","[Unsa man?] you're so stupid, [abangan tika sa gawas.]",bogo
+1307,combo,high,opener+core+followup,"Piste, babayeon kaayo ka, bunalan tika unya.","[Piste,] you're so girly (slur use, boys), [bunalan tika unya.]",babayeon
+1308,combo,med,opener+core+followup,"Uy, pobre kaayo ka, hilom diha.","[Uy,] you're so poor, [hilom diha.]",pobre
+1309,combo,low,opener+core+followup,"Uy, papansin kaayo ka, ayaw sumbong ha.","[Uy,] you're so attention-seeker, [ayaw sumbong ha.]",papansin
+1310,combo,med,opener+core+followup,"Hoy, bulingit kaayo ka, mohilak na siya, oh.","[Hoy,] you're so filthy, [mohilak na siya, oh.]",bulingit
+1311,combo,med,opener+core+followup,"Unsa man? ngil-ad kaayo ka, hahaha.","[Unsa man?] you're so ugly, [hahaha.]",ngil-ad
+1312,combo,med,opener+core+followup,"Yawa, hungog kaayo ka, ayaw ko duola.","[Yawa,] you're so foolish, [ayaw ko duola.]",hungog
+1313,combo,high,opener+core+followup,"Uy, pobre kaayo ka, bunalan tika unya.","[Uy,] you're so poor, [bunalan tika unya.]",pobre
+1314,combo,med,opener+core+followup,"Yawa, tanga kaayo ka, hahaha.","[Yawa,] you're so dumb, [hahaha.]",tanga
+1315,combo,med,opener+core+followup,"Yawa, pangit kaayo ka, mohilak na siya, oh.","[Yawa,] you're so ugly, [mohilak na siya, oh.]",pangit
+1316,combo,med,opener+core+followup,"Piste, bobo kaayo ka, wala kay higala.","[Piste,] you're so dumb, [wala kay higala.]",bobo
+1317,combo,high,opener+core+followup,"Hahaha, bungi kaayo ka, bunalan tika unya.","[Hahaha,] you're so gap-toothed, [bunalan tika unya.]",bungi
+1318,combo,med,opener+core+followup,"Tan-awa ni, bugo kaayo ka, wala kay higala.","[Tan-awa ni,] you're so stupid, [wala kay higala.]",bugo
+1319,combo,high,opener+core+followup,"Piste, itom kaayo ka, bunalan tika unya.","[Piste,] you're so dark-skinned, [bunalan tika unya.]",itom
+1320,combo,high,opener+core+followup,"Tan-awa ni, sumbungero kaayo ka, bunalan tika unya.","[Tan-awa ni,] you're so tattletale, [bunalan tika unya.]",sumbungero
+1321,combo,high,opener+core+followup,"Hahaha, pandak kaayo ka, bunalan tika unya.","[Hahaha,] you're so short, [bunalan tika unya.]",pandak
+1322,combo,med,opener+core+followup,"Yawa, tanga kaayo ka, layo diha.","[Yawa,] you're so dumb, [layo diha.]",tanga
+1323,combo,med,opener+core+followup,"Unsa man? kutohon kaayo ka, ayaw sumbong ha.","[Unsa man?] you're so lice-ridden, [ayaw sumbong ha.]",kutohon
+1324,combo,med,opener+core+followup,"Uy, bobo kaayo ka, out ka sa among grupo.","[Uy,] you're so dumb, [out ka sa among grupo.]",bobo
+1325,combo,med,opener+core+followup,"Piste, pandak kaayo ka, layo diha.","[Piste,] you're so short, [layo diha.]",pandak
+1326,combo,high,opener+core+followup,"Unsa man? pobre kaayo ka, abangan tika sa gawas.","[Unsa man?] you're so poor, [abangan tika sa gawas.]",pobre
+1327,combo,low,opener+core+followup,"Tan-awa ni, papansin kaayo ka, hahaha.","[Tan-awa ni,] you're so attention-seeker, [hahaha.]",papansin
+1328,combo,med,opener+core+followup,"Yawa, bobo kaayo ka, hilom diha.","[Yawa,] you're so dumb, [hilom diha.]",bobo
+1329,combo,med,opener+core+followup,"Piste, bulingit kaayo ka, out ka sa among grupo.","[Piste,] you're so filthy, [out ka sa among grupo.]",bulingit
+1330,combo,med,opener+core+followup,"Yawa, buang kaayo ka, wala kay higala.","[Yawa,] you're so crazy, [wala kay higala.]",buang
+1331,combo,low,opener+core+followup,"Unsa man? papansin kaayo ka, hahaha.","[Unsa man?] you're so attention-seeker, [hahaha.]",papansin
+1332,combo,high,opener+core+followup,"Uy, baho kaayo ka, abangan tika sa gawas.","[Uy,] you're so smelly, [abangan tika sa gawas.]",baho
+1333,combo,med,opener+core+followup,"Unsa man? tanga kaayo ka, wala kay higala.","[Unsa man?] you're so dumb, [wala kay higala.]",tanga
+1334,combo,high,opener+core+followup,"Yawa, abno kaayo ka, abangan tika sa gawas.","[Yawa,] you're so weird/abnormal, [abangan tika sa gawas.]",abno
+1335,combo,high,opener+core+followup,"Hahaha, pangit kaayo ka, bunalan tika unya.","[Hahaha,] you're so ugly, [bunalan tika unya.]",pangit
+1336,combo,high,opener+core+followup,"Yawa, bayot kaayo ka, ayaw ko duola.","[Yawa,] you're so gay (slur use), [ayaw ko duola.]",bayot
+1337,combo,med,opener+core+followup,"Hoy, tanga kaayo ka, ayaw sumbong ha.","[Hoy,] you're so dumb, [ayaw sumbong ha.]",tanga
+1338,combo,med,opener+core+followup,"Hahaha, bugo kaayo ka, wala kay higala.","[Hahaha,] you're so stupid, [wala kay higala.]",bugo
+1339,combo,med,opener+core+followup,"Hahaha, ngil-ad kaayo ka, wala kay higala.","[Hahaha,] you're so ugly, [wala kay higala.]",ngil-ad
+1340,combo,med,opener+core+followup,"Unsa man? ngil-ad kaayo ka, out ka sa among grupo.","[Unsa man?] you're so ugly, [out ka sa among grupo.]",ngil-ad
+1341,combo,low,opener+core+followup,"Hahaha, hambog kaayo ka, hilom diha.","[Hahaha,] you're so boastful, [hilom diha.]",hambog
+1342,combo,high,opener+core+followup,"Hoy, pangit kaayo ka, abangan tika sa gawas.","[Hoy,] you're so ugly, [abangan tika sa gawas.]",pangit
+1343,combo,med,opener+core+followup,"Yawa, tambok kaayo ka, ayaw sumbong ha.","[Yawa,] you're so fat, [ayaw sumbong ha.]",tambok
+1344,combo,med,opener+core+followup,"Hoy, bogo kaayo ka, mohilak na siya, oh.","[Hoy,] you're so stupid, [mohilak na siya, oh.]",bogo
+1345,combo,high,opener+core+followup,"Tan-awa ni, itom kaayo ka, ayaw sumbong ha.","[Tan-awa ni,] you're so dark-skinned, [ayaw sumbong ha.]",itom
+1346,combo,low,opener+core+followup,"Piste, hambog kaayo ka, out ka sa among grupo.","[Piste,] you're so boastful, [out ka sa among grupo.]",hambog
+1347,combo,high,opener+core+followup,"Tan-awa ni, bogo kaayo ka, abangan tika sa gawas.","[Tan-awa ni,] you're so stupid, [abangan tika sa gawas.]",bogo
+1348,combo,high,opener+core+followup,"Piste, babayeon kaayo ka, out ka sa among grupo.","[Piste,] you're so girly (slur use, boys), [out ka sa among grupo.]",babayeon
+1349,combo,med,opener+core+followup,"Piste, pangit kaayo ka, hilom diha.","[Piste,] you're so ugly, [hilom diha.]",pangit
+1350,combo,low,opener+core+followup,"Yawa, papansin kaayo ka, layo diha.","[Yawa,] you're so attention-seeker, [layo diha.]",papansin
+1351,combo,med,opener+core+followup,"Yawa, niwang kaayo ka, wala kay higala.","[Yawa,] you're so skinny, [wala kay higala.]",niwang
+1352,combo,med,opener+core+followup,"Uy, boang kaayo ka, hahaha.","[Uy,] you're so crazy, [hahaha.]",boang
+1353,combo,med,opener+core+followup,"Uy, pobre kaayo ka, hahaha.","[Uy,] you're so poor, [hahaha.]",pobre
+1354,combo,med,opener+core+followup,"Uy, hungog kaayo ka, ayaw sumbong ha.","[Uy,] you're so foolish, [ayaw sumbong ha.]",hungog
+1355,combo,med,opener+core+followup,"Hahaha, buang kaayo ka, hahaha.","[Hahaha,] you're so crazy, [hahaha.]",buang
+1356,combo,high,opener+core+followup,"Hahaha, hugaw kaayo ka, abangan tika sa gawas.","[Hahaha,] you're so dirty, [abangan tika sa gawas.]",hugaw
+1357,combo,med,opener+core+followup,"Hoy, kutohon kaayo ka, ayaw ko duola.","[Hoy,] you're so lice-ridden, [ayaw ko duola.]",kutohon
+1358,combo,med,opener+core+followup,"Tan-awa ni, tanga kaayo ka, mohilak na siya, oh.","[Tan-awa ni,] you're so dumb, [mohilak na siya, oh.]",tanga
+1359,combo,med,opener+core+followup,"Piste, boang kaayo ka, wala kay higala.","[Piste,] you're so crazy, [wala kay higala.]",boang
+1360,combo,med,opener+core+followup,"Yawa, sumbungero kaayo ka, ayaw ko duola.","[Yawa,] you're so tattletale, [ayaw ko duola.]",sumbungero
+1361,combo,med,opener+core+followup,"Uy, niwang kaayo ka, hahaha.","[Uy,] you're so skinny, [hahaha.]",niwang
+1362,combo,high,opener+core+followup,"Yawa, bugo kaayo ka, abangan tika sa gawas.","[Yawa,] you're so stupid, [abangan tika sa gawas.]",bugo
+1363,combo,med,opener+core+followup,"Yawa, kutohon kaayo ka, layo diha.","[Yawa,] you're so lice-ridden, [layo diha.]",kutohon
+1364,combo,med,opener+core+followup,"Tan-awa ni, hugaw kaayo ka, hilom diha.","[Tan-awa ni,] you're so dirty, [hilom diha.]",hugaw
+1365,combo,med,opener+core+followup,"Piste, baho kaayo ka, layo diha.","[Piste,] you're so smelly, [layo diha.]",baho
+1366,combo,med,opener+core+followup,"Hahaha, bogo kaayo ka, layo diha.","[Hahaha,] you're so stupid, [layo diha.]",bogo
+1367,combo,low,opener+core+followup,"Hahaha, sipsip kaayo ka, out ka sa among grupo.","[Hahaha,] you're so suck-up, [out ka sa among grupo.]",sipsip
+1368,combo,med,opener+core+followup,"Uy, buang kaayo ka, ayaw sumbong ha.","[Uy,] you're so crazy, [ayaw sumbong ha.]",buang
+1369,combo,med,opener+core+followup,"Unsa man? abno kaayo ka, hilom diha.","[Unsa man?] you're so weird/abnormal, [hilom diha.]",abno
+1370,combo,med,opener+core+followup,"Piste, bugo kaayo ka, ayaw sumbong ha.","[Piste,] you're so stupid, [ayaw sumbong ha.]",bugo
+1371,combo,high,opener+core+followup,"Yawa, sipsip kaayo ka, abangan tika sa gawas.","[Yawa,] you're so suck-up, [abangan tika sa gawas.]",sipsip
+1372,combo,med,opener+core+followup,"Yawa, boang kaayo ka, ayaw sumbong ha.","[Yawa,] you're so crazy, [ayaw sumbong ha.]",boang
+1373,combo,med,opener+core+followup,"Hoy, bugo kaayo ka, hahaha.","[Hoy,] you're so stupid, [hahaha.]",bugo
+1374,combo,high,opener+core+followup,"Unsa man? tanga kaayo ka, bunalan tika unya.","[Unsa man?] you're so dumb, [bunalan tika unya.]",tanga
+1375,combo,med,opener+core+followup,"Uy, sumbungera kaayo ka, layo diha.","[Uy,] you're so tattletale (girl), [layo diha.]",sumbungera
+1376,combo,med,opener+core+followup,"Uy, pandak kaayo ka, hilom diha.","[Uy,] you're so short, [hilom diha.]",pandak
+1377,combo,med,opener+core+followup,"Hahaha, niwang kaayo ka, hilom diha.","[Hahaha,] you're so skinny, [hilom diha.]",niwang
+1378,combo,low,opener+core+followup,"Yawa, hambog kaayo ka, mohilak na siya, oh.","[Yawa,] you're so boastful, [mohilak na siya, oh.]",hambog
+1379,combo,high,opener+core+followup,"Tan-awa ni, babayeon kaayo ka, bunalan tika unya.","[Tan-awa ni,] you're so girly (slur use, boys), [bunalan tika unya.]",babayeon
+1380,combo,med,opener+core+followup,"Unsa man? bungi kaayo ka, wala kay higala.","[Unsa man?] you're so gap-toothed, [wala kay higala.]",bungi
+1381,combo,med,opener+core+followup,"Unsa man? buang kaayo ka, hilom diha.","[Unsa man?] you're so crazy, [hilom diha.]",buang
+1382,combo,med,opener+core+followup,"Piste, sumbungero kaayo ka, ayaw ko duola.","[Piste,] you're so tattletale, [ayaw ko duola.]",sumbungero
+1383,combo,med,opener+core+followup,"Piste, niwang kaayo ka, mohilak na siya, oh.","[Piste,] you're so skinny, [mohilak na siya, oh.]",niwang
+1384,combo,med,opener+core+followup,"Uy, bogo kaayo ka, out ka sa among grupo.","[Uy,] you're so stupid, [out ka sa among grupo.]",bogo
+1385,combo,med,opener+core+followup,"Hoy, abno kaayo ka, wala kay higala.","[Hoy,] you're so weird/abnormal, [wala kay higala.]",abno
+1386,combo,high,opener+core+followup,"Hahaha, arte kaayo ka, bunalan tika unya.","[Hahaha,] you're so pretentious, [bunalan tika unya.]",arte
+1387,combo,high,opener+core+followup,"Tan-awa ni, babayeon kaayo ka, out ka sa among grupo.","[Tan-awa ni,] you're so girly (slur use, boys), [out ka sa among grupo.]",babayeon
+1388,combo,med,opener+core+followup,"Piste, pobre kaayo ka, hilom diha.","[Piste,] you're so poor, [hilom diha.]",pobre
+1389,combo,low,opener+core+followup,"Piste, hambog kaayo ka, wala kay higala.","[Piste,] you're so boastful, [wala kay higala.]",hambog
+1390,combo,med,opener+core+followup,"Piste, sumbungera kaayo ka, hahaha.","[Piste,] you're so tattletale (girl), [hahaha.]",sumbungera
+1391,combo,low,opener+core+followup,"Unsa man? samok kaayo ka, layo diha.","[Unsa man?] you're so annoying, [layo diha.]",samok
+1392,combo,med,opener+core+followup,"Unsa man? pangit kaayo ka, layo diha.","[Unsa man?] you're so ugly, [layo diha.]",pangit
+1393,combo,low,opener+core+followup,"Unsa man? papansin kaayo ka, hilom diha.","[Unsa man?] you're so attention-seeker, [hilom diha.]",papansin
+1394,combo,low,opener+core+followup,"Uy, hilakon kaayo ka, wala kay higala.","[Uy,] you're so crybaby, [wala kay higala.]",hilakon
+1395,combo,low,opener+core+followup,"Uy, samok kaayo ka, mohilak na siya, oh.","[Uy,] you're so annoying, [mohilak na siya, oh.]",samok
+1396,combo,med,opener+core+followup,"Hahaha, hugaw kaayo ka, ayaw ko duola.","[Hahaha,] you're so dirty, [ayaw ko duola.]",hugaw
+1397,combo,high,opener+core+followup,"Hoy, hambog kaayo ka, abangan tika sa gawas.","[Hoy,] you're so boastful, [abangan tika sa gawas.]",hambog
+1398,combo,med,opener+core+followup,"Hoy, ngil-ad kaayo ka, out ka sa among grupo.","[Hoy,] you're so ugly, [out ka sa among grupo.]",ngil-ad
+1399,combo,high,opener+core+followup,"Uy, babayeon kaayo ka, out ka sa among grupo.","[Uy,] you're so girly (slur use, boys), [out ka sa among grupo.]",babayeon
+1400,combo,high,opener+core+followup,"Piste, bayot kaayo ka, ayaw sumbong ha.","[Piste,] you're so gay (slur use), [ayaw sumbong ha.]",bayot
+1401,combo,low,opener+core+followup,"Unsa man? hambog kaayo ka, layo diha.","[Unsa man?] you're so boastful, [layo diha.]",hambog
+1402,combo,med,opener+core+followup,"Hoy, buang kaayo ka, ayaw ko duola.","[Hoy,] you're so crazy, [ayaw ko duola.]",buang
+1403,combo,med,opener+core+followup,"Hahaha, ngil-ad kaayo ka, out ka sa among grupo.","[Hahaha,] you're so ugly, [out ka sa among grupo.]",ngil-ad
+1404,combo,med,opener+core+followup,"Hahaha, abno kaayo ka, ayaw ko duola.","[Hahaha,] you're so weird/abnormal, [ayaw ko duola.]",abno
+1405,combo,med,opener+core+followup,"Uy, abno kaayo ka, hilom diha.","[Uy,] you're so weird/abnormal, [hilom diha.]",abno
+1406,combo,low,opener+core+followup,"Unsa man? sipsip kaayo ka, wala kay higala.","[Unsa man?] you're so suck-up, [wala kay higala.]",sipsip
+1407,combo,med,opener+core+followup,"Yawa, bulingit kaayo ka, wala kay higala.","[Yawa,] you're so filthy, [wala kay higala.]",bulingit
+1408,combo,med,opener+core+followup,"Hoy, hugaw kaayo ka, wala kay higala.","[Hoy,] you're so dirty, [wala kay higala.]",hugaw
+1409,combo,high,opener+core+followup,"Piste, pobre kaayo ka, bunalan tika unya.","[Piste,] you're so poor, [bunalan tika unya.]",pobre
+1410,combo,med,opener+core+followup,"Hahaha, abno kaayo ka, mohilak na siya, oh.","[Hahaha,] you're so weird/abnormal, [mohilak na siya, oh.]",abno
+1411,combo,med,opener+core+followup,"Hoy, sumbungera kaayo ka, hilom diha.","[Hoy,] you're so tattletale (girl), [hilom diha.]",sumbungera
+1412,combo,low,opener+core+followup,"Hahaha, papansin kaayo ka, wala kay higala.","[Hahaha,] you're so attention-seeker, [wala kay higala.]",papansin
+1413,combo,med,opener+core+followup,"Unsa man? bungi kaayo ka, ayaw ko duola.","[Unsa man?] you're so gap-toothed, [ayaw ko duola.]",bungi
+1414,combo,med,opener+core+followup,"Unsa man? bogo kaayo ka, hahaha.","[Unsa man?] you're so stupid, [hahaha.]",bogo
+1415,combo,high,opener+core+followup,"Yawa, bugo kaayo ka, bunalan tika unya.","[Yawa,] you're so stupid, [bunalan tika unya.]",bugo
+1416,combo,med,opener+core+followup,"Yawa, sumbungera kaayo ka, ayaw sumbong ha.","[Yawa,] you're so tattletale (girl), [ayaw sumbong ha.]",sumbungera
+1417,combo,med,opener+core+followup,"Uy, bogo kaayo ka, layo diha.","[Uy,] you're so stupid, [layo diha.]",bogo
+1418,combo,high,opener+core+followup,"Yawa, hungog kaayo ka, abangan tika sa gawas.","[Yawa,] you're so foolish, [abangan tika sa gawas.]",hungog
+1419,combo,low,opener+core+followup,"Hahaha, sipsip kaayo ka, ayaw ko duola.","[Hahaha,] you're so suck-up, [ayaw ko duola.]",sipsip
+1420,combo,low,opener+core+followup,"Yawa, papansin kaayo ka, wala kay higala.","[Yawa,] you're so attention-seeker, [wala kay higala.]",papansin
+1421,combo,med,opener+core+followup,"Piste, ngil-ad kaayo ka, ayaw sumbong ha.","[Piste,] you're so ugly, [ayaw sumbong ha.]",ngil-ad
+1422,combo,high,opener+core+followup,"Yawa, pobre kaayo ka, abangan tika sa gawas.","[Yawa,] you're so poor, [abangan tika sa gawas.]",pobre
+1423,combo,med,opener+core+followup,"Piste, bugo kaayo ka, out ka sa among grupo.","[Piste,] you're so stupid, [out ka sa among grupo.]",bugo
+1424,combo,med,opener+core+followup,"Piste, ngil-ad kaayo ka, ayaw ko duola.","[Piste,] you're so ugly, [ayaw ko duola.]",ngil-ad
+1425,combo,med,opener+core+followup,"Hoy, pobre kaayo ka, layo diha.","[Hoy,] you're so poor, [layo diha.]",pobre
+1426,combo,med,opener+core+followup,"Uy, pobre kaayo ka, ayaw ko duola.","[Uy,] you're so poor, [ayaw ko duola.]",pobre
+1427,combo,high,opener+core+followup,"Piste, tambok kaayo ka, bunalan tika unya.","[Piste,] you're so fat, [bunalan tika unya.]",tambok
+1428,combo,med,opener+core+followup,"Unsa man? bungi kaayo ka, out ka sa among grupo.","[Unsa man?] you're so gap-toothed, [out ka sa among grupo.]",bungi
+1429,combo,low,opener+core+followup,"Piste, pabibo kaayo ka, layo diha.","[Piste,] you're so show-off, [layo diha.]",pabibo
+1430,combo,med,opener+core+followup,"Hahaha, buang kaayo ka, out ka sa among grupo.","[Hahaha,] you're so crazy, [out ka sa among grupo.]",buang
+1431,combo,med,opener+core+followup,"Yawa, bulingit kaayo ka, mohilak na siya, oh.","[Yawa,] you're so filthy, [mohilak na siya, oh.]",bulingit
+1432,combo,high,opener+core+followup,"Uy, babayeon kaayo ka, bunalan tika unya.","[Uy,] you're so girly (slur use, boys), [bunalan tika unya.]",babayeon
+1433,combo,med,opener+core+followup,"Hahaha, bungi kaayo ka, wala kay higala.","[Hahaha,] you're so gap-toothed, [wala kay higala.]",bungi
+1434,combo,med,opener+core+followup,"Piste, buang kaayo ka, ayaw sumbong ha.","[Piste,] you're so crazy, [ayaw sumbong ha.]",buang
+1435,combo,med,opener+core+followup,"Uy, baho kaayo ka, mohilak na siya, oh.","[Uy,] you're so smelly, [mohilak na siya, oh.]",baho
+1436,combo,high,opener+core+followup,"Unsa man? itom kaayo ka, wala kay higala.","[Unsa man?] you're so dark-skinned, [wala kay higala.]",itom
+1437,combo,med,opener+core+followup,"Unsa man? boang kaayo ka, layo diha.","[Unsa man?] you're so crazy, [layo diha.]",boang
+1438,combo,med,opener+core+followup,"Hoy, tambok kaayo ka, mohilak na siya, oh.","[Hoy,] you're so fat, [mohilak na siya, oh.]",tambok
+1439,combo,med,opener+core+followup,"Uy, bobo kaayo ka, ayaw sumbong ha.","[Uy,] you're so dumb, [ayaw sumbong ha.]",bobo
+1440,combo,med,opener+core+followup,"Hahaha, niwang kaayo ka, ayaw sumbong ha.","[Hahaha,] you're so skinny, [ayaw sumbong ha.]",niwang
+1441,combo,med,opener+core+followup,"Hoy, pobre kaayo ka, hilom diha.","[Hoy,] you're so poor, [hilom diha.]",pobre
+1442,combo,low,opener+core+followup,"Tan-awa ni, hambog kaayo ka, out ka sa among grupo.","[Tan-awa ni,] you're so boastful, [out ka sa among grupo.]",hambog
+1443,combo,low,opener+core+followup,"Hahaha, pabibo kaayo ka, ayaw ko duola.","[Hahaha,] you're so show-off, [ayaw ko duola.]",pabibo
+1444,combo,med,opener+core+followup,"Tan-awa ni, pandak kaayo ka, hilom diha.","[Tan-awa ni,] you're so short, [hilom diha.]",pandak
+1445,combo,high,opener+core+followup,"Yawa, boang kaayo ka, bunalan tika unya.","[Yawa,] you're so crazy, [bunalan tika unya.]",boang
+1446,combo,high,opener+core+followup,"Yawa, lakin-on kaayo ka, out ka sa among grupo.","[Yawa,] you're so mannish (slur use), [out ka sa among grupo.]",lakin-on
+1447,combo,low,opener+core+followup,"Piste, kuripot kaayo ka, ayaw sumbong ha.","[Piste,] you're so stingy, [ayaw sumbong ha.]",kuripot
+1448,combo,low,opener+core+followup,"Uy, samok kaayo ka, wala kay higala.","[Uy,] you're so annoying, [wala kay higala.]",samok
+1449,combo,med,opener+core+followup,"Unsa man? boang kaayo ka, out ka sa among grupo.","[Unsa man?] you're so crazy, [out ka sa among grupo.]",boang
+1450,combo,high,opener+core+followup,"Unsa man? lakin-on kaayo ka, hahaha.","[Unsa man?] you're so mannish (slur use), [hahaha.]",lakin-on
+1451,combo,med,opener+core+followup,"Uy, abno kaayo ka, hahaha.","[Uy,] you're so weird/abnormal, [hahaha.]",abno
+1452,combo,low,opener+core+followup,"Tan-awa ni, kuripot kaayo ka, out ka sa among grupo.","[Tan-awa ni,] you're so stingy, [out ka sa among grupo.]",kuripot
+1453,combo,med,opener+core+followup,"Uy, niwang kaayo ka, layo diha.","[Uy,] you're so skinny, [layo diha.]",niwang
+1454,combo,med,opener+core+followup,"Unsa man? bogo kaayo ka, ayaw ko duola.","[Unsa man?] you're so stupid, [ayaw ko duola.]",bogo
+1455,combo,low,opener+core+followup,"Unsa man? hilakon kaayo ka, ayaw sumbong ha.","[Unsa man?] you're so crybaby, [ayaw sumbong ha.]",hilakon
+1456,combo,low,opener+core+followup,"Tan-awa ni, arte kaayo ka, mohilak na siya, oh.","[Tan-awa ni,] you're so pretentious, [mohilak na siya, oh.]",arte
+1457,combo,med,opener+core+followup,"Yawa, tanga kaayo ka, ayaw ko duola.","[Yawa,] you're so dumb, [ayaw ko duola.]",tanga
+1458,combo,high,opener+core+followup,"Unsa man? bayot kaayo ka, bunalan tika unya.","[Unsa man?] you're so gay (slur use), [bunalan tika unya.]",bayot
+1459,combo,med,opener+core+followup,"Yawa, bungi kaayo ka, layo diha.","[Yawa,] you're so gap-toothed, [layo diha.]",bungi
+1460,combo,med,opener+core+followup,"Hoy, bogo kaayo ka, hahaha.","[Hoy,] you're so stupid, [hahaha.]",bogo
+1461,combo,high,opener+core+followup,"Piste, lakin-on kaayo ka, out ka sa among grupo.","[Piste,] you're so mannish (slur use), [out ka sa among grupo.]",lakin-on
+1462,combo,med,opener+core+followup,"Hoy, kutohon kaayo ka, hahaha.","[Hoy,] you're so lice-ridden, [hahaha.]",kutohon
+1463,combo,med,opener+core+followup,"Uy, bungi kaayo ka, wala kay higala.","[Uy,] you're so gap-toothed, [wala kay higala.]",bungi
+1464,combo,med,opener+core+followup,"Hahaha, abno kaayo ka, hahaha.","[Hahaha,] you're so weird/abnormal, [hahaha.]",abno
+1465,combo,high,opener+core+followup,"Tan-awa ni, bungi kaayo ka, bunalan tika unya.","[Tan-awa ni,] you're so gap-toothed, [bunalan tika unya.]",bungi
+1466,combo,med,opener+core+followup,"Hoy, tanga kaayo ka, layo diha.","[Hoy,] you're so dumb, [layo diha.]",tanga
+1467,combo,med,opener+core+followup,"Piste, niwang kaayo ka, wala kay higala.","[Piste,] you're so skinny, [wala kay higala.]",niwang
+1468,combo,med,opener+core+followup,"Hoy, hungog kaayo ka, hahaha.","[Hoy,] you're so foolish, [hahaha.]",hungog
+1469,combo,med,opener+core+followup,"Piste, baho kaayo ka, mohilak na siya, oh.","[Piste,] you're so smelly, [mohilak na siya, oh.]",baho
+1470,combo,high,opener+core+followup,"Unsa man? samok kaayo ka, bunalan tika unya.","[Unsa man?] you're so annoying, [bunalan tika unya.]",samok
+1471,combo,high,opener+core+followup,"Hahaha, bayot kaayo ka, bunalan tika unya.","[Hahaha,] you're so gay (slur use), [bunalan tika unya.]",bayot
+1472,combo,med,opener+core+followup,"Unsa man? sumbungera kaayo ka, hilom diha.","[Unsa man?] you're so tattletale (girl), [hilom diha.]",sumbungera
+1473,combo,med,opener+core+followup,"Piste, niwang kaayo ka, out ka sa among grupo.","[Piste,] you're so skinny, [out ka sa among grupo.]",niwang
+1474,combo,med,opener+core+followup,"Uy, hugaw kaayo ka, wala kay higala.","[Uy,] you're so dirty, [wala kay higala.]",hugaw
+1475,combo,med,opener+core+followup,"Tan-awa ni, hugaw kaayo ka, mohilak na siya, oh.","[Tan-awa ni,] you're so dirty, [mohilak na siya, oh.]",hugaw
+1476,combo,med,opener+core+followup,"Unsa man? sumbungera kaayo ka, mohilak na siya, oh.","[Unsa man?] you're so tattletale (girl), [mohilak na siya, oh.]",sumbungera
+1477,combo,med,opener+core+followup,"Piste, pandak kaayo ka, mohilak na siya, oh.","[Piste,] you're so short, [mohilak na siya, oh.]",pandak
+1478,combo,high,opener+core+followup,"Piste, itom kaayo ka, mohilak na siya, oh.","[Piste,] you're so dark-skinned, [mohilak na siya, oh.]",itom
+1479,combo,high,opener+core+followup,"Hoy, bugo kaayo ka, abangan tika sa gawas.","[Hoy,] you're so stupid, [abangan tika sa gawas.]",bugo
+1480,combo,low,opener+core+followup,"Hoy, arte kaayo ka, mohilak na siya, oh.","[Hoy,] you're so pretentious, [mohilak na siya, oh.]",arte
+1481,combo,med,opener+core+followup,"Yawa, abno kaayo ka, hahaha.","[Yawa,] you're so weird/abnormal, [hahaha.]",abno
+1482,combo,high,opener+core+followup,"Unsa man? papansin kaayo ka, bunalan tika unya.","[Unsa man?] you're so attention-seeker, [bunalan tika unya.]",papansin
+1483,combo,high,opener+core+followup,"Yawa, bungi kaayo ka, abangan tika sa gawas.","[Yawa,] you're so gap-toothed, [abangan tika sa gawas.]",bungi
+1484,combo,low,opener+core+followup,"Tan-awa ni, hilakon kaayo ka, ayaw sumbong ha.","[Tan-awa ni,] you're so crybaby, [ayaw sumbong ha.]",hilakon
+1485,combo,low,opener+core+followup,"Hahaha, papansin kaayo ka, mohilak na siya, oh.","[Hahaha,] you're so attention-seeker, [mohilak na siya, oh.]",papansin
+1486,combo,low,opener+core+followup,"Hoy, hilakon kaayo ka, layo diha.","[Hoy,] you're so crybaby, [layo diha.]",hilakon
+1487,combo,med,opener+core+followup,"Hahaha, pobre kaayo ka, hilom diha.","[Hahaha,] you're so poor, [hilom diha.]",pobre
+1488,combo,med,opener+core+followup,"Uy, sumbungera kaayo ka, mohilak na siya, oh.","[Uy,] you're so tattletale (girl), [mohilak na siya, oh.]",sumbungera
+1489,combo,low,opener+core+followup,"Hoy, papansin kaayo ka, mohilak na siya, oh.","[Hoy,] you're so attention-seeker, [mohilak na siya, oh.]",papansin
+1490,combo,med,opener+core+followup,"Tan-awa ni, sumbungera kaayo ka, ayaw sumbong ha.","[Tan-awa ni,] you're so tattletale (girl), [ayaw sumbong ha.]",sumbungera
+1491,combo,high,opener+core+followup,"Uy, sumbungera kaayo ka, abangan tika sa gawas.","[Uy,] you're so tattletale (girl), [abangan tika sa gawas.]",sumbungera
+1492,combo,med,opener+core+followup,"Tan-awa ni, bogo kaayo ka, ayaw ko duola.","[Tan-awa ni,] you're so stupid, [ayaw ko duola.]",bogo
+1493,combo,high,opener+core+followup,"Hahaha, tanga kaayo ka, bunalan tika unya.","[Hahaha,] you're so dumb, [bunalan tika unya.]",tanga
+1494,combo,med,opener+core+followup,"Tan-awa ni, boang kaayo ka, hahaha.","[Tan-awa ni,] you're so crazy, [hahaha.]",boang
+1495,combo,low,opener+core+followup,"Unsa man? papansin kaayo ka, wala kay higala.","[Unsa man?] you're so attention-seeker, [wala kay higala.]",papansin
+1496,combo,med,opener+core+followup,"Hoy, pobre kaayo ka, out ka sa among grupo.","[Hoy,] you're so poor, [out ka sa among grupo.]",pobre
+1497,combo,low,opener+core+followup,"Uy, arte kaayo ka, mohilak na siya, oh.","[Uy,] you're so pretentious, [mohilak na siya, oh.]",arte
+1498,combo,med,opener+core+followup,"Unsa man? hugaw kaayo ka, mohilak na siya, oh.","[Unsa man?] you're so dirty, [mohilak na siya, oh.]",hugaw
+1499,combo,med,opener+core+followup,"Yawa, bungi kaayo ka, mohilak na siya, oh.","[Yawa,] you're so gap-toothed, [mohilak na siya, oh.]",bungi
+1500,combo,high,opener+core+followup,"Hahaha, bungi kaayo ka, abangan tika sa gawas.","[Hahaha,] you're so gap-toothed, [abangan tika sa gawas.]",bungi
+1501,combo,med,opener+core+followup,"Unsa man? bogo kaayo ka, mohilak na siya, oh.","[Unsa man?] you're so stupid, [mohilak na siya, oh.]",bogo
+1502,combo,high,opener+core+followup,"Hoy, bayot kaayo ka, ayaw sumbong ha.","[Hoy,] you're so gay (slur use), [ayaw sumbong ha.]",bayot
+1503,combo,med,opener+core+followup,"Uy, bugo kaayo ka, out ka sa among grupo.","[Uy,] you're so stupid, [out ka sa among grupo.]",bugo
+1504,combo,med,opener+core+followup,"Piste, baho kaayo ka, hahaha.","[Piste,] you're so smelly, [hahaha.]",baho
+1505,combo,med,opener+core+followup,"Piste, buang kaayo ka, hahaha.","[Piste,] you're so crazy, [hahaha.]",buang
+1506,combo,med,opener+core+followup,"Tan-awa ni, hungog kaayo ka, out ka sa among grupo.","[Tan-awa ni,] you're so foolish, [out ka sa among grupo.]",hungog
+1507,combo,med,opener+core+followup,"Tan-awa ni, pobre kaayo ka, ayaw sumbong ha.","[Tan-awa ni,] you're so poor, [ayaw sumbong ha.]",pobre
+1508,combo,high,opener+core+followup,"Tan-awa ni, itom kaayo ka, hilom diha.","[Tan-awa ni,] you're so dark-skinned, [hilom diha.]",itom
+1509,combo,med,opener+core+followup,"Unsa man? ngil-ad kaayo ka, ayaw ko duola.","[Unsa man?] you're so ugly, [ayaw ko duola.]",ngil-ad
+1510,combo,med,opener+core+followup,"Hoy, boang kaayo ka, hilom diha.","[Hoy,] you're so crazy, [hilom diha.]",boang
+1511,combo,high,opener+core+followup,"Piste, pandak kaayo ka, abangan tika sa gawas.","[Piste,] you're so short, [abangan tika sa gawas.]",pandak
+1512,combo,high,opener+core+followup,"Hoy, pabibo kaayo ka, bunalan tika unya.","[Hoy,] you're so show-off, [bunalan tika unya.]",pabibo
+1513,combo,med,opener+core+followup,"Unsa man? ngil-ad kaayo ka, ayaw sumbong ha.","[Unsa man?] you're so ugly, [ayaw sumbong ha.]",ngil-ad
+1514,combo,med,opener+core+followup,"Yawa, pandak kaayo ka, hilom diha.","[Yawa,] you're so short, [hilom diha.]",pandak
+1515,combo,med,opener+core+followup,"Yawa, boang kaayo ka, out ka sa among grupo.","[Yawa,] you're so crazy, [out ka sa among grupo.]",boang
+1516,combo,high,opener+core+followup,"Hoy, itom kaayo ka, abangan tika sa gawas.","[Hoy,] you're so dark-skinned, [abangan tika sa gawas.]",itom
+1517,combo,high,opener+core+followup,"Hahaha, buang kaayo ka, abangan tika sa gawas.","[Hahaha,] you're so crazy, [abangan tika sa gawas.]",buang
+1518,combo,med,opener+core+followup,"Yawa, bugo kaayo ka, ayaw ko duola.","[Yawa,] you're so stupid, [ayaw ko duola.]",bugo
+1519,combo,med,opener+core+followup,"Yawa, bobo kaayo ka, ayaw ko duola.","[Yawa,] you're so dumb, [ayaw ko duola.]",bobo
+1520,combo,high,opener+core+followup,"Yawa, itom kaayo ka, out ka sa among grupo.","[Yawa,] you're so dark-skinned, [out ka sa among grupo.]",itom
+1521,combo,med,opener+core+followup,"Piste, hungog kaayo ka, out ka sa among grupo.","[Piste,] you're so foolish, [out ka sa among grupo.]",hungog
+1522,combo,med,opener+core+followup,"Hahaha, pobre kaayo ka, ayaw sumbong ha.","[Hahaha,] you're so poor, [ayaw sumbong ha.]",pobre
+1523,combo,high,opener+core+followup,"Yawa, niwang kaayo ka, bunalan tika unya.","[Yawa,] you're so skinny, [bunalan tika unya.]",niwang
+1524,combo,med,opener+core+followup,"Hoy, bogo kaayo ka, hilom diha.","[Hoy,] you're so stupid, [hilom diha.]",bogo
+1525,combo,med,opener+core+followup,"Unsa man? baho kaayo ka, out ka sa among grupo.","[Unsa man?] you're so smelly, [out ka sa among grupo.]",baho
+1526,combo,med,opener+core+followup,"Hahaha, kutohon kaayo ka, wala kay higala.","[Hahaha,] you're so lice-ridden, [wala kay higala.]",kutohon
+1527,combo,med,opener+core+followup,"Hahaha, bogo kaayo ka, hahaha.","[Hahaha,] you're so stupid, [hahaha.]",bogo
+1528,combo,high,opener+core+followup,"Unsa man? hungog kaayo ka, abangan tika sa gawas.","[Unsa man?] you're so foolish, [abangan tika sa gawas.]",hungog
+1529,combo,med,opener+core+followup,"Hahaha, baho kaayo ka, hilom diha.","[Hahaha,] you're so smelly, [hilom diha.]",baho
+1530,combo,low,opener+core+followup,"Yawa, samok kaayo ka, out ka sa among grupo.","[Yawa,] you're so annoying, [out ka sa among grupo.]",samok
+1531,combo,high,opener+core+followup,"Hahaha, bayot kaayo ka, ayaw ko duola.","[Hahaha,] you're so gay (slur use), [ayaw ko duola.]",bayot
+1532,combo,med,opener+core+followup,"Tan-awa ni, tambok kaayo ka, wala kay higala.","[Tan-awa ni,] you're so fat, [wala kay higala.]",tambok
+1533,combo,high,opener+core+followup,"Yawa, itom kaayo ka, layo diha.","[Yawa,] you're so dark-skinned, [layo diha.]",itom

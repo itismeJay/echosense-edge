@@ -25,6 +25,8 @@ SWEAR = "swear"          # bare swear word: LOW
 CONTEXT = "context"      # exclusion/pressure: MEDIUM when aimed
 THREAT = "threat"        # HIGH
 SELF_HARM = "self_harm"  # HIGH
+SEVERE = "severe"        # slurs and money/baon extortion: HIGH unless negated
+REQUEST = "request"      # pushy "friend" requests (copying, snacks): MEDIUM floor
 
 
 # Core forms that keep sound-alike ("close enough") matching.
@@ -59,15 +61,41 @@ class Root:
 
 
 def _clean(text: str) -> str:
-    return re.sub(r"\s+", " ", str(text).strip().lower())
+    # Hyphens are spaces, as in transcripts: "ngil-ad ka" -> "ngil ad ka".
+    return re.sub(r"\s+", " ", str(text).replace("-", " ").strip().lower())
 
 
 def _role_for(kind: str, severity: str | None) -> str:
-    if severity in (THREAT, SELF_HARM, CONTEXT):
+    if severity in (THREAT, SELF_HARM, CONTEXT, SEVERE, REQUEST):
         return severity
     if kind == "threat":
         return THREAT
     return INSULT
+
+
+# Bisaya affixes are written both joined and split by speech-to-text and by
+# hand ("kabogo"/"ka-bogo", "pagkabogo"/"pagka bogo"); "ta ka" = "tika" = "taka".
+# Hyphens become spaces before matching, so "ka-{w}" is the split form.
+_AFFIX_PAIRS = (
+    ("pagka{w}", "pagka {w}"),
+    ("pinaka{w}", "pinaka {w}"),
+)
+
+
+def _pattern_variants(pattern: str) -> list[str]:
+    out = [pattern]
+    for joined, split in _AFFIX_PAIRS:
+        for a, b in ((joined, split), (split, joined)):
+            if a in pattern:
+                out.append(pattern.replace(a, b))
+    if pattern.startswith("ka {w}"):
+        out.append("ka{w}" + pattern[len("ka {w}"):])
+    elif pattern.startswith("ka{w}"):
+        out.append("ka {w}" + pattern[len("ka{w}"):])
+    if re.search(r"\btika\b", pattern):
+        out.append(re.sub(r"\btika\b", "ta ka", pattern))
+        out.append(re.sub(r"\btika\b", "taka", pattern))
+    return list(dict.fromkeys(out))
 
 
 def _expand(name, spec, category, patterns):
@@ -76,23 +104,31 @@ def _expand(name, spec, category, patterns):
     role = _role_for(kind, spec.get("severity"))
     out: dict[str, Phrase] = {}
 
+    skip = set(spec.get("skip_patterns") or ())
+
     def add(text, phrase_role, source):
         text = _clean(text)
         if text and text not in out:
             out[text] = Phrase(text, category, name, phrase_role, source, priority)
 
+    def each(kind_patterns):
+        for base in kind_patterns:
+            if base in skip:
+                continue
+            yield from _pattern_variants(base)
+
     if kind == "adjective":
-        for pattern in patterns["adjective"]:
+        for pattern in each(patterns["adjective"]):
             add(pattern.format(w=name), role, f"pattern:{pattern}")
         if spec.get("exclamative"):
-            for pattern in patterns["exclamative"]:
+            for pattern in each(patterns["exclamative"]):
                 add(pattern.format(x=spec["exclamative"]), role, f"pattern:{pattern}")
     elif kind == "noun":
-        for pattern in patterns["noun"]:
+        for pattern in each(patterns["noun"]):
             add(pattern.format(w=name), role, f"pattern:{pattern}")
     elif kind == "swear":
-        for pattern in patterns["swear"]:
-            add(pattern.format(w=name), INSULT, f"pattern:{pattern}")
+        for pattern in each(patterns["swear"]):
+            add(pattern.format(w=name), role if role == SEVERE else INSULT, f"pattern:{pattern}")
         if spec.get("bare"):
             for pattern in patterns["swear_bare"]:
                 add(pattern.format(w=name), SWEAR, f"pattern:{pattern}")
@@ -101,8 +137,11 @@ def _expand(name, spec, category, patterns):
                 text = pattern.format(v=spec["vocative"])
                 add(text, SWEAR if text == spec["vocative"] else INSULT, f"pattern:{pattern}")
     elif kind == "threat":
-        for pattern in patterns["threat"]:
+        for pattern in each(patterns["threat"]):
             add(pattern.format(t=name), THREAT, f"pattern:{pattern}")
+        for passive in spec.get("passive") or ():
+            for pattern in each(patterns["threat_passive"]):
+                add(pattern.format(p=passive), THREAT, f"pattern:{pattern}")
     for text in spec.get("extra") or ():
         add(text, role, "extra")
     for text in spec.get("end_only") or ():

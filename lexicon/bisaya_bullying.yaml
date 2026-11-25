@@ -22,11 +22,24 @@
 #   context   exclusion/pressure phrases                    MEDIUM when aimed
 #
 # Pattern placeholders: {w} root word, {x} exclamative form (tamboka, itoma),
-# {v} vocative form (yawaa, animala), {t} threat verb (patyon, sumbagon).
+# {v} vocative form (yawaa, animala), {t} threat verb (patyon, sumbagon),
+# {p} passive threat form (mabunalan, masumbag).
+#
+# Affixes (detection/lexicon.py): every pattern with "ka {w}", "pagka{w}" or
+# "pinaka{w}" also makes the joined/split form ("kabogo nimo", "pagka bogo
+# nimo"); hyphens are spaces when matching, so "ka-bogo" is the split form.
+# Every "tika" pattern also makes "ta ka" and "taka".
+#
+# Extra severities (`severity:` on a root):
+#   severe    slurs (bayot, lakin-on, babayeon, negro) and money/baon
+#             extortion                                    HIGH unless negated
+#   request   pushy "friend" requests (copy, snacks, chores) MEDIUM floor
+# `skip_patterns:` drops patterns that are everyday speech for that root
+# ("samok kaayo mo" = teacher: "you're so noisy, class").
 
 version: 1
 language: ceb
-updated: 2026-11-04
+updated: 2026-11-25
 
 patterns:
   adjective:              # describes the person: tambok, pangit, bogo
@@ -36,13 +49,20 @@ patterns:
     - "{w} jud ka"
     - "{w} man ka"
     - "{w} baya ka"
+    - "{w} kaau ka"
+    - "{w} diay ka"
+    - "{w} na pud ka"
+    - "{w} man kaayo ka"
     - "{w} kaayo mo"
     - "{w} kaayo kamo"
     - "ka {w} nimo"
     - "ka {w} ba nimo"
+    - "ka {w} kaayo nimo"
     - "pagka{w} nimo"
-    - "pagka {w} nimo"
+    - "pagka{w} gyud nimo"
+    - "pagka{w} jud nimo"
     - "ikaw ang pinaka{w}"
+    - "pinaka{w} ka"
     - "{w} kag nawong"        # kag = ka ug: "pangit kag nawong"
     - "{w} kaayo kag nawong"
   exclamative:            # only for roots with a safe {x} form
@@ -50,7 +70,9 @@ patterns:
     - "{x} nimo oy"
     - "{x} ninyo"
     - "{x} niyo oy"
+    - "{x} nimo uy"
     - "{x} ka oy"
+    - "kining {x}"
   noun:                   # calls the person something: baboy, ungo, abnoy
     - "{w} ka"
     - "{w} man ka"
@@ -66,6 +88,9 @@ patterns:
     - "ikaw {w}"
     - "ikaw ang {w}"
     - "hoy {w}"               # calling someone by the insult
+    - "{w} man diay ka"
+    - "{w} kaayo ka"
+    - "pisteng {w}"
   swear:                  # bare forms are LOW, aimed forms MEDIUM
     - "{w} ka"
     - "{w} ka gyud"
@@ -77,6 +102,8 @@ patterns:
     - "ikaw {w}"
     - "{w} ni siya"
     - "{w} ning bataa"
+    - "{w} man diay ka"
+    - "pisteng {w}"
   swear_bare:             # only for roots with no everyday meaning
     - "{w}"
   vocative:               # yawaa, animala
@@ -107,6 +134,14 @@ patterns:
     - "taka {t}"
     - "tika {t} unya"
     - "tika gyud {t}"
+    - "{t} tika sa uwian"
+  threat_passive:         # HIGH: "gusto ka mabunalan?" = want to get beaten?
+    - "gusto ka {p}"
+    - "gusto kag {p}"
+    - "gusto kang {p}"
+    - "basin {p} ka"
+    - "{p} ka nako"
+    - "{p} ka unya"
 
 categories:
 
@@ -130,6 +165,11 @@ categories:
           - mura kag baboy
           - murag baboy ka
           - baboy ka
+          - baboy ka oy
+          - baboy man diay ka
+          - baboy kaayo ka
+          - hoy baboy
+          - pisteng baboy
           - baboy ra mo
           - oink oink
           - tambokikoy
@@ -173,6 +213,12 @@ categories:
           - pangit pa ka sa unggoy
           - mura kag unggoy
           - murag unggoy ka
+          - unggoy ka
+          - unggoy ka oy
+          - unggoy man diay ka
+          - unggoy kaayo ka
+          - hoy unggoy
+          - pisteng unggoy
           - nawong mo murag ungo
         everyday:
           - pangit ang panahon
@@ -230,10 +276,11 @@ categories:
           - itom pa ka sa uling
           - itom kaayo imong panit
           - agta ka
-          - negra ka
-          - negro ka
         everyday:
+          - itom
           - itom nga lapis
+          - itom akong sapatos
+          - itom kaayo ang langit karon
           - itom ang langit
           - itom nga iro
           - ka itom sa langit
@@ -249,6 +296,8 @@ categories:
           - ka putot nimo
           - putot kaayo ka
           - unano ka
+          - unano man diay ka
+          - hoy unano
           - mura kag unano
           - gamay kaayo ka mura kag bata
         everyday:
@@ -263,6 +312,8 @@ categories:
         priority: high
         extra:
           - kalansay ka
+          - kalansay man diay ka
+          - hoy kalansay
           - mura kag kalansay
           - bukog ra ka
           - panit ug bukog ra ka
@@ -320,10 +371,35 @@ categories:
           - wala ka maligo
           - wala ka naligo no
         everyday:
+          - baho
+          - baho kaayo ang CR
+          - baho ang CR
+          - baho kaayo ang basurahan
           - baho ang basura
           - baho ang kasilyas
           - baho ang isda sa merkado
           - naligo na ko ganina
+
+      ngil-ad:
+        meaning: ugly
+        kind: adjective
+        exclamative: null
+        priority: medium
+        extra:
+          - ngil ad imong nawong
+          - ngil ad kaayo imong nawong
+        everyday:
+          - ngil ad ang panahon
+          - ngil ad ang lami sa tambal
+
+      bulingit:
+        meaning: filthy
+        kind: adjective
+        exclamative: bulingita
+        priority: medium
+        everyday:
+          - bulingit ang salog sa CR
+          - bulingit akong kamot kay nagdula ko
 
       hugaw:
         meaning: dirty
@@ -349,6 +425,8 @@ categories:
           - daghan kag kuto
           - puno kag kuto
           - kutohon imong ulo
+          - naa kay kuto
+          - naay kuto imong ulo
         everyday:
           - kutohon ang iro
           - naay tambal sa kuto
@@ -439,6 +517,12 @@ categories:
           - mura kag buaya
           - murag buaya ka
           - mura man kag buaya
+          - buwaya ka
+          - buwaya ka oy
+          - buwaya man ka
+          - buwaya man diay ka
+          - murag buwaya ka
+          - hoy buwaya
           - ilaga ka
           - ilaga ka oy
           - ilaga gyud ka
@@ -461,6 +545,7 @@ categories:
           - baka ka mahulog diha
           - baka ka ma-late
           - naay buaya sa zoo
+          - naay buwaya sa zoo
           - naay ilaga sa kusina
           - gipakaon nako ang iro ug iring
 
@@ -490,6 +575,7 @@ categories:
         priority: low
         extra:
           - bisaya kaayo ka
+          - bisaya kaayo ka mo english
           - promdi ka
           - promdi kaayo ka
           - taga bukid ka
@@ -546,6 +632,31 @@ categories:
           - ayaw pagbinuang diha
           - kabuang ani nga salida
           - dili ka buang
+
+      tanga:
+        meaning: dumb (Tagalog, used in Davao)
+        kind: adjective
+        exclamative: tangaa
+        priority: high
+        everyday:
+          - dili ka tanga
+
+      hungog:
+        meaning: foolish
+        kind: adjective
+        exclamative: hungoga
+        priority: high
+        everyday:
+          - dili ka hungog
+          - ayaw pag hungog hungog sa klase
+
+      abno:
+        meaning: weird / abnormal
+        kind: adjective
+        exclamative: abnoa
+        priority: medium
+        everyday:
+          - dili ka abno
 
       amaw:
         meaning: stupid
@@ -649,9 +760,11 @@ categories:
       pobre:
         meaning: poor
         kind: adjective
-        exclamative: null
+        exclamative: pobrea
         priority: high
         extra:
+          - wala kay baon
+          - wala kay baon pobre
           - anak sa pobre
           - anak ka sa pobre
           - anak og pobre
@@ -665,6 +778,7 @@ categories:
           - hoy pobre
           - hoy kabus
         everyday:
+          - pobre
           - pobre ang pamilya nila
           - tabangan nato ang mga pobre
           - walay kwarta ang canteen
@@ -685,6 +799,12 @@ categories:
         extra:
           - wala kay ginikanan
           - walay nagmahal nimo
+          - wala kay papa
+          - wala kay mama
+          - wala kay papa no
+          - imong papa hubog
+          - imong papa hubog man
+          - hubog imong papa
         everyday:
           - ilo na siya
           - ilo ang bata sa istorya
@@ -778,15 +898,51 @@ categories:
           - wag niyo siyang isali
           - wag nyo siyang isali
           - huwag ninyo siyang isali
+          # Grade 6 set (2026-11-25)
+          - bati na ta
+          - bati na ta ha
+          - dili na ko makig friend nimo
+          - dili na ko makigfriend nimo
+          - di na ko makig friend nimo
+          - dili na ko makighigala nimo
+          - out ka sa among grupo
+          - out ka sa grupo
+          - out na ka sa among grupo
+          - walay gusto mo group nimo
+          - walay gusto makig group nimo
+          - walay gustong mo group nimo
+          - ayaw siya tabi i
+          - ayaw siya tabihi
+          - ayaw siya istoryahi
+          - ayaw siya storyaha
+          - ayaw siya apila sa dula
+          - kinsa man nagdapit nimo
+          - kinsa nagdapit nimo
+          - kinsay nagdapit nimo
+          - layo diha kadiri ka
+          - kadiri ka
+          - kadiri kaayo ka
+          - ayaw ko hikapa naa kay kuto
+          # group chat
+          - ayaw siya i add sa gc
+          - ayaw siya iadd sa gc
+          - i kick siya sa gc
+          - ikick siya sa gc
+          - i kick na siya sa gc
+          - i remove siya sa gc
         everyday:
           - layo diri ang balay
           - ayaw ug duol sa kalayo
           - layo ang eskwelahan
+          - ayaw ko hikapa kay basa akong kamot
+          - i add ko sa gc sa among section
+          - ayaw siya istorbaha kay natulog
 
         known_ambiguous:
           # Cannot be made safe from the words alone: a teacher explaining a
           # rule uses the same phrase as a bully excluding someone.
           - dili ka apil sa quiz kay absent ka ganiha
+          - balhin didto ayaw diri     # teacher moving seats says this too
 
       useless:
         meaning: useless
@@ -832,12 +988,189 @@ categories:
           - hilakon kaayo ka
           - hilak na pud
           - iyakin ka
-          - samok kaayo ka
-          - samok gyud ka
+          - iyakin man diay ka
+          - hoy iyakin
+          - sumbungero mosumbong sa mama
+          - mama's boy ka
+          - mama's boy man ka
+          - mamas boy ka
+          - mamas boy man ka
         everyday:
           - sipsipa ang juice
           - ayaw pagtikas sa exam
           - mihilak ang bata kay nahulog
+
+      hilakon:
+        meaning: crybaby
+        kind: adjective
+        exclamative: null
+        priority: medium
+        skip_patterns: ["{w} kaayo mo", "{w} kaayo kamo"]
+        everyday:
+          - hilakon ang bata kay gigutom
+          - hilakon pa ang akong manghod
+
+      pikon:
+        meaning: sore loser
+        kind: adjective
+        exclamative: null
+        priority: low
+        skip_patterns: ["{w} kaayo mo", "{w} kaayo kamo"]
+        everyday:
+          - ayaw pagpikon sa dula
+          - pikon ang akong igsoon
+
+      sipsip:
+        meaning: suck-up
+        kind: adjective
+        exclamative: null
+        priority: low
+        everyday:
+          - sipsipa ang juice
+          - sipsip sa straw
+
+      pabibo:
+        meaning: show-off
+        kind: adjective
+        exclamative: null
+        priority: low
+        everyday:
+          - ayaw pagpabibo sa stage
+
+      papansin:
+        meaning: attention-seeker
+        kind: adjective
+        exclamative: null
+        priority: low
+        everyday:
+          - ayaw pagpapansin sa klase
+
+      hambog:
+        meaning: boastful
+        kind: adjective
+        exclamative: hamboga
+        priority: low
+        everyday:
+          - ayaw pagpanghambog
+          - hambog ang karakter sa istorya
+
+      arte:
+        meaning: pretentious / fussy
+        kind: adjective
+        exclamative: null
+        priority: low
+        skip_patterns: ["{w} kaayo mo", "{w} kaayo kamo"]
+        everyday:
+          - arte
+          - arte nga project
+          - arte ang among subject karon
+          - nindot ang arte sa museum
+          - arte kaayo ang project nila
+
+      samok:
+        meaning: annoying
+        kind: adjective
+        exclamative: samoka
+        priority: low
+        # "samok kaayo mo, class" is a teacher asking for quiet.
+        skip_patterns: ["{w} kaayo mo", "{w} kaayo kamo"]
+        everyday:
+          - samok
+          - samok kaayo mo class
+          - samok kaayo ang dalan
+          - samok kaayo ang ulan sa atop
+          - ayaw pagsamok diha
+          - hilom diha class
+          - hilom diha
+
+      kuripot:
+        meaning: stingy
+        kind: adjective
+        exclamative: null
+        priority: low
+        everyday:
+          - kuripot ang akong lolo pero buotan
+
+      sumbungero:
+        meaning: tattletale
+        kind: adjective
+        exclamative: null
+        priority: medium
+        everyday:
+          - ayaw kahadlok mosumbong sa maestra
+
+      sumbungera:
+        meaning: tattletale (girl)
+        kind: adjective
+        exclamative: null
+        priority: medium
+
+  pressure:
+    label: Extortion and pushy requests
+    roots:
+      extortion:
+        meaning: taking money / allowance (baon)
+        kind: phrase_only
+        severity: severe
+        priority: high
+        extra:
+          - hatagi ko sa imong baon
+          - hatagi ko sa imong kwarta
+          - hatagi ko imong baon
+          - hatagi ko og kwarta nimo
+          - ihatag imong baon
+          - ihatag nimo imong baon
+          - ihatag na imong baon
+          - akoa na imong baon
+          - akoa na lang imong baon
+          - imong baon akoa na lang
+          - baon akoa na lang
+          - akoa na imong kwarta
+          - kuhaon nako imong baon
+          - kung dili nimo ihatag imong baon
+        end_only:
+          - magdala ka og kwarta   # "... para sa project" is a teacher
+          - magdala ka ug kwarta
+          - ugma magdala ka og kwarta
+        everyday:
+          - pila imong baon
+          - hatagi ko og papel
+          - akoa na lang ni nga lapis
+          - magdala ka og kwarta para sa project
+          - ugma magdala mo og kwarta para sa field trip
+          - gihatag nako akong baon sa akong manghod
+
+      request:
+        meaning: pushy "friend" requests (copying, snacks, chores, project)
+        kind: phrase_only
+        severity: request
+        priority: medium
+        extra:
+          - pakopyaha ko sa imong assignment
+          - pakopyaha ko sa imong homework
+          - pakopyaha ko sa imong answer
+          - pakopyaha ko sa imong sagot
+          - palita ko og snacks sa canteen
+          - palita ko og snacks
+          - palita ko ug snacks
+          - palitan ko nimo og snacks
+          - ilibre ko kay kung dili
+          - ilibre ko kay kung dili bati ta
+          - ikaw mag cleaners para nako
+          - ikaw mag cleaning para nako
+          - ikaw mo buhat sa akong project
+          - ikaw mo buhat sa akong assignment
+          - ikaw mobuhat sa akong project
+          - buhata akong assignment
+          - akoa na ning imong ballpen
+          - akoa na ni imong ballpen
+          - akoa na ning imong lapis
+        everyday:
+          - palita ko og papel sa bookstore
+          - ikaw mag lead sa prayer
+          - ilibre tika sa akong birthday
+          - ikaw mag cleaners ugma kay friday
+          - pakopyaha ko sa lesson sa pisara ma'am
 
   swear_slurs:
     label: Swear words and slurs
@@ -856,8 +1189,13 @@ categories:
         bare: false              # "animal" is a normal school word
         vocative: animala
         priority: high
+        extra:
+          - animal kaayo ka
+          - hoy animal
         everyday:
+          - animal
           - animal sa zoo
+          - unsa imong paborito nga animal
           - ang iring usa ka animal
       piste:
         meaning: pest (curse)
@@ -926,12 +1264,75 @@ categories:
           - naay linti ganiha
       bayot:
         meaning: anti-gay slur
-        kind: noun
+        kind: adjective
+        exclamative: bayota
+        severity: severe
         priority: high
         extra:
+          - hoy bayot
+          - uy bayot
+          - ikaw bayot
           - bayota
-          - bayota nimo
         everyday: []
+      lakin-on:
+        meaning: mannish (slur when aimed at a girl)
+        kind: adjective
+        exclamative: null
+        severity: severe
+        priority: high
+        extra:
+          - hoy lakin on
+        everyday: []
+      babayeon:
+        meaning: girly (slur when aimed at a boy)
+        kind: adjective
+        exclamative: null
+        severity: severe
+        priority: high
+        extra:
+          - hoy babayeon
+        everyday: []
+      negro:
+        meaning: colorist slur
+        kind: noun
+        severity: severe
+        priority: high
+        extra:
+          - negra ka
+          - negra man ka
+          - mura kag negra
+          - hoy negra
+        everyday:
+          - negro
+          - negros oriental
+          - taga negros siya
+      hayop:
+        meaning: beast (curse)
+        kind: noun
+        priority: medium
+        extra:
+          - hayop ka oy
+        everyday:
+          - hayop sa uma
+          - mga hayop sa zoo
+      ulol:
+        meaning: idiot (curse)
+        kind: swear
+        bare: true
+        vocative: null
+        priority: medium
+      bugoy:
+        meaning: delinquent
+        kind: noun
+        priority: low
+        everyday:
+          - bugoy ang karakter sa salida
+      duwende:
+        meaning: goblin
+        kind: noun
+        priority: low
+        everyday:
+          - istorya bahin sa duwende
       tomboy:
         meaning: anti-lesbian slur when aimed
         kind: noun
@@ -945,10 +1346,14 @@ categories:
         meaning: will kill you
         kind: threat
         priority: high
+        extra:
+          - gusto ka mapatay
+          - gusto kag mapatay
       sumbagon:
         meaning: will punch you
         kind: threat
         priority: high
+        passive: [masumbag]
         extra:
           - sumbagay ta
           - gusto kag sumbagay
@@ -956,10 +1361,12 @@ categories:
         meaning: will beat you
         kind: threat
         priority: high
+        passive: [mabunalan]
       sipaon:
         meaning: will kick you
         kind: threat
         priority: high
+        passive: [masipa]
       tadyakan:
         meaning: will kick you
         kind: threat
@@ -968,6 +1375,50 @@ categories:
         meaning: will slap you
         kind: threat
         priority: medium
+        passive: [masagpa]
+      tamparon:
+        meaning: will slap you
+        kind: threat
+        priority: medium
+        passive: [matampal]
+      itulod:
+        meaning: will push you
+        kind: threat
+        priority: medium
+        extra:
+          - gusto ka matulod
+        everyday:
+          - itulod ang lamesa
+          - itulod nato ang pultahan
+      kuniton:
+        meaning: will pinch you
+        kind: threat
+        priority: low
+        extra:
+          - gusto ka makunit
+      labayon:
+        meaning: will throw something at you
+        kind: threat
+        priority: medium
+        extra:
+          - gusto ka malabay
+        everyday:
+          - labayon ang basura sa basurahan
+      bugbogon:
+        meaning: will beat you up
+        kind: threat
+        priority: high
+        passive: [mabugbog]
+      kulataon:
+        meaning: will beat you up
+        kind: threat
+        priority: medium
+        passive: [makulata]
+      sabunutan:
+        meaning: will pull your hair
+        kind: threat
+        priority: medium
+        passive: [masabunutan]
       kulatahon:
         meaning: will beat you up
         kind: threat
@@ -1023,13 +1474,99 @@ categories:
           - ayaw ko isumbong
           - bantay ka nako
           - bantay ka nako unya
+          # Grade 6 set (2026-11-25)
+          - ayaw sumbong sa maestra
+          - ayaw sumbong ni maam
+          - ayaw sumbong ni ma'am
+          - ayaw sumbong ha
+          - ayaw isumbong
+          - kung mosumbong ka
+          - kung isumbong ko nimo
+          - ipabunal tika
+          - ipabunal taka
+          - ipabunal ta ka
+          - ipasumbag tika
+          - ipabunal tika sa akong kuya
+          - abangan tika sa uwian
         end_only:
           - bantay ka            # "kung dili, bantay ka." (not "bantay ka sa dalan")
+          - hulat lang ka sa uwian   # "... kay ihatod tika" is a friendly offer
+          - hulat ka sa uwian
         everyday:
           - hulata ko sa canteen
           - kita ta sa canteen unya
           - suwayi ang bag-ong sapatos
           - isumbong nako sa maestra
+          - hulat lang ka sa uwian kay ihatod tika
+          - ayaw sumbong sumbong sa gagmay nga butang
+
+  provocation:
+    label: Provocation, property and online shaming
+    roots:
+      provocation:
+        meaning: picking a fight / insulting the mother
+        kind: phrase_only
+        severity: context
+        priority: medium
+        extra:
+          - unsay problema nimo
+          - unsa'y problema nimo
+          - unsa may problema nimo
+          - unsa ba problema nimo
+          - unsa man ha away ta
+          - yawa imong mama
+          - yawa imong papa
+          - piste imong mama
+          - animal imong mama
+          - imong mama yawa
+        end_only:
+          - imong mama          # "imong mama nagtawag" = your mom is calling
+          - imong mama oy
+        everyday:
+          - imong mama nagtawag nimo
+          - unsay problema sa number tres
+          - unsa may problema sa imong computer
+
+      property:
+        meaning: threatening a classmate's things
+        kind: phrase_only
+        severity: context
+        priority: medium
+        extra:
+          - ilabay nako imong bag
+          - ilabay nako imong gamit
+          - gision nako imong notebook
+          - gisi on nako imong notebook
+          - gision nako imong libro
+          - tagoan nako imong tsinelas
+          - tagoan nako imong bag
+          - itago nako imong bag
+          - gubaon nako imong bag
+          - lungkaban nako imong bag
+        everyday:
+          - ilabay nako ang basura
+          - gision nako ang daan nga papel
+          - itago nako akong bag sa locker
+
+      online:
+        meaning: posting someone to shame them
+        kind: phrase_only
+        severity: context
+        priority: medium
+        extra:
+          - i post nako imong pic
+          - ipost nako imong pic
+          - i post nako imong picture
+          - ipost nako imong picture
+          - i post nako imong pic para kataw an ka
+          - i post tika
+          - ipost tika sa facebook
+          - i myday nako imong pic
+          - para kataw an ka
+          - pakataw an tika
+        everyday:
+          - i post nako ang picture sa field trip
+          - ipost nako ang among project
 
   self_harm:
     label: Self-harm (always HIGH)

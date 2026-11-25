@@ -82,7 +82,7 @@ GRADE6 = [
     ("sipsip ka", "MEDIUM"), ("salingkapaw ka", "MEDIUM"),
     ("tikasan ka", "MEDIUM"), ("yawa ka", "MEDIUM"), ("animal ka", "MEDIUM"),
     ("piste ka", "MEDIUM"), ("atay ka", "MEDIUM"), ("gaga ka", "MEDIUM"),
-    ("gago ka", "MEDIUM"), ("leche ka", "MEDIUM"), ("bayot ka", "MEDIUM"),
+    ("gago ka", "MEDIUM"), ("leche ka", "MEDIUM"), ("bayot ka", "HIGH"),
     ("patyon tika", "HIGH"), ("bunalan tika", "HIGH"), ("sumbagon tika", "HIGH"),
     ("sipaon tika", "HIGH"), ("hulata ko sa gawas", "HIGH"),
     ("ayaw pagsumbong", "HIGH"), ("magpakamatay ka", "HIGH"),
