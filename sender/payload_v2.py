@@ -69,6 +69,7 @@ _OPTIONAL_PAYLOAD_FIELDS = frozenset({
     "direct_address_evidence",
     "language_confidence",
     "laughter_context",
+    "needs_review",
     "repetition_evidence",
     "tone_evidence",
     "transcribed_text",
@@ -677,6 +678,12 @@ def build_alert_payload_v2(
         payload["repetition_evidence"] = {"detected": True}
     if "direct_target_pattern" in supporting:
         payload["direct_address_evidence"] = {"detected": True}
+    # Uncertain alert: dashboard only, no push. Always flagged inside
+    # severity_evidence.supporting_evidence ("needs_review:true"); the
+    # top-level field is sent only once the backend accepts it
+    # (AlertCreate is extra="forbid": ECHOSENSE_ALERT_NEEDS_REVIEW_FIELD=true).
+    if "needs_review:true" in supporting and _env_flag("ECHOSENSE_ALERT_NEEDS_REVIEW_FIELD"):
+        payload["needs_review"] = True
     laughter_context = _laughter_context(
         tone_context,
         bool(supporting & {
@@ -694,6 +701,11 @@ def build_alert_payload_v2(
     _reject_private_content(payload)
     validate_alert_payload_v2(payload)
     return payload
+
+
+def _env_flag(name):
+    import os
+    return str(os.environ.get(name, "")).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def validate_alert_payload_v2(payload: object) -> None:

@@ -367,6 +367,9 @@ def _fuse_text(text_item, acoustic_evidence, targeted_count, config, others=()):
         targeted=is_targeted(text_item.decision_terms, text_item.decision_text),
         others=others,
     )
+    if text_item.media_lower and level != LOW:
+        level = LOW if level == MEDIUM else MEDIUM
+        semantic_reasons.append("media_playing:lowered_one_level")
     reasons.extend(semantic_reasons)
     supporting = list(decision.supporting_evidence)
     supporting.extend(semantic_supporting)
@@ -447,6 +450,14 @@ def fuse_event_evidence(
             corroborated = corroborated or vote.angry_tone
         if qualifying_acoustic and not any_linked:
             supporting.append("unlinked_acoustic_evidence_ignored")
+        review = [item.review_reasons for item in qualifying_text]
+        if all(review):
+            # Every opening utterance is uncertain: dashboard review, no push.
+            level = LOW
+            summary = "Possible monitored word (uncertain match), needs review"
+            supporting.append("needs_review:true")
+            for item_reasons in review:
+                supporting.extend(item_reasons)
         # Soft descriptive words ("ugly", "too short") are everyday speech:
         # send them only when aimed at someone or said in an aggressive tone.
         # A school on Strict sensitivity wants them sent anyway.

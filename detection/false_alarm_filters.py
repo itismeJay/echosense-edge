@@ -17,8 +17,12 @@ model/whisper_stt.py applies them to every finalized utterance, in this order:
                     threat and self-harm phrases). With the old hint prompt
                     Whisper wrote "bobo" at probability 0.01: this filter
                     catches exactly that.
-4. media playing    YAMNet hears Music, Television or Radio: no alert, unless
-                    the term is a threat or self-harm phrase.
+4. media playing    YAMNet hears Music, Television or Radio: the term is only
+                    marked here. detection/text_detector.py drops it after the
+                    Claude call when nothing aims it at someone (no ka/mo/
+                    nimo/imo/you...) and Claude does not call it an insult or
+                    threat; otherwise it alerts, at most one level lower.
+                    Threat and self-harm phrases are never marked.
 
 Every rule can be tuned or switched off with ECHOSENSE_FILTER_* variables.
 """
@@ -453,6 +457,43 @@ def decode_gate_overridden(
         return False
     kept, _dropped, _scores = filter_terms_by_probability(urgent, metrics, config)
     return bool(kept)
+
+
+# Words that aim an utterance at the listener. Song lyrics and videos rarely
+# address someone in the room in Bisaya ("bobo ka", "buang mo").
+AIMED_MARKERS = frozenset({
+    "ka", "mo", "nimo", "imo", "you", "ikaw", "kamo", "tika", "taka",
+})
+
+
+def has_aimed_marker(text: str) -> bool:
+    words = re.findall(r"[a-z']+", unicodedata.normalize("NFKC", str(text or "")).lower())
+    return any(word in AIMED_MARKERS for word in words)
+
+
+def estimate_snr_db(samples, frame=320):
+    """Rough per-utterance SNR: loud (90th pct) vs quiet (10th pct) frame RMS.
+
+    Speech peaks against the noise in the gaps between words. Clean clips
+    with no pauses read low (~8 dB) too, so it is only used together with
+    Claude's judgement. None when the clip is shorter than 10 frames.
+    """
+
+    import numpy as np
+    x = np.asarray(samples, dtype=np.float32).ravel()
+    if x.size < frame * 10:
+        return None
+    frames = x[: x.size // frame * frame].reshape(-1, frame)
+    rms = np.sqrt((frames ** 2).mean(axis=1)) + 1e-7
+    return float(20 * np.log10(np.percentile(rms, 90) / np.percentile(rms, 10)))
+
+
+def noisy_snr_threshold_db(environ=None) -> float:
+    """Below this estimated SNR an unaimed word Claude does not confirm goes to
+    review. Off by default (0): on the noise bench (2026-11-25) 10 dB moved 2
+    false alarms to review but also 5 real bare-word catches."""
+    return _env_float(environ if environ is not None else os.environ,
+                      "ECHOSENSE_NOISY_SNR_DB", 0.0)
 
 
 def media_gate(top_classes, terms: Iterable[str], config: FilterConfig):

@@ -235,6 +235,14 @@ class TextEvidence:
     reaction_in_previous_turns: bool = False
     # This utterance itself is such a reaction (see has_victim_reaction).
     victim_reaction: bool = False
+    # YAMNet heard media (Music/Television/Radio) during the utterance and the
+    # word was kept (aimed or Claude-confirmed): fusion lowers it one level
+    # when media_lower is set.
+    media_classes: tuple[str, ...] = ()
+    media_lower: bool = False
+    # Non-empty: send for dashboard review only (LOW, needs_review:true, no
+    # push), e.g. a sound-alike match Claude did not confirm.
+    review_reasons: tuple[str, ...] = ()
 
     @property
     def decision_text(self) -> str:

@@ -351,6 +351,23 @@ def _result(text, language, probability, metadata):
     return result
 
 
+SECOND_TRY_MIN_LETTERS = 3
+SECOND_TRY_MIN_SECONDS = 0.5
+
+
+def needs_second_try(text, audio, sample_rate=16000, environ=None):
+    """Scribe returned empty/very short text (< 3 letters) for a clip of
+    speech length. Off by default (ECHOSENSE_STT_SECOND_TRY=true turns it
+    on): on the noise bench (2026-11-25) it added ~6 s per clip on the Mac
+    and caught nothing; Whisper failed the decode gate or looped."""
+
+    environ = os.environ if environ is None else environ
+    if str(environ.get("ECHOSENSE_STT_SECOND_TRY", "false")).strip().lower() not in {"1", "true", "yes", "on"}:
+        return False
+    letters = sum(ch.isalpha() for ch in str(text or ""))
+    return letters < SECOND_TRY_MIN_LETTERS and len(audio) >= SECOND_TRY_MIN_SECONDS * sample_rate
+
+
 def _event_id(clip):
     return getattr(clip.audio_event, "event_id", "unavailable")
 
@@ -429,11 +446,38 @@ class HybridTranscriptionExecutor:
             # Earlier clips are waiting for a retry; keep the order.
             return self._queued("awaiting_retry", started)
         try:
-            return self.elevenlabs(audio, started)
+            result = self.elevenlabs(audio, started)
         except ProviderError as exc:
             if exc.reason not in CLIP_ERRORS:
                 self.health.record_failure(exc.reason)
             return self._queued(exc.reason, started)
+        if self.whisper is not None and needs_second_try(result.text, audio, self.sample_rate):
+            return self._second_try(audio, use_prompt, result)
+        return result
+
+    def _second_try(self, audio, use_prompt, scribe_result):
+        """Scribe heard (almost) nothing in a speech clip: try local Whisper.
+
+        Whisper's text then goes through the Whisper path in whisper_stt
+        (decode-quality gate, sound-alike repair). Scribe's audio tags stay.
+        """
+
+        started = self._clock()
+        try:
+            second = self._whisper(audio, None, use_prompt, started, "elevenlabs_empty")
+        except Exception as exc:
+            print(f"[STT] second_try=failed error={type(exc).__name__}")
+            return scribe_result
+        ms = int((self._clock() - started) * 1000)
+        scribe_stt = (scribe_result.metadata or {}).get("stt", {})
+        second.metadata["stt"]["audio_tags"] = list(scribe_stt.get("audio_tags") or ())
+        second.metadata["stt"]["second_try_ms"] = ms
+        print(f"[STT] second_try=whisper reason=elevenlabs_empty ms={ms} "
+              f"chars={len((second.text or '').strip())}")
+        if not str(second.text or "").strip():
+            scribe_result.metadata["stt"]["second_try_ms"] = ms
+            return scribe_result
+        return second
 
     def elevenlabs(self, audio, started=None):
         """One ElevenLabs call; any failure is raised as ProviderError."""

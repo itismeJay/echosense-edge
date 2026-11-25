@@ -149,12 +149,13 @@ class SoundalikeNeedsClaudeTests(unittest.TestCase):
                 )
                 self.assertTrue(alerted(evidence))
 
-    def test_unconfirmed_soundalike_match_does_not_alert(self):
+    def test_unconfirmed_aimed_soundalike_goes_to_review_only(self):
+        # Not dropped: sent with needs_review (dashboard, no push).
         for label, confidence in (("insult", 0.59), ("shaming", 0.45),
                                   ("banter", 0.9), ("none", 0.9)):
             with self.subTest(label=label, confidence=confidence):
                 evidence = analyze(self.TEXT, "ceb", judgement(label, confidence))
-                self.assertFalse(alerted(evidence))
+                self.assertEqual(evidence.review_reasons, (SOUNDALIKE_UNCONFIRMED_REASON,))
                 self.assertIn(SOUNDALIKE_UNCONFIRMED_REASON, evidence.reasons)
 
     def test_without_claude_the_lexicon_rules_stand(self):

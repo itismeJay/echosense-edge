@@ -98,6 +98,11 @@ patterns:
     - "{t} ka nako unya"
     - "{t} tika ugma"
     - "{t} ka"
+    - "{t} kita"
+    - "{t} ko"             # "patyon ko" (I'll get killed / I'll kill it): asked for, review
+    - "{t} mo"             # plural "you all"
+    - "{t} jud ka"
+    - "{t} gyud ka"
     - "tika {t}"            # reversed order: "tika patyon", "taka sumbagon"
     - "taka {t}"
     - "tika {t} unya"

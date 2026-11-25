@@ -29,6 +29,9 @@ from detection.llm_semantic import (
     has_victim_reaction,
     semantic_input,
 )
+from detection.false_alarm_filters import (
+    estimate_snr_db, has_aimed_marker, noisy_snr_threshold_db,
+)
 from detection.semantic import SemanticAnalyzer
 from detection.severity import calculate_severity, has_direct_target_evidence
 from detection.soundalike import FUZZY_PROVENANCE, spelling_key
@@ -45,7 +48,15 @@ DETECTED_BY_MEANING_REASON = "semantic:detected_by_meaning"
 # opens an incident only if Claude, when it answered, calls it one of these.
 SOUNDALIKE_CONFIRM_LABELS = frozenset({"insult", "threat", "exclusion"})
 SOUNDALIKE_CONFIRM_MIN_CONFIDENCE = 0.6
-SOUNDALIKE_UNCONFIRMED_REASON = "suppressed:soundalike_not_confirmed_by_semantic"
+SOUNDALIKE_UNCONFIRMED_REASON = "needs_review:soundalike_not_confirmed_by_semantic"
+SOUNDALIKE_UNCORROBORATED_REASON = "needs_review:soundalike_uncorroborated"
+NOISY_UNCONFIRMED_REASON = "needs_review:noisy_audio_not_confirmed_by_semantic"
+# Media (music/TV/radio) heard with the word: treated as lyrics/video only
+# when nothing aims it at someone AND Claude does not call it one of these.
+MEDIA_CONFIRM_LABELS = frozenset({"insult", "threat"})
+MEDIA_CONFIRM_MIN_CONFIDENCE = 0.6
+MEDIA_SUPPRESSED_REASON = "suppressed:media_playing_not_aimed"
+MEDIA_KEPT_REASON = "media_playing:kept"
 
 
 @dataclass(slots=True)
@@ -56,6 +67,8 @@ class PendingText:
     reasons: list
     handle: object = None
     soundalike_only: bool = False
+    # Sound-alike terms that could not open on their own (review candidates).
+    review_terms: tuple = ()
 
 
 class TextDetector:
@@ -400,16 +413,29 @@ class TextDetector:
             game_story_context=game_story_context,
             reaction_in_previous_turns=reaction_in_previous_turns,
             victim_reaction=victim_reaction,
+            media_classes=tuple(result.get("media_classes") or ()),
         )
+        if fields["media_classes"]:
+            fields["_media_aimed"] = bool(result.get("media_aimed"))
+        samples = getattr(audio_event, "samples", None)
+        fields["_snr_db"] = None if samples is None else estimate_snr_db(samples)
+        review_terms = ()
+        if quality_accepted and not context_suppressed and has_monitored and not qualifies:
+            review_terms = tuple(
+                term for term in detected
+                if provenance_by_term[term] != "original_exact"
+            )
         return PendingText(
             fields=fields, reasons=reasons, handle=handle,
-            soundalike_only=soundalike_only,
+            soundalike_only=soundalike_only, review_terms=review_terms,
         )
 
     def complete(self, pending: PendingText) -> TextEvidence:
         """Wait for the semantic judgement (bounded) and build the evidence."""
 
-        fields = pending.fields
+        fields = dict(pending.fields)
+        media_aimed = fields.pop("_media_aimed", False)
+        snr_db = fields.pop("_snr_db", None)
         reasons = list(pending.reasons)
         judgement = None
         if pending.handle is not None:
@@ -417,6 +443,7 @@ class TextDetector:
         elif self.semantic_gate.available:
             judgement = LLMJudgement(status="skipped")
         qualifies = fields["qualifies_to_open"]
+        aimed = has_aimed_marker(fields.get("match_text") or fields["transcript"])
         # Only when Claude answered: without it the lexicon rules stand.
         if (
             qualifies
@@ -428,8 +455,61 @@ class TextDetector:
                 and judgement.confidence >= SOUNDALIKE_CONFIRM_MIN_CONFIDENCE
             )
         ):
-            qualifies = False
-            reasons.append(SOUNDALIKE_UNCONFIRMED_REASON)
+            if aimed:
+                # Aimed at someone: dashboard review (no push), not dropped.
+                reasons.append(SOUNDALIKE_UNCONFIRMED_REASON)
+                fields["review_reasons"] = (SOUNDALIKE_UNCONFIRMED_REASON,)
+            else:
+                qualifies = False
+                reasons.append("suppressed:soundalike_not_confirmed_by_semantic")
+        elif (
+            not qualifies
+            and aimed
+            and judgement is not None and judgement.ok
+            and pending.review_terms
+            and not (
+                judgement is not None and judgement.ok
+                and judgement.label in LLM_HARMFUL_LABELS
+                and judgement.targeted
+                and meaning_only_severity(judgement.label, judgement.confidence)
+            )
+        ):
+            # A sound-alike that needed corroboration it did not get.
+            qualifies = True
+            fields["qualification_terms"] = pending.review_terms
+            reasons.append(SOUNDALIKE_UNCORROBORATED_REASON)
+            fields["review_reasons"] = (SOUNDALIKE_UNCORROBORATED_REASON,)
+        if qualifies and fields["media_classes"]:
+            confirmed = bool(
+                judgement is not None and judgement.ok
+                and judgement.label in MEDIA_CONFIRM_LABELS
+                and judgement.confidence >= MEDIA_CONFIRM_MIN_CONFIDENCE
+            )
+            if not media_aimed and not confirmed:
+                qualifies = False
+                reasons.append(
+                    MEDIA_SUPPRESSED_REASON + ":" + "+".join(fields["media_classes"])
+                )
+            else:
+                reasons.append(MEDIA_KEPT_REASON + (":aimed" if media_aimed else ":semantic"))
+                fields["media_lower"] = not media_aimed
+        if (
+            qualifies
+            and not fields.get("review_reasons")
+            and not aimed  # "Animal ka" in noise is usually heard right
+            and snr_db is not None
+            and snr_db < noisy_snr_threshold_db()
+            and fields["baseline_severity"] != "HIGH"  # threats always push
+            and judgement is not None and judgement.ok
+            and not (
+                judgement.label in MEDIA_CONFIRM_LABELS
+                and judgement.confidence >= MEDIA_CONFIRM_MIN_CONFIDENCE
+            )
+        ):
+            # Noisy audio and Claude does not call it an insult/threat: a
+            # likely mishearing. Dashboard review instead of a push.
+            reasons.append(NOISY_UNCONFIRMED_REASON + f":snr={snr_db:.1f}")
+            fields["review_reasons"] = (NOISY_UNCONFIRMED_REASON,)
         opened_by_meaning = bool(
             not qualifies
             and fields["quality_accepted"]

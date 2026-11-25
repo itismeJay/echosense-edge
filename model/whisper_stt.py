@@ -26,6 +26,7 @@ from detection.false_alarm_filters import (
     filter_terms_by_elevenlabs_logprob,
     filter_terms_by_probability,
     hallucination_reason,
+    has_aimed_marker,
     media_gate,
 )
 from detection.severity import LOW
@@ -488,11 +489,15 @@ def _apply_term_filters(
     top_classes = _media_top_classes(event_id, audio_event)
     reason = media_gate(top_classes, kept, _FILTERS)
     if reason:
+        # Not dropped here: TextDetector decides after the Claude call
+        # (detection/text_detector.py, media rule).
+        aimed = has_aimed_marker(result.get("match_text") or original_text)
         print(
-            f"[FILTER] event={event_id} dropped_terms={kept} reason={reason}"
+            f"[FILTER] event={event_id} media_terms={kept} reason={reason} "
+            f"aimed={str(aimed).lower()} decision=after_semantic"
         )
-        result = restrict_to_terms(result, [], original_text)
-        result.setdefault("filter_reasons", []).append(reason)
+        result["media_classes"] = reason.split(":", 1)[1].split("+")
+        result["media_aimed"] = aimed
     return result
 
 

@@ -328,15 +328,29 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(len(alerts), 1)
         self.assertEqual(alerts[0].severity, "HIGH")
 
-    def test_insult_heard_from_a_video_does_not_alert(self):
+    def test_unaimed_word_heard_from_a_video_does_not_alert(self):
+        # Music, no ka/mo/you, no Claude confirmation: lyrics or a video.
+        result, alerts = self.run_utterance(
+            "Bobo, bobo",
+            metadata([(" Bobo,", 0.93), (" bobo", 0.88)]),
+            top_classes=MUSIC,
+        )
+        self.assertEqual(result["media_classes"], ["Music"])
+        self.assertFalse(result["media_aimed"])
+        self.assertEqual(alerts, [])
+
+    def test_aimed_insult_over_music_still_alerts(self):
+        _result, quiet = self.run_utterance(
+            "Bobo ka!", metadata([(" Bobo", 0.93), (" ka!", 0.88)])
+        )
         result, alerts = self.run_utterance(
             "Bobo ka!",
             metadata([(" Bobo", 0.93), (" ka!", 0.88)]),
             top_classes=MUSIC,
         )
-        self.assertEqual(result["detected_words"], [])
-        self.assertIn("media_playing:Music", result["filter_reasons"])
-        self.assertEqual(alerts, [])
+        self.assertTrue(result["media_aimed"])
+        self.assertEqual(len(alerts), 1)
+        self.assertEqual(alerts[0].severity, quiet[0].severity)
 
     def test_unsure_word_does_not_alert(self):
         result, alerts = self.run_utterance(
@@ -481,3 +495,28 @@ class EngineTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NeedsReviewPayloadTests(unittest.TestCase):
+    def build(self, supporting):
+        import os
+        from datetime import datetime, timezone
+        from sender.payload_v2 import build_alert_payload_v2
+        now = datetime(2026, 11, 25, tzinfo=timezone.utc)
+        return build_alert_payload_v2(
+            event_id="3aa32873-5b19-44f0-8909-9071721ba186", trigger_type="KEYWORD",
+            severity="LOW", event_start_timestamp=now, event_end_timestamp=now,
+            device_identifier="es-test", detected_words=["niwang ka"],
+            severity_evidence={"level": "LOW", "reasons": ["r"],
+                               "supporting_evidence": list(supporting)},
+        )
+
+    def test_review_flag_in_evidence_and_top_level_only_when_enabled(self):
+        import os
+        from unittest import mock
+        body = self.build(["needs_review:true"])
+        self.assertIn("needs_review:true", body["severity_evidence"]["supporting_evidence"])
+        self.assertNotIn("needs_review", body)
+        with mock.patch.dict(os.environ, {"ECHOSENSE_ALERT_NEEDS_REVIEW_FIELD": "true"}):
+            self.assertIs(self.build(["needs_review:true"])["needs_review"], True)
+            self.assertNotIn("needs_review", self.build([]))
